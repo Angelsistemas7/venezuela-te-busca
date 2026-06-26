@@ -1,0 +1,1441 @@
+import { getSupabase, getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
+import {
+  seedAidPoints,
+  seedComments,
+  seedHospitalPatients,
+  seedHospitals,
+  seedMarches,
+  seedPersons,
+  seedPosts,
+  seedStatusReports,
+} from "./seed";
+import type {
+  AidPoint,
+  Comment,
+  Hospital,
+  HospitalPatient,
+  HospitalStatus,
+  March,
+  Person,
+  PersonReaction,
+  PersonStatus,
+  Post,
+  PostType,
+  ReactionKind,
+  ResourceOwnerEntity,
+  Stats,
+  StatusReport,
+} from "./types";
+import type {
+  AidPointInput,
+  HospitalInput,
+  HospitalPatientInput,
+  MarchInput,
+  PersonInput,
+  PostInput,
+  StatusReportInput,
+} from "./validation";
+
+// ─────────────────────────────────────────────────────────────────────────
+// Capa de acceso a datos. Una sola interfaz; dos implementaciones:
+//   • Supabase (producción)  • Memoria con datos de ejemplo (desarrollo)
+// La UI nunca habla con la base de datos directamente: siempre pasa por aquí.
+// ─────────────────────────────────────────────────────────────────────────
+
+export type PersonSort = "recent" | "name" | "estado";
+
+export interface PersonQuery {
+  search?: string;
+  status?: PersonStatus | "all";
+  estado?: string | "all";
+  gender?: string | "all";
+  minAge?: number;
+  maxAge?: number;
+  unidentifiedOnly?: boolean;
+  excludeUnidentified?: boolean;
+  hospitalizedOnly?: boolean;
+  sort?: PersonSort;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PersonResult {
+  items: Person[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// ── Almacén en memoria (copias mutables del seed para simular escritura) ────
+const mem = {
+  persons: [...seedPersons],
+  reports: [...seedStatusReports],
+  aidPoints: [...seedAidPoints],
+  marches: [...seedMarches],
+  comments: [...seedComments],
+  posts: [...seedPosts],
+  hospitals: [...seedHospitals],
+  patients: [...seedHospitalPatients],
+  // Token privado de gestión por persona (solo lo conoce quien publicó).
+  ownerTokens: {} as Record<string, string>,
+  // Tokens de gestión de recursos (puntos de ayuda, caravanas): el autor
+  // gestiona su publicación con un enlace privado, igual que las personas.
+  resourceOwners: [] as { entityType: ResourceOwnerEntity; entityId: string; token: string }[],
+};
+
+function newToken(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function uid(prefix: string) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// ── Mapeo fila Supabase -> tipo de dominio ──────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToPerson(r: any): Person {
+  return {
+    id: r.id,
+    firstName: r.first_name,
+    lastName: r.last_name ?? "",
+    cedula: r.cedula,
+    age: r.age,
+    gender: r.gender,
+    estado: r.estado,
+    locationText: r.location_text ?? "",
+    description: r.description ?? "",
+    photoUrl: r.photo_url,
+    status: r.status,
+    hospitalName: r.hospital_name,
+    isUnidentified: r.is_unidentified,
+    contactName: r.contact_name,
+    contactPhone: r.contact_phone,
+    contactEmail: r.contact_email,
+    verified: r.verified ?? false,
+    reactions: { fuerza: 0, corazon: 0, difundir: 0, ...(r.reactions ?? {}) },
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function rowToReport(r: any): StatusReport {
+  return {
+    id: r.id,
+    personId: r.person_id,
+    reportedStatus: r.reported_status,
+    reporterName: r.reporter_name,
+    reporterPhone: r.reporter_phone,
+    reporterRelationship: r.reporter_relationship,
+    locationFound: r.location_found,
+    notes: r.notes ?? "",
+    verified: r.verified,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ── Filtro/orden en memoria ─────────────────────────────────────────────────
+function queryMemoryPersons(q: PersonQuery): PersonResult {
+  const page = q.page ?? 1;
+  const pageSize = q.pageSize ?? 24;
+  let items = mem.persons.slice();
+
+  if (q.unidentifiedOnly) items = items.filter((p) => p.isUnidentified);
+  if (q.excludeUnidentified) items = items.filter((p) => !p.isUnidentified);
+  if (q.status && q.status !== "all") items = items.filter((p) => p.status === q.status);
+  if (q.hospitalizedOnly) items = items.filter((p) => p.status === "hospitalizado");
+  if (q.estado && q.estado !== "all") items = items.filter((p) => p.estado === q.estado);
+  if (q.gender && q.gender !== "all") items = items.filter((p) => p.gender === q.gender);
+  if (typeof q.minAge === "number") items = items.filter((p) => p.age != null && p.age >= q.minAge!);
+  if (typeof q.maxAge === "number") items = items.filter((p) => p.age != null && p.age <= q.maxAge!);
+
+  if (q.search) {
+    const s = q.search.toLowerCase().trim();
+    items = items.filter((p) =>
+      [p.firstName, p.lastName, p.cedula, p.estado, p.locationText]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(s),
+    );
+  }
+
+  switch (q.sort) {
+    case "name":
+      items.sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
+      break;
+    case "estado":
+      items.sort((a, b) => (a.estado ?? "").localeCompare(b.estado ?? ""));
+      break;
+    default:
+      items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const total = items.length;
+  const start = (page - 1) * pageSize;
+  return { items: items.slice(start, start + pageSize), total, page, pageSize };
+}
+
+// ── API pública ─────────────────────────────────────────────────────────────
+export async function getPersons(q: PersonQuery = {}): Promise<PersonResult> {
+  const sb = getSupabase();
+  if (!sb) return queryMemoryPersons(q);
+
+  const page = q.page ?? 1;
+  const pageSize = q.pageSize ?? 24;
+  let query = sb.from("persons").select("*", { count: "exact" });
+
+  if (q.unidentifiedOnly) query = query.eq("is_unidentified", true);
+  if (q.excludeUnidentified) query = query.eq("is_unidentified", false);
+  if (q.status && q.status !== "all") query = query.eq("status", q.status);
+  if (q.hospitalizedOnly) query = query.eq("status", "hospitalizado");
+  if (q.estado && q.estado !== "all") query = query.eq("estado", q.estado);
+  if (q.gender && q.gender !== "all") query = query.eq("gender", q.gender);
+  if (typeof q.minAge === "number") query = query.gte("age", q.minAge);
+  if (typeof q.maxAge === "number") query = query.lte("age", q.maxAge);
+  if (q.search) query = query.textSearch("search_doc", q.search, { type: "websearch", config: "spanish" });
+
+  if (q.sort === "name") query = query.order("first_name", { ascending: true });
+  else if (q.sort === "estado") query = query.order("estado", { ascending: true });
+  else query = query.order("created_at", { ascending: false });
+
+  query = query.range((page - 1) * pageSize, page * pageSize - 1);
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+  return {
+    items: (data ?? []).map(rowToPerson),
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
+export async function getPersonById(id: string): Promise<Person | null> {
+  const sb = getSupabase();
+  if (!sb) return mem.persons.find((p) => p.id === id) ?? null;
+  const { data, error } = await sb.from("persons").select("*").eq("id", id).single();
+  if (error) return null;
+  return data ? rowToPerson(data) : null;
+}
+
+// ── Agrupación de resultados al filtrar por estado de localización ───────────
+export type GroupBy = "hospital" | "estado";
+
+export interface PersonGroup {
+  key: string;
+  label: string;
+  items: Person[];
+}
+
+/**
+ * Trae TODAS las personas que cumplen la consulta (sin paginar) y las agrupa:
+ *  • "hospital" → por hospital donde están internadas (Hospitalizado).
+ *  • "estado"   → por estado/región (Localizado, Confirmado sin vida).
+ * Los grupos se ordenan por tamaño (de más a menos) y luego por nombre.
+ */
+export async function getPersonGroups(q: PersonQuery, groupBy: GroupBy): Promise<PersonGroup[]> {
+  // Subconjunto acotado (un estado concreto): traer todo para agrupar bien.
+  const { items } = await getPersons({ ...q, page: 1, pageSize: 1000 });
+
+  const fallback = groupBy === "hospital" ? "Hospital sin especificar" : "Sin región";
+  const groups = new Map<string, Person[]>();
+  for (const p of items) {
+    const raw = groupBy === "hospital" ? p.hospitalName : p.estado;
+    const key = (raw ?? "").trim() || fallback;
+    const arr = groups.get(key);
+    if (arr) arr.push(p);
+    else groups.set(key, [p]);
+  }
+
+  return [...groups.entries()]
+    .map(([key, groupItems]) => ({ key, label: key, items: groupItems }))
+    .sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
+}
+
+export async function getStats(): Promise<Stats> {
+  const sb = getSupabase();
+  if (!sb) {
+    const registered = mem.persons.length;
+    const located = mem.persons.filter(
+      (p) => p.status === "localizado" || p.status === "hospitalizado",
+    ).length;
+    return {
+      registered,
+      located,
+      toLocate: registered - located,
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+  const [{ count: registered }, { count: located }] = await Promise.all([
+    sb.from("persons").select("*", { count: "exact", head: true }),
+    sb
+      .from("persons")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["localizado", "hospitalizado"]),
+  ]);
+  return {
+    registered: registered ?? 0,
+    located: located ?? 0,
+    toLocate: (registered ?? 0) - (located ?? 0),
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+export interface CreatePersonResult {
+  person: Person;
+  ownerToken: string;
+}
+
+export async function createPerson(
+  input: PersonInput,
+  photoUrl: string | null,
+): Promise<CreatePersonResult> {
+  const now = new Date().toISOString();
+  const ownerToken = newToken();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  const age = typeof input.age === "number" && !Number.isNaN(input.age) ? input.age : null;
+  // En un avistamiento sin identificar puede no conocerse el nombre: usamos un
+  // marcador para no dejar el campo vacío (la BD exige first_name no nulo).
+  const firstName = (input.firstName ?? "").trim() || "Sin identificar";
+
+  if (!sb) {
+    const person: Person = {
+      id: uid("person"),
+      firstName,
+      lastName: input.lastName || "",
+      cedula: input.cedula || null,
+      age,
+      gender: input.gender ?? null,
+      estado: input.estado ?? null,
+      locationText: input.locationText || "",
+      description: input.description || "",
+      photoUrl,
+      status: "por_localizar",
+      hospitalName: null,
+      isUnidentified: input.isUnidentified ?? false,
+      contactName: input.contactName || null,
+      contactPhone: input.contactPhone || null,
+      contactEmail: input.contactEmail || null,
+      verified: false,
+      reactions: { fuerza: 0, corazon: 0, difundir: 0 },
+      createdAt: now,
+      updatedAt: now,
+    };
+    mem.persons.unshift(person);
+    mem.ownerTokens[person.id] = ownerToken;
+    return { person, ownerToken };
+  }
+
+  const { data, error } = await sb
+    .from("persons")
+    .insert({
+      first_name: firstName,
+      last_name: input.lastName || "",
+      cedula: input.cedula || null,
+      age,
+      gender: input.gender ?? null,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      description: input.description || "",
+      photo_url: photoUrl,
+      is_unidentified: input.isUnidentified ?? false,
+      contact_name: input.contactName || null,
+      contact_phone: input.contactPhone || null,
+      contact_email: input.contactEmail || null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  const person = rowToPerson(data);
+  // Guarda el token en una tabla aparte, sin lectura pública (secreto).
+  await sb.from("person_owners").insert({ person_id: person.id, token: ownerToken });
+  return { person, ownerToken };
+}
+
+// ── Gestión por el autor de la publicación (enlace privado) ─────────────────
+/** Verifica que el token corresponde al autor de la publicación. */
+export async function verifyOwner(personId: string, token: string): Promise<boolean> {
+  if (!token) return false;
+  const sb = getSupabaseAdmin();
+  if (!getSupabase()) {
+    // Modo memoria (demo).
+    return mem.ownerTokens[personId] === token;
+  }
+  if (!sb) return false; // sin service role no se puede verificar el secreto
+  const { data, error } = await sb
+    .from("person_owners")
+    .select("token")
+    .eq("person_id", personId)
+    .single();
+  if (error || !data) return false;
+  return data.token === token;
+}
+
+/** Cambia el estado de una persona (uso interno: autor o moderador). */
+export async function updatePersonStatus(id: string, status: PersonStatus): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const person = mem.persons.find((p) => p.id === id);
+    if (person) {
+      person.status = status;
+      person.updatedAt = new Date().toISOString();
+    }
+    return;
+  }
+  const { error } = await sb.from("persons").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Edita campos de una persona (autor). Solo campos corregibles. */
+export async function updatePersonFields(id: string, input: PersonInput): Promise<void> {
+  const age = typeof input.age === "number" && !Number.isNaN(input.age) ? input.age : null;
+  const firstName = (input.firstName ?? "").trim() || "Sin identificar";
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const person = mem.persons.find((p) => p.id === id);
+    if (person) {
+      person.firstName = firstName;
+      person.lastName = input.lastName || "";
+      person.age = age;
+      person.gender = input.gender ?? null;
+      person.estado = input.estado ?? null;
+      person.locationText = input.locationText || "";
+      person.description = input.description || "";
+      person.contactName = input.contactName || null;
+      person.contactPhone = input.contactPhone || null;
+      person.contactEmail = input.contactEmail || null;
+      person.updatedAt = new Date().toISOString();
+    }
+    return;
+  }
+  const { error } = await sb
+    .from("persons")
+    .update({
+      first_name: firstName,
+      last_name: input.lastName || "",
+      age,
+      gender: input.gender ?? null,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      description: input.description || "",
+      contact_name: input.contactName || null,
+      contact_phone: input.contactPhone || null,
+      contact_email: input.contactEmail || null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Elimina una publicación (autor, p. ej. duplicado o error). */
+export async function deletePerson(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.persons = mem.persons.filter((p) => p.id !== id);
+    delete mem.ownerTokens[id];
+    return;
+  }
+  const { error } = await sb.from("persons").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Registra un reporte de cambio de estado. NO cambia el estado público:
+ * queda pendiente de verificación (verified = false) para frenar abusos.
+ */
+export async function createStatusReport(input: StatusReportInput): Promise<StatusReport> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const report: StatusReport = {
+      id: uid("report"),
+      personId: input.personId,
+      reportedStatus: input.reportedStatus,
+      reporterName: input.reporterName,
+      reporterPhone: input.reporterPhone,
+      reporterRelationship: input.reporterRelationship,
+      locationFound: input.locationFound,
+      notes: input.notes || "",
+      verified: false,
+      createdAt: now,
+    };
+    mem.reports.unshift(report);
+    return report;
+  }
+  const { data, error } = await sb
+    .from("status_reports")
+    .insert({
+      person_id: input.personId,
+      reported_status: input.reportedStatus,
+      reporter_name: input.reporterName,
+      reporter_phone: input.reporterPhone,
+      reporter_relationship: input.reporterRelationship,
+      location_found: input.locationFound,
+      notes: input.notes || "",
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    personId: data.person_id,
+    reportedStatus: data.reported_status,
+    reporterName: data.reporter_name,
+    reporterPhone: data.reporter_phone,
+    reporterRelationship: data.reporter_relationship,
+    locationFound: data.location_found,
+    notes: data.notes ?? "",
+    verified: data.verified,
+    createdAt: data.created_at,
+  };
+}
+
+// ── Gestión por el autor de recursos (puntos de ayuda, caravanas) ───────────
+// Mismo modelo que las personas (enlace privado con token), pero genérico para
+// cualquier recurso. El token es secreto: en producción vive en `resource_owners`
+// (sin lectura pública) y solo el servidor lo verifica con la service role.
+async function createResourceOwner(
+  entityType: ResourceOwnerEntity,
+  entityId: string,
+  token: string,
+): Promise<void> {
+  if (!getSupabase()) {
+    mem.resourceOwners.push({ entityType, entityId, token });
+    return;
+  }
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return;
+  await sb.from("resource_owners").insert({ entity_type: entityType, entity_id: entityId, token });
+}
+
+async function deleteResourceOwner(entityType: ResourceOwnerEntity, entityId: string): Promise<void> {
+  if (!getSupabase()) {
+    mem.resourceOwners = mem.resourceOwners.filter(
+      (o) => !(o.entityType === entityType && o.entityId === entityId),
+    );
+    return;
+  }
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return;
+  await sb.from("resource_owners").delete().eq("entity_type", entityType).eq("entity_id", entityId);
+}
+
+/** Verifica que el token corresponde al autor del recurso (punto o caravana). */
+export async function verifyResourceOwner(
+  entityType: ResourceOwnerEntity,
+  entityId: string,
+  token: string,
+): Promise<boolean> {
+  if (!token) return false;
+  if (!getSupabase()) {
+    // Modo memoria (demo).
+    return mem.resourceOwners.some(
+      (o) => o.entityType === entityType && o.entityId === entityId && o.token === token,
+    );
+  }
+  const sb = getSupabaseAdmin();
+  if (!sb) return false; // sin service role no se puede verificar el secreto
+  const { data, error } = await sb
+    .from("resource_owners")
+    .select("token")
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .single();
+  if (error || !data) return false;
+  return data.token === token;
+}
+
+// ── Puntos de ayuda ─────────────────────────────────────────────────────────
+export async function getAidPoints(): Promise<AidPoint[]> {
+  const sb = getSupabase();
+  if (!sb) return mem.aidPoints.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const { data, error } = await sb.from("aid_points").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    types: r.types ?? (r.type ? [r.type] : []),
+    estado: r.estado,
+    locationText: r.location_text,
+    scheduleText: r.schedule_text ?? "",
+    description: r.description ?? "",
+    photoUrl: r.photo_url,
+    contactName: r.contact_name,
+    contactPhone: r.contact_phone,
+    verified: r.verified,
+    available: r.available ?? true,
+    votesAvailable: r.votes_available ?? 0,
+    votesDepleted: r.votes_depleted ?? 0,
+    likes: r.likes ?? 0,
+    updatedAt: r.updated_at ?? r.created_at,
+    createdAt: r.created_at,
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToAidPoint(r: any): AidPoint {
+  return {
+    id: r.id,
+    name: r.name,
+    types: r.types ?? (r.type ? [r.type] : []),
+    estado: r.estado,
+    locationText: r.location_text,
+    scheduleText: r.schedule_text ?? "",
+    description: r.description ?? "",
+    photoUrl: r.photo_url,
+    contactName: r.contact_name,
+    contactPhone: r.contact_phone,
+    verified: r.verified,
+    available: r.available ?? true,
+    votesAvailable: r.votes_available ?? 0,
+    votesDepleted: r.votes_depleted ?? 0,
+    likes: r.likes ?? 0,
+    updatedAt: r.updated_at ?? r.created_at,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getAidPointById(id: string): Promise<AidPoint | null> {
+  const sb = getSupabase();
+  if (!sb) return mem.aidPoints.find((p) => p.id === id) ?? null;
+  const { data, error } = await sb.from("aid_points").select("*").eq("id", id).single();
+  if (error) return null;
+  return data ? rowToAidPoint(data) : null;
+}
+
+export interface CreateAidPointResult {
+  point: AidPoint;
+  ownerToken: string;
+}
+
+export async function createAidPoint(
+  input: AidPointInput,
+  photoUrl: string | null,
+): Promise<CreateAidPointResult> {
+  const now = new Date().toISOString();
+  const ownerToken = newToken();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const point: AidPoint = {
+      id: uid("aid"),
+      name: input.name,
+      types: input.types,
+      estado: input.estado ?? null,
+      locationText: input.locationText,
+      scheduleText: input.scheduleText || "",
+      description: input.description || "",
+      photoUrl,
+      contactName: input.contactName || null,
+      contactPhone: input.contactPhone || null,
+      verified: false,
+      available: true,
+      votesAvailable: 0,
+      votesDepleted: 0,
+      likes: 0,
+      updatedAt: now,
+      createdAt: now,
+    };
+    mem.aidPoints.unshift(point);
+    await createResourceOwner("aid_point", point.id, ownerToken);
+    return { point, ownerToken };
+  }
+  const { data, error } = await sb
+    .from("aid_points")
+    .insert({
+      name: input.name,
+      types: input.types,
+      estado: input.estado ?? null,
+      location_text: input.locationText,
+      schedule_text: input.scheduleText || "",
+      description: input.description || "",
+      photo_url: photoUrl,
+      contact_name: input.contactName || null,
+      contact_phone: input.contactPhone || null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  const point = rowToAidPoint(data);
+  await createResourceOwner("aid_point", point.id, ownerToken);
+  return { point, ownerToken };
+}
+
+/** Edita los datos de un punto de ayuda (autor). No toca votos ni disponibilidad. */
+export async function updateAidPointFields(id: string, input: AidPointInput): Promise<void> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const point = mem.aidPoints.find((p) => p.id === id);
+    if (point) {
+      point.name = input.name;
+      point.types = input.types;
+      point.estado = input.estado ?? null;
+      point.locationText = input.locationText;
+      point.scheduleText = input.scheduleText || "";
+      point.description = input.description || "";
+      point.contactName = input.contactName || null;
+      point.contactPhone = input.contactPhone || null;
+      point.updatedAt = now;
+    }
+    return;
+  }
+  const { error } = await sb
+    .from("aid_points")
+    .update({
+      name: input.name,
+      types: input.types,
+      estado: input.estado ?? null,
+      location_text: input.locationText,
+      schedule_text: input.scheduleText || "",
+      description: input.description || "",
+      contact_name: input.contactName || null,
+      contact_phone: input.contactPhone || null,
+      updated_at: now,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Elimina un punto de ayuda (autor, p. ej. duplicado o ya cerrado). */
+export async function deleteAidPoint(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.aidPoints = mem.aidPoints.filter((p) => p.id !== id);
+    await deleteResourceOwner("aid_point", id);
+    return;
+  }
+  const { error } = await sb.from("aid_points").delete().eq("id", id);
+  if (error) throw error;
+  await deleteResourceOwner("aid_point", id);
+}
+
+/** "Me gusta" a un punto de ayuda (comunidad). */
+export async function likeAidPoint(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const point = mem.aidPoints.find((p) => p.id === id);
+    if (point) point.likes++;
+    return;
+  }
+  const { data, error } = await sb.from("aid_points").select("likes").eq("id", id).single();
+  if (error) throw error;
+  await sb.from("aid_points").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+}
+
+/**
+ * Voto de consenso sobre la disponibilidad de un punto. Si los votos de
+ * "se acabó" superan a los de "sí hay", el punto pasa a agotado automáticamente.
+ */
+export async function voteAidAvailability(id: string, vote: "available" | "depleted"): Promise<void> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const point = mem.aidPoints.find((p) => p.id === id);
+    if (point) {
+      if (vote === "available") point.votesAvailable++;
+      else point.votesDepleted++;
+      point.available = point.votesDepleted > point.votesAvailable ? false : true;
+      point.updatedAt = now;
+    }
+    return;
+  }
+  const { data, error } = await sb
+    .from("aid_points")
+    .select("votes_available,votes_depleted")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  const va = (data.votes_available ?? 0) + (vote === "available" ? 1 : 0);
+  const vd = (data.votes_depleted ?? 0) + (vote === "depleted" ? 1 : 0);
+  await sb
+    .from("aid_points")
+    .update({ votes_available: va, votes_depleted: vd, available: vd <= va, updated_at: now })
+    .eq("id", id);
+}
+
+// ── Marchas ──────────────────────────────────────────────────────────────────
+export async function getMarches(): Promise<March[]> {
+  const sb = getSupabase();
+  if (!sb) return mem.marches.slice().sort((a, b) => a.departAt.localeCompare(b.departAt));
+  const { data, error } = await sb.from("marches").select("*").order("depart_at", { ascending: true });
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return (data ?? []).map(rowToMarch);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToMarch(r: any): March {
+  return {
+    id: r.id,
+    title: r.title,
+    originText: r.origin_text,
+    destinationText: r.destination_text,
+    departAt: r.depart_at,
+    organizerName: r.organizer_name,
+    organizerPhone: r.organizer_phone,
+    whatsappUrl: r.whatsapp_url ?? null,
+    description: r.description ?? "",
+    attendeesCount: r.attendees_count ?? 0,
+    likes: r.likes ?? 0,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getMarchById(id: string): Promise<March | null> {
+  const sb = getSupabase();
+  if (!sb) return mem.marches.find((m) => m.id === id) ?? null;
+  const { data, error } = await sb.from("marches").select("*").eq("id", id).single();
+  if (error) return null;
+  return data ? rowToMarch(data) : null;
+}
+
+export interface CreateMarchResult {
+  march: March;
+  ownerToken: string;
+}
+
+export async function createMarch(input: MarchInput): Promise<CreateMarchResult> {
+  const now = new Date().toISOString();
+  const ownerToken = newToken();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const march: March = {
+      id: uid("march"),
+      title: input.title,
+      originText: input.originText,
+      destinationText: input.destinationText,
+      departAt: new Date(input.departAt).toISOString(),
+      organizerName: input.organizerName,
+      organizerPhone: input.organizerPhone,
+      whatsappUrl: input.whatsappUrl || null,
+      description: input.description || "",
+      attendeesCount: 0,
+      likes: 0,
+      createdAt: now,
+    };
+    mem.marches.unshift(march);
+    await createResourceOwner("march", march.id, ownerToken);
+    return { march, ownerToken };
+  }
+  const { data, error } = await sb
+    .from("marches")
+    .insert({
+      title: input.title,
+      origin_text: input.originText,
+      destination_text: input.destinationText,
+      depart_at: new Date(input.departAt).toISOString(),
+      organizer_name: input.organizerName,
+      organizer_phone: input.organizerPhone,
+      whatsapp_url: input.whatsappUrl || null,
+      description: input.description || "",
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  const march = rowToMarch(data);
+  await createResourceOwner("march", march.id, ownerToken);
+  return { march, ownerToken };
+}
+
+/** Edita los datos de una caravana (autor, p. ej. cambiar la hora de salida). */
+export async function updateMarchFields(id: string, input: MarchInput): Promise<void> {
+  const departAt = new Date(input.departAt).toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const march = mem.marches.find((m) => m.id === id);
+    if (march) {
+      march.title = input.title;
+      march.originText = input.originText;
+      march.destinationText = input.destinationText;
+      march.departAt = departAt;
+      march.organizerName = input.organizerName;
+      march.organizerPhone = input.organizerPhone;
+      march.whatsappUrl = input.whatsappUrl || null;
+      march.description = input.description || "";
+    }
+    return;
+  }
+  const { error } = await sb
+    .from("marches")
+    .update({
+      title: input.title,
+      origin_text: input.originText,
+      destination_text: input.destinationText,
+      depart_at: departAt,
+      organizer_name: input.organizerName,
+      organizer_phone: input.organizerPhone,
+      whatsapp_url: input.whatsappUrl || null,
+      description: input.description || "",
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Elimina una caravana (autor, p. ej. se canceló o fue un duplicado). */
+export async function deleteMarch(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.marches = mem.marches.filter((m) => m.id !== id);
+    await deleteResourceOwner("march", id);
+    return;
+  }
+  const { error } = await sb.from("marches").delete().eq("id", id);
+  if (error) throw error;
+  await deleteResourceOwner("march", id);
+}
+
+/** "Me gusta" a una caravana (comunidad). */
+export async function likeMarch(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const march = mem.marches.find((m) => m.id === id);
+    if (march) march.likes++;
+    return;
+  }
+  const { data, error } = await sb.from("marches").select("likes").eq("id", id).single();
+  if (error) throw error;
+  await sb.from("marches").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+}
+
+// ── Comentarios (foro) ───────────────────────────────────────────────────────
+export async function getComments(entityType: Comment["entityType"], entityId: string): Promise<Comment[]> {
+  const sb = getSupabase();
+  if (!sb)
+    return mem.comments
+      .filter((c) => c.entityType === entityType && c.entityId === entityId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const { data, error } = await sb
+    .from("comments")
+    .select("*")
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    entityType: r.entity_type,
+    entityId: r.entity_id,
+    authorName: r.author_name,
+    body: r.body,
+    photoUrl: r.photo_url ?? null,
+    createdAt: r.created_at,
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+export async function createComment(
+  entityType: Comment["entityType"],
+  entityId: string,
+  authorName: string,
+  body: string,
+  photoUrl: string | null = null,
+): Promise<Comment> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const comment: Comment = {
+      id: uid("comment"),
+      entityType,
+      entityId,
+      authorName,
+      body,
+      photoUrl,
+      createdAt: now,
+    };
+    mem.comments.unshift(comment);
+    return comment;
+  }
+  const { data, error } = await sb
+    .from("comments")
+    .insert({ entity_type: entityType, entity_id: entityId, author_name: authorName, body, photo_url: photoUrl })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    entityType: data.entity_type,
+    entityId: data.entity_id,
+    authorName: data.author_name,
+    body: data.body,
+    photoUrl: data.photo_url ?? null,
+    createdAt: data.created_at,
+  };
+}
+
+// ── Reportes: lectura pública + moderación (no bloqueante) ──────────────────
+/** Reportes de una persona, visibles de inmediato en su ficha. */
+export async function getStatusReports(personId: string): Promise<StatusReport[]> {
+  const sb = getSupabase();
+  if (!sb)
+    return mem.reports
+      .filter((r) => r.personId === personId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const { data, error } = await sb
+    .from("status_reports")
+    .select("*")
+    .eq("person_id", personId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToReport);
+}
+
+/** Cola de moderación: reportes aún sin verificar (para el panel admin). */
+export async function getPendingReports(limit = 100): Promise<StatusReport[]> {
+  const sb = getSupabase();
+  if (!sb)
+    return mem.reports
+      .filter((r) => !r.verified)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+  const { data, error } = await sb
+    .from("status_reports")
+    .select("*")
+    .eq("verified", false)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map(rowToReport);
+}
+
+/** Verifica un reporte y APLICA el cambio de estado a la persona. */
+export async function verifyAndApplyReport(reportId: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const report = mem.reports.find((r) => r.id === reportId);
+    if (!report) return;
+    report.verified = true;
+    const person = mem.persons.find((p) => p.id === report.personId);
+    if (person) {
+      person.status = report.reportedStatus;
+      person.updatedAt = new Date().toISOString();
+    }
+    return;
+  }
+  const { data: report, error } = await sb
+    .from("status_reports")
+    .update({ verified: true })
+    .eq("id", reportId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  await sb.from("persons").update({ status: report.reported_status }).eq("id", report.person_id);
+}
+
+/** Descarta un reporte (p. ej. falso) sin tocar el estado de la persona. */
+export async function dismissReport(reportId: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.reports = mem.reports.filter((r) => r.id !== reportId);
+    return;
+  }
+  const { error } = await sb.from("status_reports").delete().eq("id", reportId);
+  if (error) throw error;
+}
+
+/** Da/quita el "visto bueno" a un registro de persona (sello de confianza). */
+export async function setPersonVerified(personId: string, value: boolean): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const person = mem.persons.find((p) => p.id === personId);
+    if (person) person.verified = value;
+    return;
+  }
+  const { error } = await sb.from("persons").update({ verified: value }).eq("id", personId);
+  if (error) throw error;
+}
+
+/** Reacción de la comunidad a la ficha de una persona (🙏 ❤️ 📢). */
+export async function reactToPerson(id: string, kind: PersonReaction): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const person = mem.persons.find((p) => p.id === id);
+    if (person) person.reactions[kind] = (person.reactions[kind] ?? 0) + 1;
+    return;
+  }
+  const { data, error } = await sb.from("persons").select("reactions").eq("id", id).single();
+  if (error) throw error;
+  const reactions = { fuerza: 0, corazon: 0, difundir: 0, ...(data.reactions ?? {}) };
+  reactions[kind] = (reactions[kind] ?? 0) + 1;
+  await sb.from("persons").update({ reactions }).eq("id", id);
+}
+
+/** Personas recientes para revisión en el panel admin. */
+export async function getRecentPersons(limit = 30): Promise<Person[]> {
+  const { items } = await getPersons({ sort: "recent", pageSize: limit });
+  return items;
+}
+
+export interface EstadoBreakdown {
+  total: number;
+  toLocate: number;
+  located: number; // localizado + hospitalizado
+  deceased: number;
+}
+
+/** Desglose por estado y por estado de localización (para el mapa). */
+export async function getEstadoBreakdown(): Promise<Record<string, EstadoBreakdown>> {
+  const tally = (rows: { estado: string | null; status: PersonStatus }[]) => {
+    const out: Record<string, EstadoBreakdown> = {};
+    for (const r of rows) {
+      if (!r.estado) continue;
+      const b = (out[r.estado] ??= { total: 0, toLocate: 0, located: 0, deceased: 0 });
+      b.total++;
+      if (r.status === "por_localizar") b.toLocate++;
+      else if (r.status === "fallecido") b.deceased++;
+      else b.located++; // localizado u hospitalizado
+    }
+    return out;
+  };
+
+  const sb = getSupabase();
+  if (!sb) return tally(mem.persons.map((p) => ({ estado: p.estado, status: p.status })));
+  const { data, error } = await sb.from("persons").select("estado,status");
+  if (error) throw error;
+  return tally((data ?? []) as { estado: string | null; status: PersonStatus }[]);
+}
+
+/** Conteo de personas por estado/región (para el mapa y secciones). */
+export async function getCountsByEstado(): Promise<Record<string, number>> {
+  const sb = getSupabase();
+  if (!sb) {
+    const counts: Record<string, number> = {};
+    for (const p of mem.persons) {
+      if (p.estado) counts[p.estado] = (counts[p.estado] ?? 0) + 1;
+    }
+    return counts;
+  }
+  const { data, error } = await sb.from("persons").select("estado");
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  for (const r of data ?? []) {
+    if (r.estado) counts[r.estado] = (counts[r.estado] ?? 0) + 1;
+  }
+  return counts;
+}
+
+// ── Comunidad / Feed ────────────────────────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToPost(r: any): Post {
+  return {
+    id: r.id,
+    type: r.type,
+    body: r.body,
+    estado: r.estado,
+    locationText: r.location_text ?? "",
+    photoUrl: r.photo_url,
+    linkUrl: r.link_url,
+    authorName: r.author_name,
+    contactPhone: r.contact_phone,
+    reactions: { apoyo: 0, corazon: 0, hecho: 0, ...(r.reactions ?? {}) },
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getPosts(
+  filter: { type?: PostType | "all"; estado?: string | "all" } = {},
+): Promise<Post[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.posts.slice();
+    if (filter.type && filter.type !== "all") items = items.filter((p) => p.type === filter.type);
+    if (filter.estado && filter.estado !== "all")
+      items = items.filter((p) => p.estado === filter.estado);
+    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  let query = sb.from("posts").select("*").order("created_at", { ascending: false }).limit(100);
+  if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
+  if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(rowToPost);
+}
+
+export async function createPost(input: PostInput, photoUrl: string | null): Promise<Post> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const post: Post = {
+      id: uid("post"),
+      type: input.type,
+      body: input.body,
+      estado: input.estado ?? null,
+      locationText: input.locationText || "",
+      photoUrl,
+      linkUrl: input.linkUrl || null,
+      authorName: input.authorName,
+      contactPhone: input.contactPhone || null,
+      reactions: { apoyo: 0, corazon: 0, hecho: 0 },
+      createdAt: now,
+    };
+    mem.posts.unshift(post);
+    return post;
+  }
+  const { data, error } = await sb
+    .from("posts")
+    .insert({
+      type: input.type,
+      body: input.body,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      photo_url: photoUrl,
+      link_url: input.linkUrl || null,
+      author_name: input.authorName,
+      contact_phone: input.contactPhone || null,
+      reactions: { apoyo: 0, corazon: 0, hecho: 0 },
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToPost(data);
+}
+
+export async function reactToPost(id: string, kind: ReactionKind): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const post = mem.posts.find((p) => p.id === id);
+    if (post) post.reactions[kind] = (post.reactions[kind] ?? 0) + 1;
+    return;
+  }
+  const { data, error } = await sb.from("posts").select("reactions").eq("id", id).single();
+  if (error) throw error;
+  const reactions = { apoyo: 0, corazon: 0, hecho: 0, ...(data.reactions ?? {}) };
+  reactions[kind] = (reactions[kind] ?? 0) + 1;
+  await sb.from("posts").update({ reactions }).eq("id", id);
+}
+
+// ── Hospitales ──────────────────────────────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToHospital(r: any): Hospital {
+  return {
+    id: r.id,
+    name: r.name,
+    estado: r.estado,
+    locationText: r.location_text ?? "",
+    status: r.status,
+    specialties: r.specialties ?? [],
+    needsText: r.needs_text ?? "",
+    contactName: r.contact_name,
+    contactPhone: r.contact_phone,
+    votesSupplies: r.votes_supplies ?? 0,
+    votesNoSupplies: r.votes_no_supplies ?? 0,
+    likes: r.likes ?? 0,
+    updatedAt: r.updated_at ?? r.created_at,
+    createdAt: r.created_at,
+  };
+}
+function rowToPatient(r: any): HospitalPatient {
+  return {
+    id: r.id,
+    hospitalId: r.hospital_id,
+    fullName: r.full_name,
+    cedula: r.cedula,
+    condition: r.condition ?? "",
+    status: r.status,
+    note: r.note ?? "",
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+function splitSpecialties(s: string | undefined): string[] {
+  return (s ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+export async function getHospitals(): Promise<Hospital[]> {
+  const sb = getSupabase();
+  if (!sb) return mem.hospitals.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const { data, error } = await sb.from("hospitals").select("*").order("name");
+  if (error) throw error;
+  return (data ?? []).map(rowToHospital);
+}
+
+export async function getHospitalById(id: string): Promise<Hospital | null> {
+  const sb = getSupabase();
+  if (!sb) return mem.hospitals.find((h) => h.id === id) ?? null;
+  const { data, error } = await sb.from("hospitals").select("*").eq("id", id).single();
+  if (error) return null;
+  return data ? rowToHospital(data) : null;
+}
+
+export async function createHospital(input: HospitalInput): Promise<Hospital> {
+  const now = new Date().toISOString();
+  const specialties = splitSpecialties(input.specialties);
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hospital: Hospital = {
+      id: uid("hosp"),
+      name: input.name,
+      estado: input.estado ?? null,
+      locationText: input.locationText || "",
+      status: input.status,
+      specialties,
+      needsText: input.needsText || "",
+      contactName: input.contactName || null,
+      contactPhone: input.contactPhone || null,
+      votesSupplies: 0,
+      votesNoSupplies: 0,
+      likes: 0,
+      updatedAt: now,
+      createdAt: now,
+    };
+    mem.hospitals.unshift(hospital);
+    return hospital;
+  }
+  const { data, error } = await sb
+    .from("hospitals")
+    .insert({
+      name: input.name,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      status: input.status,
+      specialties,
+      needs_text: input.needsText || "",
+      contact_name: input.contactName || null,
+      contact_phone: input.contactPhone || null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToHospital(data);
+}
+
+/** Actualiza estado de capacidad e insumos (la comunidad lo mantiene al día). */
+export async function updateHospitalStatus(
+  id: string,
+  status: HospitalStatus,
+  needsText: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hospital = mem.hospitals.find((h) => h.id === id);
+    if (hospital) {
+      hospital.status = status;
+      hospital.needsText = needsText;
+      hospital.updatedAt = now;
+    }
+    return;
+  }
+  const { error } = await sb
+    .from("hospitals")
+    .update({ status, needs_text: needsText, updated_at: now })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Voto de consenso sobre si el hospital tiene insumos/abasto. */
+export async function voteHospitalSupplies(id: string, vote: "yes" | "no"): Promise<void> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hospital = mem.hospitals.find((h) => h.id === id);
+    if (hospital) {
+      if (vote === "yes") hospital.votesSupplies++;
+      else hospital.votesNoSupplies++;
+      hospital.updatedAt = now;
+    }
+    return;
+  }
+  const { data, error } = await sb
+    .from("hospitals")
+    .select("votes_supplies,votes_no_supplies")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  const vs = (data.votes_supplies ?? 0) + (vote === "yes" ? 1 : 0);
+  const vn = (data.votes_no_supplies ?? 0) + (vote === "no" ? 1 : 0);
+  await sb
+    .from("hospitals")
+    .update({ votes_supplies: vs, votes_no_supplies: vn, updated_at: now })
+    .eq("id", id);
+}
+
+/** "Me gusta" a un hospital (comunidad). */
+export async function likeHospital(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hospital = mem.hospitals.find((h) => h.id === id);
+    if (hospital) hospital.likes++;
+    return;
+  }
+  const { data, error } = await sb.from("hospitals").select("likes").eq("id", id).single();
+  if (error) throw error;
+  await sb.from("hospitals").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+}
+
+export async function getHospitalPatients(hospitalId: string): Promise<HospitalPatient[]> {
+  const sb = getSupabase();
+  if (!sb)
+    return mem.patients
+      .filter((p) => p.hospitalId === hospitalId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const { data, error } = await sb
+    .from("hospital_patients")
+    .select("*")
+    .eq("hospital_id", hospitalId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToPatient);
+}
+
+/** Conteo de pacientes por hospital (para mostrar en el listado). */
+export async function getPatientCounts(): Promise<Record<string, number>> {
+  const sb = getSupabase();
+  if (!sb) {
+    const counts: Record<string, number> = {};
+    for (const p of mem.patients) counts[p.hospitalId] = (counts[p.hospitalId] ?? 0) + 1;
+    return counts;
+  }
+  const { data, error } = await sb.from("hospital_patients").select("hospital_id");
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  for (const r of data ?? []) counts[r.hospital_id] = (counts[r.hospital_id] ?? 0) + 1;
+  return counts;
+}
+
+export async function addHospitalPatient(input: HospitalPatientInput): Promise<HospitalPatient> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const patient: HospitalPatient = {
+      id: uid("pat"),
+      hospitalId: input.hospitalId,
+      fullName: input.fullName,
+      cedula: input.cedula || null,
+      condition: input.condition || "",
+      status: input.status,
+      note: input.note || "",
+      createdAt: now,
+    };
+    mem.patients.unshift(patient);
+    return patient;
+  }
+  const { data, error } = await sb
+    .from("hospital_patients")
+    .insert({
+      hospital_id: input.hospitalId,
+      full_name: input.fullName,
+      cedula: input.cedula || null,
+      condition: input.condition || "",
+      status: input.status,
+      note: input.note || "",
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToPatient(data);
+}
+
+export { isSupabaseConfigured };

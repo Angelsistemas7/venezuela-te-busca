@@ -1,0 +1,164 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Check, Loader2, Trash2, TriangleAlert } from "lucide-react";
+import type { AidPoint, AidPointType } from "@/lib/types";
+import { AID_POINT_TYPE_LABEL, ESTADOS } from "@/lib/types";
+import {
+  ownerDeleteAidPointAction,
+  ownerUpdateAidPointAction,
+  type ActionResult,
+} from "@/app/actions";
+import { Field, Input, Select, Textarea } from "./FormControls";
+
+const TYPES = Object.keys(AID_POINT_TYPE_LABEL) as AidPointType[];
+
+export function AidPointManagePanel({ point, token }: { point: AidPoint; token: string }) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setResult(null);
+    const form = new FormData(e.currentTarget);
+    form.set("aidPointId", point.id);
+    form.set("token", token);
+    const res = await ownerUpdateAidPointAction(form);
+    setResult(res);
+    if (res.ok) router.refresh();
+    setSaving(false);
+  }
+
+  function remove() {
+    setError(null);
+    startTransition(async () => {
+      const res = await ownerDeleteAidPointAction(point.id, token);
+      if (res.ok) router.push("/ayuda");
+      else setError(res.error ?? "No se pudo eliminar.");
+    });
+  }
+
+  const fieldErrors = result && !result.ok ? result.fieldErrors : undefined;
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="font-bold text-zinc-900">Datos del punto</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Edita la información del punto. La disponibilidad (“sí hay / se acabó”) la mantiene la
+          comunidad por consenso, no se cambia desde aquí.
+        </p>
+
+        <form onSubmit={save} className="mt-4 space-y-4">
+          <Field label="Nombre del punto" htmlFor="name" required error={fieldErrors?.name}>
+            <Input id="name" name="name" defaultValue={point.name} />
+          </Field>
+
+          <Field label="¿Qué recursos hay aquí?" required error={fieldErrors?.types} hint="Marca todos los que apliquen.">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {TYPES.map((t) => (
+                <label
+                  key={t}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50"
+                >
+                  <input type="checkbox" name="types" value={t} defaultChecked={point.types.includes(t)} className="h-4 w-4 rounded" />
+                  {AID_POINT_TYPE_LABEL[t]}
+                </label>
+              ))}
+            </div>
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Estado (región)" htmlFor="estado">
+              <Select id="estado" name="estado" defaultValue={point.estado ?? ""}>
+                <option value="">Seleccionar</option>
+                {ESTADOS.map((e) => (
+                  <option key={e} value={e}>
+                    {e}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Ubicación exacta" htmlFor="locationText" required error={fieldErrors?.locationText}>
+              <Input id="locationText" name="locationText" defaultValue={point.locationText} />
+            </Field>
+          </div>
+
+          <Field label="Horario de atención" htmlFor="scheduleText">
+            <Input id="scheduleText" name="scheduleText" defaultValue={point.scheduleText} />
+          </Field>
+
+          <Field label="¿Qué se ofrece / qué se necesita?" htmlFor="description">
+            <Textarea id="description" name="description" defaultValue={point.description} />
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Responsable / organización" htmlFor="contactName">
+              <Input id="contactName" name="contactName" defaultValue={point.contactName ?? ""} />
+            </Field>
+            <Field label="Teléfono de contacto" htmlFor="contactPhone" required error={fieldErrors?.contactPhone}>
+              <Input id="contactPhone" name="contactPhone" defaultValue={point.contactPhone ?? ""} />
+            </Field>
+          </div>
+
+          {result && !result.ok && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{result.error}</p>
+          )}
+          {result?.ok && (
+            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">{result.message}</p>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </section>
+
+      {/* Eliminar */}
+      <section className="rounded-2xl border border-rose-200 bg-rose-50/50 p-5">
+        <h2 className="flex items-center gap-2 font-bold text-rose-800">
+          <TriangleAlert className="h-4.5 w-4.5" />
+          Eliminar punto de ayuda
+        </h2>
+        <p className="mt-1 text-sm text-rose-700">
+          Úsalo si fue un duplicado, un error o el punto ya cerró. Esta acción no se puede deshacer.
+        </p>
+        {!confirmDelete ? (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="mt-3 flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar
+          </button>
+        ) : (
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-sm font-medium text-rose-800">¿Seguro?</span>
+            <button onClick={remove} disabled={pending} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60">
+              Sí, eliminar
+            </button>
+            <button onClick={() => setConfirmDelete(false)} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white">
+              Cancelar
+            </button>
+          </div>
+        )}
+      </section>
+
+      {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p>}
+    </div>
+  );
+}

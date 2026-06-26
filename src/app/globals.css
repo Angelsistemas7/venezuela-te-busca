@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #fffbeb;
+  --color-brand-100: #fef3c7;
+  --color-brand-300: #fcd34d;
+  --color-brand-400: #fbbf24;
+  --color-brand-500: #f59e0b;
+  --color-brand-600: #d97706;
+  --color-brand-700: #b45309;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #18181b;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Oculta scrollbars horizontales en filas de chips manteniendo el scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* ── Mapa de crisis (Leaflet) ─────────────────────────────────────────── */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #eaf0f5;
+}
+
+/* Zona afectada: punto pulsante cuyo tamaño refleja la cantidad. */
+.zone-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size);
+  height: var(--size);
+}
+.zone-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.35);
+  animation: zone-pulse 2.4s ease-out infinite;
+}
+.zone-core {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: rgba(225, 29, 72, 0.9);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+@keyframes zone-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Pines de puntos de ayuda y caravanas. */
+.pin-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  border-radius: 9999px 9999px 9999px 2px;
+  transform: rotate(45deg);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.pin-marker > span {
+  transform: rotate(-45deg);
+}
+.pin-aid {
+  background: #f59e0b;
+}
+.pin-march {
+  background: #0ea5e9;
+}
+
+/* Alerta de rescate urgente: pin rojo con doble pulso intenso. */
+.rescue-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+}
+.rescue-marker .rescue-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(220, 38, 38, 0.45);
+  animation: rescue-pulse 1.4s ease-out infinite;
+}
+.rescue-marker .rescue-ring.delay {
+  animation-delay: 0.7s;
+}
+.rescue-marker .rescue-core {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #dc2626;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6);
+  font-size: 13px;
+}
+@keyframes rescue-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  80% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Epicentro del sismo: diana fija con anillos concéntricos. */
+.epicenter-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+}
+.epicenter-marker .epi-ring {
+  position: absolute;
+  border: 2px solid rgba(124, 45, 18, 0.6);
+  border-radius: 9999px;
+  animation: epi-ring 2.6s ease-out infinite;
+}
+.epicenter-marker .epi-ring.r1 {
+  inset: 0;
+}
+@keyframes epi-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}

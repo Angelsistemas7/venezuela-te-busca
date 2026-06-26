@@ -1,0 +1,142 @@
+import { z } from "zod";
+import { ESTADOS } from "./types";
+
+// Validación compartida por formularios (cliente) y acciones de servidor.
+// Mantener aquí evita que datos basura entren a la base de datos.
+
+const estadoEnum = z.enum(ESTADOS);
+
+const phone = z
+  .string()
+  .trim()
+  .regex(/^[+\d\s()-]{7,20}$/u, "Teléfono no válido")
+  .optional()
+  .or(z.literal(""));
+
+export const personSchema = z
+  .object({
+    // El nombre es obligatorio solo si SE SABE quién es la persona. En un
+    // avistamiento de alguien "sin identificar" puede no conocerse (ver refine).
+    firstName: z.string().trim().max(80).optional().or(z.literal("")),
+    lastName: z.string().trim().max(80).optional().or(z.literal("")),
+    cedula: z
+      .string()
+      .trim()
+      .regex(/^[VEJGvejg]?-?\d{5,9}$/u, "Formato de cédula no válido (ej. V-12345678)")
+      .optional()
+      .or(z.literal("")),
+    age: z.coerce.number().int().min(0).max(120).optional().or(z.nan()),
+    gender: z.enum(["masculino", "femenino", "otro"]).optional(),
+    estado: estadoEnum.optional(),
+    locationText: z.string().trim().max(160).optional().or(z.literal("")),
+    description: z.string().trim().max(800).optional().or(z.literal("")),
+    isUnidentified: z.boolean().default(false),
+    contactName: z.string().trim().max(80).optional().or(z.literal("")),
+    contactPhone: phone,
+    contactEmail: z.string().trim().email("Correo no válido").optional().or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    // Caso "busco a esta persona": se conoce la identidad → el nombre es obligatorio.
+    if (!data.isUnidentified && !data.firstName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["firstName"],
+        message: "El nombre es obligatorio",
+      });
+    }
+  });
+
+export type PersonInput = z.infer<typeof personSchema>;
+
+export const statusReportSchema = z.object({
+  personId: z.string().min(1),
+  reportedStatus: z.enum(["por_localizar", "localizado", "hospitalizado", "fallecido"]),
+  reporterName: z.string().trim().min(2, "Indica tu nombre"),
+  reporterPhone: z
+    .string()
+    .trim()
+    .regex(/^[+\d\s()-]{7,20}$/u, "Teléfono de contacto no válido"),
+  reporterRelationship: z
+    .string()
+    .trim()
+    .min(2, "Indica tu relación con la persona (familiar, médico, testigo...)"),
+  locationFound: z.string().trim().min(2, "Indica dónde la viste/encontraste"),
+  notes: z.string().trim().max(800).optional().or(z.literal("")),
+});
+
+export type StatusReportInput = z.infer<typeof statusReportSchema>;
+
+export const aidPointSchema = z.object({
+  name: z.string().trim().min(2, "Nombre del punto obligatorio").max(120),
+  types: z
+    .array(z.enum(["comida", "agua", "medicina", "refugio", "ropa", "otro"]))
+    .min(1, "Selecciona al menos un recurso"),
+  estado: estadoEnum.optional(),
+  locationText: z.string().trim().min(2, "Indica la ubicación").max(160),
+  scheduleText: z.string().trim().max(120).optional().or(z.literal("")),
+  description: z.string().trim().max(800).optional().or(z.literal("")),
+  contactName: z.string().trim().max(80).optional().or(z.literal("")),
+  contactPhone: z
+    .string()
+    .trim()
+    .regex(/^[+\d\s()-]{7,20}$/u, "Teléfono no válido"),
+});
+
+export type AidPointInput = z.infer<typeof aidPointSchema>;
+
+export const marchSchema = z.object({
+  title: z.string().trim().min(3, "Título obligatorio").max(120),
+  originText: z.string().trim().min(2, "Indica el punto de salida").max(160),
+  destinationText: z.string().trim().min(2, "Indica el destino").max(160),
+  departAt: z.string().min(1, "Indica fecha y hora de salida"),
+  organizerName: z.string().trim().min(2, "Indica quién organiza").max(80),
+  organizerPhone: z
+    .string()
+    .trim()
+    .regex(/^[+\d\s()-]{7,20}$/u, "Teléfono de contacto no válido"),
+  whatsappUrl: z.string().trim().url("Enlace de WhatsApp no válido").optional().or(z.literal("")),
+  description: z.string().trim().max(800).optional().or(z.literal("")),
+});
+
+export type MarchInput = z.infer<typeof marchSchema>;
+
+export const postSchema = z.object({
+  type: z.enum(["necesito", "ofrezco", "rescate", "medico", "caravana", "identificar", "info"]),
+  body: z.string().trim().min(5, "Escribe tu mensaje (mín. 5 caracteres)").max(1500),
+  estado: estadoEnum.optional(),
+  locationText: z.string().trim().max(160).optional().or(z.literal("")),
+  linkUrl: z.string().trim().url("Enlace no válido").optional().or(z.literal("")),
+  authorName: z.string().trim().min(2, "Indica tu nombre").max(80),
+  contactPhone: phone,
+});
+
+export type PostInput = z.infer<typeof postSchema>;
+
+export const hospitalSchema = z.object({
+  name: z.string().trim().min(2, "Nombre del hospital obligatorio").max(140),
+  estado: estadoEnum.optional(),
+  locationText: z.string().trim().max(160).optional().or(z.literal("")),
+  status: z.enum(["operativo", "saturado", "lleno", "cerrado"]),
+  specialties: z.string().trim().max(300).optional().or(z.literal("")), // separadas por coma
+  needsText: z.string().trim().max(600).optional().or(z.literal("")),
+  contactName: z.string().trim().max(80).optional().or(z.literal("")),
+  contactPhone: phone,
+});
+
+export type HospitalInput = z.infer<typeof hospitalSchema>;
+
+export const hospitalPatientSchema = z.object({
+  hospitalId: z.string().min(1),
+  fullName: z.string().trim().min(2, "Indica el nombre de la persona").max(120),
+  cedula: z
+    .string()
+    .trim()
+    .regex(/^[VEJGvejg]?-?\d{5,9}$/u, "Cédula no válida")
+    .optional()
+    .or(z.literal("")),
+  condition: z.string().trim().max(200).optional().or(z.literal("")),
+  status: z.enum(["estable", "critico", "observacion", "alta"]),
+  note: z.string().trim().max(400).optional().or(z.literal("")),
+});
+
+export type HospitalPatientInput = z.infer<typeof hospitalPatientSchema>;

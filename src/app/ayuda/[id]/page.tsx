@@ -1,0 +1,101 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion } from "lucide-react";
+import { getAidPointById, getComments } from "@/lib/data";
+import { AID_POINT_TYPE_LABEL } from "@/lib/types";
+import { timeAgo } from "@/lib/utils";
+import { AidConsensusVote } from "@/components/AidConsensusVote";
+import { LikeButton } from "@/components/LikeButton";
+import { CommentSection } from "@/components/CommentSection";
+
+export const dynamic = "force-dynamic";
+
+export default async function AidPointPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const point = await getAidPointById(id);
+  if (!point) notFound();
+  const comments = await getComments("aid_point", id);
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-6">
+      <Link href="/ayuda" className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900">
+        <ArrowLeft className="h-4 w-4" />
+        Volver a puntos de ayuda
+      </Link>
+
+      <article className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+        {point.photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={point.photoUrl} alt={point.name} className="max-h-72 w-full object-cover" />
+        )}
+        <div className="space-y-3 p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            {point.types.map((t) => (
+              <span key={t} className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+                {AID_POINT_TYPE_LABEL[t]}
+              </span>
+            ))}
+            {point.verified ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                <BadgeCheck className="h-3.5 w-3.5" /> Verificado
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                <ShieldQuestion className="h-3.5 w-3.5" /> Por verificar
+              </span>
+            )}
+            <span
+              className={
+                point.available
+                  ? "rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                  : "rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600"
+              }
+            >
+              {point.available ? "Disponible" : "Agotado"}
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">{point.name}</h1>
+
+          <p className="flex items-start gap-1.5 text-sm text-zinc-600">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
+            {point.locationText}
+            {point.estado ? `, ${point.estado}` : ""}
+          </p>
+          {point.scheduleText && (
+            <p className="flex items-center gap-1.5 text-sm text-zinc-600">
+              <Clock3 className="h-4 w-4 shrink-0 text-zinc-400" />
+              {point.scheduleText}
+            </p>
+          )}
+          {point.description && <p className="text-sm text-zinc-600">{point.description}</p>}
+
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <AidConsensusVote id={point.id} votesAvailable={point.votesAvailable} votesDepleted={point.votesDepleted} />
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <LikeButton kind="aid" id={point.id} likes={point.likes} />
+            {point.contactPhone && (
+              <a href={`tel:${point.contactPhone}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline">
+                <Phone className="h-4 w-4" />
+                {point.contactPhone}
+              </a>
+            )}
+          </div>
+          <p className="text-xs text-zinc-400">Actualizado {timeAgo(point.updatedAt)}</p>
+        </div>
+      </article>
+
+      <div className="mt-6">
+        <CommentSection
+          entityType="aid_point"
+          entityId={point.id}
+          initialComments={comments}
+          title="Comentarios y evidencias"
+          placeholder="¿Estuviste aquí? Confirma, agradece o sube una foto como evidencia."
+        />
+      </div>
+    </div>
+  );
+}

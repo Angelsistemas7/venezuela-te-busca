@@ -1,0 +1,185 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, ImagePlus, Loader2, PenLine } from "lucide-react";
+import { ESTADOS, POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
+import { createPostAction, type ActionResult } from "@/app/actions";
+import { uploadPhoto } from "@/lib/upload";
+import { compressImage } from "@/lib/image";
+import { Modal } from "./Modal";
+import { Field, Input, Select, Textarea } from "./FormControls";
+import { Turnstile } from "./Turnstile";
+
+const TYPES = Object.keys(POST_TYPE_LABEL) as PostType[];
+
+export function CreatePostButton() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileRef = useRef<File | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function close() {
+    setOpen(false);
+    setTimeout(() => {
+      setResult(null);
+      setPreview(null);
+      fileRef.current = null;
+      formRef.current?.reset();
+    }, 200);
+  }
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const form = new FormData(e.currentTarget);
+      if (fileRef.current) {
+        try {
+          const url = await uploadPhoto(await compressImage(fileRef.current));
+          if (url) form.set("photoUrl", url);
+        } catch {
+          /* sin foto */
+        }
+      }
+      const res = await createPostAction(form);
+      setResult(res);
+      if (res.ok) {
+        router.refresh();
+        close();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const fieldErrors = result && !result.ok ? result.fieldErrors : undefined;
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-300"
+      >
+        <PenLine className="h-4 w-4" />
+        Publicar
+      </button>
+
+      <Modal
+        open={open}
+        onClose={close}
+        title="Publicar en la comunidad"
+        subtitle="Pide o ofrece ayuda, reporta una emergencia, convoca una caravana, comparte información."
+      >
+        {result?.ok ? (
+          <div className="flex flex-col items-center py-8 text-center">
+            <CheckCircle2 className="h-14 w-14 text-emerald-500" />
+            <p className="mt-4 text-sm font-medium text-zinc-800">{result.message}</p>
+            <button onClick={close} className="mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <form ref={formRef} onSubmit={onSubmit} className="space-y-5">
+            <Field label="Tipo de publicación" htmlFor="type" required>
+              <Select id="type" name="type" defaultValue="necesito">
+                {TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {POST_TYPE_EMOJI[t]} {POST_TYPE_LABEL[t]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Mensaje" htmlFor="body" required error={fieldErrors?.body}>
+              <Textarea
+                id="body"
+                name="body"
+                rows={4}
+                placeholder="Cuenta qué necesitas, qué ofreces o qué está pasando. Sé claro con la ubicación."
+              />
+            </Field>
+
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-5 hover:border-brand-400 hover:bg-brand-50">
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt="Vista previa" className="h-28 w-full max-w-xs rounded-lg object-cover" />
+              ) : (
+                <>
+                  <ImagePlus className="h-6 w-6 text-zinc-400" />
+                  <span className="text-sm font-medium text-zinc-700">Añadir foto (opcional)</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  fileRef.current = file;
+                  setPreview(URL.createObjectURL(file));
+                }}
+              />
+            </label>
+
+            <Field label="Enlace a video o red social (opcional)" htmlFor="linkUrl" error={fieldErrors?.linkUrl}>
+              <Input id="linkUrl" name="linkUrl" placeholder="https://..." />
+            </Field>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Estado (región)" htmlFor="estado">
+                <Select id="estado" name="estado" defaultValue="">
+                  <option value="">Seleccionar</option>
+                  {ESTADOS.map((e) => (
+                    <option key={e} value={e}>
+                      {e}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Ubicación / sector" htmlFor="locationText">
+                <Input id="locationText" name="locationText" placeholder="El Junquito, km 11..." />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Tu nombre" htmlFor="authorName" required error={fieldErrors?.authorName}>
+                <Input id="authorName" name="authorName" placeholder="Nombre o colectivo" />
+              </Field>
+              <Field label="Teléfono (opcional)" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>
+                <Input id="contactPhone" name="contactPhone" placeholder="+58 412 0000000" />
+              </Field>
+            </div>
+
+            <input type="hidden" name="photoUrl" />
+            <Turnstile />
+
+            {result && !result.ok && (
+              <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{result.error}</p>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={close} className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-300 disabled:opacity-60"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Publicar
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </>
+  );
+}
