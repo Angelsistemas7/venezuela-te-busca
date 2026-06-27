@@ -14,6 +14,7 @@ import {
   deleteAidPoint,
   deleteMarch,
   deletePerson,
+  deletePost,
   likeAidPoint,
   likeHospital,
   likeMarch,
@@ -24,6 +25,7 @@ import {
   updateMarchFields,
   updatePersonFields,
   updatePersonStatus,
+  updatePostFields,
   verifyOwner,
   verifyResourceOwner,
   voteAidAvailability,
@@ -329,11 +331,61 @@ export async function createPostAction(form: FormData): Promise<ActionResult> {
   const photoUrl = getField(form, "photoUrl") || null;
 
   try {
-    const post = await createPost(parsed.data, photoUrl);
+    const { post, ownerToken } = await createPost(parsed.data, photoUrl);
     revalidatePath("/comunidad");
-    return { ok: true, id: post.id, message: "Publicado. Gracias por mantener informada a la comunidad." };
+    return {
+      ok: true,
+      id: post.id,
+      ownerToken,
+      message: "Publicado. Gracias por mantener informada a la comunidad.",
+    };
   } catch {
     return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
+  }
+}
+
+// ── Gestión por el autor de publicaciones de la comunidad (enlace privado) ───
+export async function ownerUpdatePostAction(form: FormData): Promise<ActionResult> {
+  const id = getField(form, "postId");
+  const token = getField(form, "token");
+  if (!(await verifyResourceOwner("post", id, token))) {
+    return { ok: false, error: "Enlace de gestión no válido." };
+  }
+
+  const parsed = postSchema.safeParse({
+    type: getField(form, "type"),
+    body: getField(form, "body"),
+    estado: getField(form, "estado") || undefined,
+    locationText: getField(form, "locationText"),
+    linkUrl: getField(form, "linkUrl"),
+    authorName: getField(form, "authorName"),
+    contactPhone: getField(form, "contactPhone"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+
+  try {
+    await updatePostFields(id, parsed.data);
+    revalidatePath("/comunidad");
+    return { ok: true, message: "Publicación actualizada." };
+  } catch {
+    return { ok: false, error: "No se pudo actualizar. Intenta de nuevo." };
+  }
+}
+
+export async function ownerDeletePostAction(
+  id: string,
+  token: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await verifyResourceOwner("post", id, token)))
+    return { ok: false, error: "Enlace de gestión no válido." };
+  try {
+    await deletePost(id);
+    revalidatePath("/comunidad");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No se pudo eliminar." };
   }
 }
 

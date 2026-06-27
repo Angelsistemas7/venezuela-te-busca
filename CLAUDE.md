@@ -72,12 +72,13 @@ Mapeadores `rowToX(row)` convierten fila snake_case → tipo camelCase del domin
   puntos "✅ Sí hay / ❌ Se acabó" (cambia `available` solo); hospitales
   "¿Tiene insumos? Sí/No" (insignia de consenso). Votos/likes deduplicados por
   dispositivo con `localStorage`.
-- **Autor de recursos (puntos de ayuda y caravanas) → enlace de gestión.** Además
-  del consenso, quien publicó puede **editar/eliminar** su recurso con un enlace
-  privado (`/ayuda/[id]/gestion`, `/caravanas/[id]/gestion`). El token vive en la
-  tabla genérica `resource_owners(entity_type, entity_id, token)` (sin lectura
-  pública); se verifica con `verifyResourceOwner(...)`. Personas usan su propia
-  `person_owners`. NO toca votos/disponibilidad (eso sigue siendo consenso).
+- **Autor de recursos (puntos de ayuda, caravanas y posts de comunidad) → enlace de
+  gestión.** Además del consenso, quien publicó puede **editar/eliminar** su recurso
+  con un enlace privado (`/ayuda/[id]/gestion`, `/caravanas/[id]/gestion`,
+  `/comunidad/[id]/gestion`). El token vive en la tabla genérica
+  `resource_owners(entity_type, entity_id, token)` con `entity_type ∈ {aid_point,
+  march, post}` (sin lectura pública); se verifica con `verifyResourceOwner(...)`.
+  Personas usan su propia `person_owners`. NO toca votos/reacciones (eso es consenso).
 
 ### Patrón clave: dos intenciones al publicar una persona
 Al publicar (`RegisterPersonButton`) el primer paso es **"¿Qué quieres hacer?"**:

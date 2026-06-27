@@ -1168,7 +1168,7 @@ function rowToPost(r: any): Post {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export async function getPosts(
-  filter: { type?: PostType | "all"; estado?: string | "all" } = {},
+  filter: { type?: PostType | "all"; estado?: string | "all"; search?: string } = {},
 ): Promise<Post[]> {
   const sb = getSupabase();
   if (!sb) {
@@ -1176,18 +1176,54 @@ export async function getPosts(
     if (filter.type && filter.type !== "all") items = items.filter((p) => p.type === filter.type);
     if (filter.estado && filter.estado !== "all")
       items = items.filter((p) => p.estado === filter.estado);
+    if (filter.search) {
+      const s = filter.search.toLowerCase().trim();
+      items = items.filter((p) =>
+        [p.body, p.locationText, p.authorName, p.estado]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(s),
+      );
+    }
     return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
   let query = sb.from("posts").select("*").order("created_at", { ascending: false }).limit(100);
   if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
   if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.search) {
+    // Quita caracteres que rompen el filtro `or` de PostgREST.
+    const s = filter.search.replace(/[,()*]/g, " ").trim();
+    if (s) {
+      query = query.or(
+        `body.ilike.%${s}%,location_text.ilike.%${s}%,author_name.ilike.%${s}%`,
+      );
+    }
+  }
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map(rowToPost);
 }
 
-export async function createPost(input: PostInput, photoUrl: string | null): Promise<Post> {
+export async function getPostById(id: string): Promise<Post | null> {
+  const sb = getSupabase();
+  if (!sb) return mem.posts.find((p) => p.id === id) ?? null;
+  const { data, error } = await sb.from("posts").select("*").eq("id", id).single();
+  if (error) return null;
+  return data ? rowToPost(data) : null;
+}
+
+export interface CreatePostResult {
+  post: Post;
+  ownerToken: string;
+}
+
+export async function createPost(
+  input: PostInput,
+  photoUrl: string | null,
+): Promise<CreatePostResult> {
   const now = new Date().toISOString();
+  const ownerToken = newToken();
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) {
     const post: Post = {
@@ -1204,7 +1240,8 @@ export async function createPost(input: PostInput, photoUrl: string | null): Pro
       createdAt: now,
     };
     mem.posts.unshift(post);
-    return post;
+    await createResourceOwner("post", post.id, ownerToken);
+    return { post, ownerToken };
   }
   const { data, error } = await sb
     .from("posts")
@@ -1222,7 +1259,53 @@ export async function createPost(input: PostInput, photoUrl: string | null): Pro
     .select("*")
     .single();
   if (error) throw error;
-  return rowToPost(data);
+  const post = rowToPost(data);
+  await createResourceOwner("post", post.id, ownerToken);
+  return { post, ownerToken };
+}
+
+/** Edita una publicación de la comunidad (autor). No toca reacciones ni foto. */
+export async function updatePostFields(id: string, input: PostInput): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const post = mem.posts.find((p) => p.id === id);
+    if (post) {
+      post.type = input.type;
+      post.body = input.body;
+      post.estado = input.estado ?? null;
+      post.locationText = input.locationText || "";
+      post.linkUrl = input.linkUrl || null;
+      post.authorName = input.authorName;
+      post.contactPhone = input.contactPhone || null;
+    }
+    return;
+  }
+  const { error } = await sb
+    .from("posts")
+    .update({
+      type: input.type,
+      body: input.body,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      link_url: input.linkUrl || null,
+      author_name: input.authorName,
+      contact_phone: input.contactPhone || null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Elimina una publicación de la comunidad (autor). */
+export async function deletePost(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.posts = mem.posts.filter((p) => p.id !== id);
+    await deleteResourceOwner("post", id);
+    return;
+  }
+  const { error } = await sb.from("posts").delete().eq("id", id);
+  if (error) throw error;
+  await deleteResourceOwner("post", id);
 }
 
 export async function reactToPost(id: string, kind: ReactionKind): Promise<void> {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users2 } from "lucide-react";
+import { Search, Users2 } from "lucide-react";
 import { getComments, getPosts } from "@/lib/data";
 import { POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -22,11 +22,35 @@ const FILTERS: { value: PostType | "all"; label: string }[] = [
 export default async function ComunidadPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const type = (str(sp.type) as PostType | "all") ?? "all";
+  const q = str(sp.q);
 
-  const posts = await getPosts({ type });
+  const posts = await getPosts({ type, search: q });
   const withComments = await Promise.all(
     posts.map(async (p) => ({ post: p, comments: await getComments("post", p.id) })),
   );
+
+  // Fijar arriba los rescates recientes (≈ activos) cuando no hay filtro de tipo,
+  // para que lo urgente no quede enterrado por publicaciones más nuevas.
+  const RECENT_MS = 72 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+  const pinned =
+    type === "all"
+      ? withComments.filter(
+          (x) =>
+            x.post.type === "rescate" && nowMs - new Date(x.post.createdAt).getTime() < RECENT_MS,
+        )
+      : [];
+  const pinnedIds = new Set(pinned.map((x) => x.post.id));
+  const rest = withComments.filter((x) => !pinnedIds.has(x.post.id));
+
+  // Enlaces de tipo que conservan la búsqueda activa.
+  const typeHref = (t: PostType | "all") => {
+    const params = new URLSearchParams();
+    if (t !== "all") params.set("type", t);
+    if (q) params.set("q", q);
+    const qs = params.toString();
+    return qs ? `/comunidad?${qs}` : "/comunidad";
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -48,11 +72,37 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
         </div>
       </div>
 
+      <form action="/comunidad" className="mb-3 flex gap-2">
+        {type !== "all" && <input type="hidden" name="type" value={type} />}
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <input
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Buscar en el muro: necesidad, sector, nombre..."
+            className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          />
+        </div>
+        <button type="submit" className="rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800">
+          Buscar
+        </button>
+      </form>
+
+      {q && (
+        <p className="mb-3 text-sm text-zinc-500">
+          {withComments.length}{" "}
+          {withComments.length === 1 ? "resultado" : "resultados"} para “{q}”.{" "}
+          <Link href={type === "all" ? "/comunidad" : `/comunidad?type=${type}`} className="font-medium text-brand-700 hover:underline">
+            Limpiar
+          </Link>
+        </p>
+      )}
+
       <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <Link
             key={f.value}
-            href={f.value === "all" ? "/comunidad" : `/comunidad?type=${f.value}`}
+            href={typeHref(f.value)}
             className={cn(
               "whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
               type === f.value
@@ -70,11 +120,26 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
           Aún no hay publicaciones de este tipo. Sé el primero en publicar.
         </div>
       ) : (
-        <div className="space-y-4">
-          {withComments.map(({ post, comments }) => (
-            <PostCard key={post.id} post={post} comments={comments} />
-          ))}
-        </div>
+        <>
+          {pinned.length > 0 && (
+            <section className="mb-5 rounded-2xl border border-red-200 bg-red-50/40 p-3">
+              <h2 className="mb-2 flex items-center gap-1.5 px-1 text-sm font-bold text-red-700">
+                <span>🚨</span> Rescates activos
+              </h2>
+              <div className="space-y-4">
+                {pinned.map(({ post, comments }) => (
+                  <PostCard key={post.id} post={post} comments={comments} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="space-y-4">
+            {rest.map(({ post, comments }) => (
+              <PostCard key={post.id} post={post} comments={comments} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

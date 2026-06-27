@@ -84,7 +84,7 @@ create table if not exists person_owners (
 -- verificación del autor se hace en el servidor con la service role. No es una
 -- FK porque entity_id apunta a una de varias tablas según entity_type.
 create table if not exists resource_owners (
-  entity_type text not null check (entity_type in ('aid_point','march')),
+  entity_type text not null check (entity_type in ('aid_point','march','post')),
   entity_id   uuid not null,
   token       text not null,
   created_at  timestamptz not null default now(),

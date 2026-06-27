@@ -177,7 +177,7 @@ export interface March {
  * que las personas. Las personas usan su propia tabla `person_owners`; estos
  * recursos comparten una tabla genérica `resource_owners`.
  */
-export type ResourceOwnerEntity = "aid_point" | "march";
+export type ResourceOwnerEntity = "aid_point" | "march" | "post";
 
 // ── Comunidad / Feed ────────────────────────────────────────────────────────
 /** Tipo de publicación del muro comunitario. */

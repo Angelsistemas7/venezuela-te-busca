@@ -37,6 +37,10 @@ probada con prueba de humo (curl).
 - Publicaciones por tipo: 🆘 Necesito, 🤲 Ofrezco, 🚨 Rescate, 🏥 Médico,
   🚐 Caravana, 🕊️ Identificar, 📣 Info. Con foto, enlace externo, reacciones y
   comentarios. Filtro por tipo.
+- **Buscar en el muro** (texto/sector/nombre); la búsqueda se conserva al cambiar de tipo.
+- **Rescates activos fijados arriba**: los 🚨 recientes (≤72 h) se anclan al tope.
+- **Gestión por el autor**: enlace privado (`/comunidad/[id]/gestion?token=…`) para
+  editar la publicación o eliminarla (reutiliza `resource_owners`).
 
 ### Comentarios (transversal a todas las secciones)
 - Foro con foto en personas, posts, puntos, caravanas y hospitales.

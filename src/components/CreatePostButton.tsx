@@ -10,6 +10,7 @@ import { compressImage } from "@/lib/image";
 import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
+import { ManageLinkBox } from "./ManageLinkBox";
 
 const TYPES = Object.keys(POST_TYPE_LABEL) as PostType[];
 
@@ -49,10 +50,7 @@ export function CreatePostButton() {
       }
       const res = await createPostAction(form);
       setResult(res);
-      if (res.ok) {
-        router.refresh();
-        close();
-      }
+      if (res.ok) router.refresh();
     } finally {
       setSubmitting(false);
     }
@@ -80,6 +78,14 @@ export function CreatePostButton() {
           <div className="flex flex-col items-center py-8 text-center">
             <CheckCircle2 className="h-14 w-14 text-emerald-500" />
             <p className="mt-4 text-sm font-medium text-zinc-800">{result.message}</p>
+            {result.id && result.ownerToken && (
+              <ManageLinkBox
+                id={result.id}
+                token={result.ownerToken}
+                basePath="/comunidad"
+                note="Con este enlace —y solo con él— podrás editar esta publicación o eliminarla."
+              />
+            )}
             <button onClick={close} className="mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800">
               Cerrar
             </button>
