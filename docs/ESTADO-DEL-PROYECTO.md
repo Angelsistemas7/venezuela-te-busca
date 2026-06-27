@@ -50,6 +50,8 @@ probada con prueba de humo (curl).
   `comments.likes`).
 
 ### Puntos de ayuda (`/ayuda`, `/ayuda/[id]`)
+- **Filtros**: chips por recurso (comida/agua/refugio…) + "Solo disponibles";
+  los disponibles se muestran primero.
 - **Varios recursos por punto** (comida + agua + refugio…). Foto, horario, contacto.
 - **Consenso de disponibilidad** ("✅ Sí hay / ❌ Se acabó" → marca Agotado solo).
 - Estado verificado/por verificar. "Me gusta" y foro con fotos en la ficha.
@@ -61,6 +63,7 @@ probada con prueba de humo (curl).
   "Me gusta" y foro. Separadas en Próximas / Finalizadas.
 - **Gestión por el autor**: enlace privado (`/caravanas/[id]/gestion?token=…`) para
   editar (p. ej. la hora de salida) o eliminar.
+- **Conmutador** Todas / Próximas / Finalizadas (con conteos).
 
 ### Hospitales (`/hospitales`, `/hospitales/[id]`)
 - Capacidad por color (operativo/saturado/lleno/cerrado, editable), especialidades,
@@ -74,6 +77,8 @@ probada con prueba de humo (curl).
   **hospitales** (color por capacidad), **salidas de caravanas**, **alertas de
   rescate** (pines 🚨 + franja de alertas activas), **epicentro** y ficha "Datos
   del sismo" (de fuentes públicas, en `lib/geo.ts`).
+- **Popups con enlace** a la ficha completa: puntos→`/ayuda/[id]`,
+  hospitales→`/hospitales/[id]`, caravanas→`/caravanas/[id]`, rescates→`/comunidad`.
 
 ### Transversal
 - **Moderación** (`/admin`, `ADMIN_TOKEN`): aprobar reportes (aplica estado),

@@ -1,15 +1,36 @@
+import Link from "next/link";
 import { MapPinned } from "lucide-react";
 import { getMarches } from "@/lib/data";
+import { cn } from "@/lib/utils";
 import { MarchCard } from "@/components/MarchCard";
 import { RegisterMarchButton } from "@/components/RegisterMarchButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function CaravanasPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+const SHOWS = ["all", "upcoming", "past"] as const;
+type Show = (typeof SHOWS)[number];
+
+export default async function CaravanasPage({ searchParams }: { searchParams: SearchParams }) {
+  const sp = await searchParams;
+  const raw = str(sp.show);
+  const show: Show = SHOWS.includes(raw as Show) ? (raw as Show) : "all";
+
   const marches = await getMarches();
   const now = Date.now();
   const upcoming = marches.filter((m) => new Date(m.departAt).getTime() >= now);
   const past = marches.filter((m) => new Date(m.departAt).getTime() < now);
+
+  const showUpcoming = show === "all" || show === "upcoming";
+  const showPast = show === "all" || show === "past";
+
+  const CHIPS: { value: Show; label: string }[] = [
+    { value: "all", label: "Todas" },
+    { value: "upcoming", label: `Próximas (${upcoming.length})` },
+    { value: "past", label: `Finalizadas (${past.length})` },
+  ];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -36,33 +57,59 @@ export default async function CaravanasPage() {
           Aún no hay convocatorias. Sé el primero en organizar una caravana benéfica.
         </div>
       ) : (
-        <div className="space-y-8">
-          {upcoming.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                Próximas ({upcoming.length})
-              </h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {upcoming.map((m) => (
-                  <MarchCard key={m.id} march={m} />
-                ))}
-              </div>
-            </section>
-          )}
+        <>
+          <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
+            {CHIPS.map((c) => (
+              <Link
+                key={c.value}
+                href={c.value === "all" ? "/caravanas" : `/caravanas?show=${c.value}`}
+                className={cn(
+                  "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+                  show === c.value
+                    ? "border-brand-400 bg-brand-50 text-brand-700"
+                    : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
+                )}
+              >
+                {c.label}
+              </Link>
+            ))}
+          </div>
 
-          {past.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                Finalizadas ({past.length})
-              </h2>
-              <div className="grid grid-cols-1 gap-4 opacity-70 md:grid-cols-2 lg:grid-cols-3">
-                {past.map((m) => (
-                  <MarchCard key={m.id} march={m} />
-                ))}
+          <div className="space-y-8">
+            {showUpcoming && upcoming.length > 0 && (
+              <section>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  Próximas ({upcoming.length})
+                </h2>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {upcoming.map((m) => (
+                    <MarchCard key={m.id} march={m} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {showPast && past.length > 0 && (
+              <section>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                  Finalizadas ({past.length})
+                </h2>
+                <div className="grid grid-cols-1 gap-4 opacity-70 md:grid-cols-2 lg:grid-cols-3">
+                  {past.map((m) => (
+                    <MarchCard key={m.id} march={m} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {((show === "upcoming" && upcoming.length === 0) ||
+              (show === "past" && past.length === 0)) && (
+              <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
+                No hay caravanas en esta vista.
               </div>
-            </section>
-          )}
-        </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

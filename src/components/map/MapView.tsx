@@ -22,8 +22,9 @@ export type AidMarker = {
   lat: number;
   lng: number;
   verified: boolean;
+  href: string;
 };
-export type MarchMarker = { id: string; title: string; lat: number; lng: number; when: string };
+export type MarchMarker = { id: string; title: string; lat: number; lng: number; when: string; href: string };
 export type HospitalMarker = {
   id: string;
   name: string;
@@ -31,6 +32,7 @@ export type HospitalMarker = {
   color: string;
   lat: number;
   lng: number;
+  href: string;
 };
 export type RescueMarker = {
   id: string;
@@ -39,6 +41,7 @@ export type RescueMarker = {
   lat: number;
   lng: number;
   when: string;
+  href: string;
 };
 
 function zoneIcon(count: number) {
@@ -91,6 +94,8 @@ function epicenterIcon() {
     popupAnchor: [0, -14],
   });
 }
+
+const popupLink = { color: "#0369a1", fontWeight: 600, display: "inline-block", marginTop: 4 } as const;
 
 export default function MapView({
   zones,
@@ -157,6 +162,8 @@ export default function MapView({
             <br />
             {a.typeLabel}
             {a.verified ? " · ✔ verificado" : " · por verificar"}
+            <br />
+            <a href={a.href} style={popupLink}>Ver punto →</a>
           </Popup>
         </Marker>
       ))}
@@ -167,6 +174,8 @@ export default function MapView({
             <strong>{m.title}</strong>
             <br />
             Salida: {m.when}
+            <br />
+            <a href={m.href} style={popupLink}>Ver caravana →</a>
           </Popup>
         </Marker>
       ))}
@@ -177,6 +186,8 @@ export default function MapView({
             <strong>{h.name}</strong>
             <br />
             Capacidad: {h.statusLabel}
+            <br />
+            <a href={h.href} style={popupLink}>Ver hospital →</a>
           </Popup>
         </Marker>
       ))}
@@ -208,6 +219,8 @@ export default function MapView({
             <span style={{ display: "inline-block", marginTop: 4 }}>{r.body}</span>
             <br />
             <span style={{ color: "#71717a", fontSize: 11 }}>{r.when}</span>
+            <br />
+            <a href={r.href} style={popupLink}>Ver en comunidad →</a>
           </Popup>
         </Marker>
       ))}

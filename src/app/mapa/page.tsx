@@ -74,6 +74,7 @@ export default async function MapaPage() {
         lat: coord[0],
         lng: coord[1],
         verified: p.verified,
+        href: `/ayuda/${p.id}`,
       } satisfies AidMarker;
     })
     .filter((x): x is AidMarker => x !== null);
@@ -88,6 +89,7 @@ export default async function MapaPage() {
         lat: coord[0],
         lng: coord[1],
         when: formatDateTime(m.departAt),
+        href: `/caravanas/${m.id}`,
       } satisfies MarchMarker;
     })
     .filter((x): x is MarchMarker => x !== null);
@@ -103,6 +105,7 @@ export default async function MapaPage() {
         color: HOSPITAL_COLOR[h.status],
         lat: coord[0],
         lng: coord[1],
+        href: `/hospitales/${h.id}`,
       } satisfies HospitalMarker;
     })
     .filter((x): x is HospitalMarker => x !== null);
@@ -118,6 +121,7 @@ export default async function MapaPage() {
         lat: coord[0],
         lng: coord[1],
         when: formatDateTime(p.createdAt),
+        href: "/comunidad?type=rescate",
       } satisfies RescueMarker;
     })
     .filter((x): x is RescueMarker => x !== null);
