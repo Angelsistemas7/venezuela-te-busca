@@ -43,7 +43,7 @@ export default async function UnidentifiedPage({ searchParams }: { searchParams:
           </h1>
           <p className="mt-1 max-w-2xl text-zinc-500">
             Personas que <strong>alguien vio o encontró</strong> —en un hospital, refugio o la
-            calle— y de las que <strong>no se sabe quién son</strong>. Si reconoces a alguien, entra
+            calle— y de las que <strong>no se sabe quiénes son</strong>. Si reconoces a alguien, entra
             y avisa. Búscalas por <strong>foto, rasgos, ropa y lugar</strong>. ¿Buscas a alguien con
             nombre y datos?{" "}
             <a href="/" className="font-medium text-brand-700 hover:underline">
@@ -56,7 +56,7 @@ export default async function UnidentifiedPage({ searchParams }: { searchParams:
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1">
-          <SearchAndFilters />
+          <SearchAndFilters unidentified />
         </div>
         <RegisterPersonButton />
       </div>

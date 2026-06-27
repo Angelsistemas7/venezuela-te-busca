@@ -270,3 +270,22 @@ create policy "public_insert_patients"  on hospital_patients for insert with che
 -- Nota: NO se crea política de UPDATE/DELETE para anon.
 -- Editar estado de personas o verificar reportes/puntos requiere la
 -- service role (servidor), evitando que cualquiera marque "localizado".
+
+-- ── Cuentas: perfil de usuario (login OPCIONAL) ──────────────────────────────
+-- Supabase Auth gestiona auth.users (correo de acceso + hash de la contraseña).
+-- Aquí solo guardamos el nombre de usuario (único) y, si lo dieron, el correo de
+-- recuperación. El nombre visible se desnormaliza en cada publicación/comentario,
+-- así que el cliente NUNCA necesita leer esta tabla.
+create table if not exists profiles (
+  user_id        uuid primary key references auth.users(id) on delete cascade,
+  username       text not null,
+  username_lower text not null unique,
+  login_email    text not null,
+  recovery_email text,
+  created_at     timestamptz not null default now()
+);
+
+alter table profiles enable row level security;
+-- Sin políticas a propósito: `profiles` solo se lee/escribe con la service role
+-- desde el servidor (registro e inicio de sesión). Con la clave anon no se puede
+-- leer ni el nombre de usuario, ni el correo de recuperación.

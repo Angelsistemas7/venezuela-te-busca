@@ -25,6 +25,7 @@ export function RegisterPersonButton() {
   const [result, setResult] = useState<ActionResult | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [title, setTitle] = useState("");
   const fileRef = useRef<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -54,6 +55,8 @@ export function RegisterPersonButton() {
     setResult(null);
     try {
       const form = new FormData(e.currentTarget);
+      const nm = `${String(form.get("firstName") ?? "")} ${String(form.get("lastName") ?? "")}`.trim();
+      setTitle(nm || "Persona sin identificar");
       if (fileRef.current) {
         try {
           const compressed = await compressImage(fileRef.current);
@@ -107,7 +110,12 @@ export function RegisterPersonButton() {
             <p className="mt-4 max-w-sm font-medium text-zinc-800">{result.message}</p>
 
             {result.id && result.ownerToken && (
-              <ManageLinkBox id={result.id} token={result.ownerToken} />
+              <ManageLinkBox
+                id={result.id}
+                token={result.ownerToken}
+                entityType="person"
+                title={title}
+              />
             )}
 
             <div className="mt-6 flex gap-3">
@@ -262,6 +270,20 @@ export function RegisterPersonButton() {
                 placeholder={isSighting ? "Hospital Vargas, sala de emergencias" : "Macuto, edificio Caribe, sector..."}
               />
             </Field>
+
+            {isSighting && (
+              <Field
+                label="¿En qué situación está?"
+                htmlFor="status"
+                hint="Cómo la viste. Podrás cambiarlo luego desde tu enlace de gestión."
+              >
+                <Select id="status" name="status" defaultValue="localizado">
+                  <option value="localizado">La vi con vida / a salvo</option>
+                  <option value="hospitalizado">Está en un hospital</option>
+                  <option value="fallecido">Sin vida</option>
+                </Select>
+              </Field>
+            )}
 
             <Field
               label={isSighting ? "Rasgos, ropa y contexto" : "Descripción"}

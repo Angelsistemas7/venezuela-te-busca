@@ -20,6 +20,7 @@ export function CreatePostButton() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const fileRef = useRef<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -40,6 +41,9 @@ export function CreatePostButton() {
     setResult(null);
     try {
       const form = new FormData(e.currentTarget);
+      const body = String(form.get("body") ?? "");
+      const t = String(form.get("type") ?? "info") as PostType;
+      setTitle(`${POST_TYPE_LABEL[t]}: ${body.slice(0, 40)}${body.length > 40 ? "…" : ""}`);
       if (fileRef.current) {
         try {
           const url = await uploadPhoto(await compressImage(fileRef.current));
@@ -82,6 +86,8 @@ export function CreatePostButton() {
               <ManageLinkBox
                 id={result.id}
                 token={result.ownerToken}
+                entityType="post"
+                title={title}
                 basePath="/comunidad"
                 note="Con este enlace —y solo con él— podrás editar esta publicación o eliminarla."
               />

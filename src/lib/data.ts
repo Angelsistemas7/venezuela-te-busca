@@ -300,6 +300,14 @@ export async function createPerson(
   // En un avistamiento sin identificar puede no conocerse el nombre: usamos un
   // marcador para no dejar el campo vacío (la BD exige first_name no nulo).
   const firstName = (input.firstName ?? "").trim() || "Sin identificar";
+  // "Se busca" nace "por localizar". Un avistamiento ("¿La reconoces?") ya está
+  // ubicado: respeta el estado elegido (con vida / hospital / sin vida) y nunca
+  // queda "por localizar".
+  const status: PersonStatus = input.isUnidentified
+    ? input.status && input.status !== "por_localizar"
+      ? input.status
+      : "localizado"
+    : "por_localizar";
 
   if (!sb) {
     const person: Person = {
@@ -313,7 +321,7 @@ export async function createPerson(
       locationText: input.locationText || "",
       description: input.description || "",
       photoUrl,
-      status: "por_localizar",
+      status,
       hospitalName: null,
       isUnidentified: input.isUnidentified ?? false,
       contactName: input.contactName || null,
@@ -341,6 +349,7 @@ export async function createPerson(
       location_text: input.locationText || "",
       description: input.description || "",
       photo_url: photoUrl,
+      status,
       is_unidentified: input.isUnidentified ?? false,
       contact_name: input.contactName || null,
       contact_phone: input.contactPhone || null,
@@ -933,6 +942,52 @@ export async function getComments(entityType: Comment["entityType"], entityId: s
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
+// Comentarios de varias entidades del MISMO tipo en una sola consulta. Evita el
+// N+1 al pintar listas (p. ej. /comunidad, que antes consultaba por cada post).
+// Devuelve un mapa entityId → comentarios (más recientes primero, igual que getComments).
+export async function getCommentsForEntities(
+  entityType: Comment["entityType"],
+  ids: string[],
+): Promise<Record<string, Comment[]>> {
+  const out: Record<string, Comment[]> = {};
+  if (ids.length === 0) return out;
+  const sb = getSupabase();
+  if (!sb) {
+    for (const c of mem.comments) {
+      if (c.entityType !== entityType || !ids.includes(c.entityId)) continue;
+      (out[c.entityId] ??= []).push(c);
+    }
+  } else {
+    const { data, error } = await sb
+      .from("comments")
+      .select("*")
+      .eq("entity_type", entityType)
+      .in("entity_id", ids)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    for (const r of (data ?? []) as any[]) {
+      const c: Comment = {
+        id: r.id,
+        entityType: r.entity_type,
+        entityId: r.entity_id,
+        parentId: r.parent_id ?? null,
+        authorName: r.author_name,
+        body: r.body,
+        photoUrl: r.photo_url ?? null,
+        likes: r.likes ?? 0,
+        createdAt: r.created_at,
+      };
+      (out[c.entityId] ??= []).push(c);
+    }
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+  }
+  for (const arr of Object.values(out)) {
+    arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  return out;
+}
+
 export async function createComment(
   entityType: Comment["entityType"],
   entityId: string,
@@ -1012,6 +1067,27 @@ export async function getStatusReports(personId: string): Promise<StatusReport[]
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(rowToReport);
+}
+
+/** Conteo de reportes por persona, en una sola consulta (para avisos del autor). */
+export async function getReportCountsForPersons(ids: string[]): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  if (ids.length === 0) return out;
+  const sb = getSupabase();
+  if (!sb) {
+    for (const r of mem.reports) {
+      if (ids.includes(r.personId)) out[r.personId] = (out[r.personId] ?? 0) + 1;
+    }
+    return out;
+  }
+  const { data, error } = await sb.from("status_reports").select("person_id").in("person_id", ids);
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  for (const r of (data ?? []) as any[]) {
+    out[r.person_id] = (out[r.person_id] ?? 0) + 1;
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+  return out;
 }
 
 /** Cola de moderación: reportes aún sin verificar (para el panel admin). */

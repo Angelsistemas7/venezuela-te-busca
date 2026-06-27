@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, HeartHandshake, Map, MapPinned, Search, Users, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "./NotificationBell";
+import { AuthMenu } from "./AuthMenu";
 
 const NAV = [
   { href: "/", label: "Se busca", icon: Search },
@@ -30,13 +32,15 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="no-scrollbar hidden items-center gap-1 overflow-x-auto md:flex">
+        <div className="flex items-center gap-2">
+          <nav className="no-scrollbar hidden items-center gap-1 overflow-x-auto md:flex">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition",
                   active
@@ -49,7 +53,10 @@ export function SiteHeader() {
               </Link>
             );
           })}
-        </nav>
+          </nav>
+          <NotificationBell />
+          <AuthMenu />
+        </div>
       </div>
     </header>
   );

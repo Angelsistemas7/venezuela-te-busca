@@ -29,6 +29,28 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Foco visible y consistente para quienes navegan con teclado. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Respeta la preferencia de "menos movimiento": apaga pulsos del mapa,
+   animaciones y el scroll suave para usuarios sensibles al movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 /* Oculta scrollbars horizontales en filas de chips manteniendo el scroll */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

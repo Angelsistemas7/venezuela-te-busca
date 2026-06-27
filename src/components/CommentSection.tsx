@@ -177,6 +177,7 @@ export function CommentSection({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Tu nombre"
+          aria-label="Tu nombre"
           className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
         />
         <div className="flex gap-2">
@@ -185,15 +186,18 @@ export function CommentSection({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={replyTo ? `Responde a ${replyTo.authorName}...` : placeholder}
+            aria-label={replyTo ? `Responder a ${replyTo.authorName}` : "Escribe un comentario"}
             rows={2}
             className="w-full resize-y rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
           <div className="flex flex-col gap-1.5 self-end">
-            <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-zinc-300 text-zinc-500 hover:bg-zinc-50" title="Adjuntar foto">
+            <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-300 text-zinc-500 hover:bg-zinc-50" title="Adjuntar foto">
               <ImagePlus className="h-4 w-4" />
+              <span className="sr-only">Adjuntar foto</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                aria-label="Adjuntar foto"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -206,7 +210,8 @@ export function CommentSection({
             <button
               type="submit"
               disabled={submitting || !canSubmit}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50"
+              aria-label="Enviar comentario"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
@@ -233,7 +238,7 @@ export function CommentSection({
 
       <ul className="mt-5 space-y-3">
         {roots.length === 0 && (
-          <li className="py-4 text-center text-sm text-zinc-400">
+          <li className="py-4 text-center text-sm text-zinc-500">
             Aún no hay comentarios. Sé el primero en aportar información.
           </li>
         )}

@@ -27,8 +27,9 @@ export function MobileNav() {
             <li key={href} className="flex-1">
               <Link
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition",
+                  "flex min-h-[3rem] flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition",
                   active ? "text-brand-700" : "text-zinc-500",
                 )}
               >

@@ -10,6 +10,8 @@ import {
   createPerson,
   createPost,
   createStatusReport,
+  getCommentsForEntities,
+  getReportCountsForPersons,
   likeComment,
   deleteAidPoint,
   deleteMarch,
@@ -31,15 +33,18 @@ import {
   voteAidAvailability,
   voteHospitalSupplies,
 } from "@/lib/data";
+import { getCurrentUser, signIn, signOut, signUp } from "@/lib/auth";
 import { verifyTurnstile } from "@/lib/turnstile";
-import type { HospitalStatus, PersonReaction, PersonStatus, ReactionKind } from "@/lib/types";
+import type { CommentEntity, HospitalStatus, PersonReaction, PersonStatus, ReactionKind } from "@/lib/types";
 import {
   aidPointSchema,
   hospitalPatientSchema,
   hospitalSchema,
+  loginSchema,
   marchSchema,
   personSchema,
   postSchema,
+  signupSchema,
   statusReportSchema,
 } from "@/lib/validation";
 
@@ -61,6 +66,92 @@ function getField(form: FormData, name: string): string {
   return typeof v === "string" ? v : "";
 }
 
+// ── Cuentas (login opcional) ────────────────────────────────────────────────
+export type AuthActionResult =
+  | { ok: true; username: string }
+  | { ok: false; error: string; fieldErrors?: Record<string, string> };
+
+export async function signUpAction(form: FormData): Promise<AuthActionResult> {
+  const token = getField(form, "cf-turnstile-response") || null;
+  if (!(await verifyTurnstile(token))) {
+    return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };
+  }
+  const parsed = signupSchema.safeParse({
+    username: getField(form, "username"),
+    password: getField(form, "password"),
+    email: getField(form, "email"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+  const res = await signUp(parsed.data);
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/");
+  return { ok: true, username: res.username };
+}
+
+export async function signInAction(form: FormData): Promise<AuthActionResult> {
+  const parsed = loginSchema.safeParse({
+    username: getField(form, "username"),
+    password: getField(form, "password"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+  const res = await signIn(parsed.data);
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/");
+  return { ok: true, username: res.username };
+}
+
+export async function signOutAction(): Promise<{ ok: true }> {
+  await signOut();
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Sesión actual para la UI (cabecera, banner). null si no hay login. */
+export async function getSessionUserAction(): Promise<{ id: string; username: string } | null> {
+  return getCurrentUser();
+}
+
+// ── Avisos para el autor: actividad (comentarios + reportes) por publicación ──
+// Lectura sin efectos. El cliente envía las entidades que guardó en su
+// dispositivo y recibe solo CONTEOS (no datos sensibles). Clave: `${tipo}:${id}`.
+export async function getActivityForEntities(
+  items: { type: CommentEntity; id: string }[],
+): Promise<Record<string, { comments: number; reports: number }>> {
+  const out: Record<string, { comments: number; reports: number }> = {};
+  if (!Array.isArray(items) || items.length === 0) return out;
+  const safe = items.slice(0, 100); // límite anti-abuso
+
+  const idsByType = new Map<CommentEntity, string[]>();
+  for (const it of safe) {
+    if (!it || typeof it.id !== "string") continue;
+    const arr = idsByType.get(it.type) ?? [];
+    arr.push(it.id);
+    idsByType.set(it.type, arr);
+  }
+
+  for (const [type, ids] of idsByType) {
+    const comments = await getCommentsForEntities(type, ids);
+    for (const id of ids) {
+      out[`${type}:${id}`] = { comments: (comments[id] ?? []).length, reports: 0 };
+    }
+  }
+
+  const personIds = idsByType.get("person") ?? [];
+  if (personIds.length > 0) {
+    const reportCounts = await getReportCountsForPersons(personIds);
+    for (const id of personIds) {
+      const key = `person:${id}`;
+      out[key] = { comments: out[key]?.comments ?? 0, reports: reportCounts[id] ?? 0 };
+    }
+  }
+
+  return out;
+}
+
 // ── Registrar persona desaparecida ──────────────────────────────────────────
 export async function registerPersonAction(form: FormData): Promise<ActionResult> {
   const token = getField(form, "cf-turnstile-response") || null;
@@ -78,6 +169,7 @@ export async function registerPersonAction(form: FormData): Promise<ActionResult
     locationText: getField(form, "locationText"),
     description: getField(form, "description"),
     isUnidentified: getField(form, "isUnidentified") === "on",
+    status: getField(form, "status") || undefined,
     contactName: getField(form, "contactName"),
     contactPhone: getField(form, "contactPhone"),
     contactEmail: getField(form, "contactEmail"),

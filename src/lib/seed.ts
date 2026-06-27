@@ -55,13 +55,19 @@ function buildPersons(): Person[] {
     const gender = rand() > 0.5 ? "masculino" : "femenino";
     const hasAge = rand() > 0.12;
     const r = rand();
-    // Distribución de estados: mayoría por localizar.
-    let status: PersonStatus = "por_localizar";
-    if (r > 0.82) status = "localizado";
-    else if (r > 0.76) status = "hospitalizado";
-    else if (r > 0.72) status = "fallecido";
-
     const unidentified = rand() > 0.9; // ~10% casos sin identificar
+
+    // A quien alguien vio/encontró ya está ubicado: nunca "por localizar".
+    // El resto (se busca) sigue la distribución con mayoría por localizar.
+    let status: PersonStatus;
+    if (unidentified) {
+      status = r > 0.9 ? "fallecido" : r > 0.7 ? "hospitalizado" : "localizado";
+    } else {
+      status = "por_localizar";
+      if (r > 0.82) status = "localizado";
+      else if (r > 0.76) status = "hospitalizado";
+      else if (r > 0.72) status = "fallecido";
+    }
     const createdAt = new Date(baseTime - i * 60_000).toISOString();
 
     out.push({

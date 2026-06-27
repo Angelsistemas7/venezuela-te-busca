@@ -14,6 +14,7 @@ export function RegisterMarchButton() {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [title, setTitle] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   function close() {
@@ -30,7 +31,9 @@ export function RegisterMarchButton() {
     setSubmitting(true);
     setResult(null);
     try {
-      const res = await registerMarchAction(new FormData(e.currentTarget));
+      const form = new FormData(e.currentTarget);
+      setTitle(String(form.get("title") ?? "").trim() || "Caravana");
+      const res = await registerMarchAction(form);
       setResult(res);
       if (res.ok) router.refresh();
     } finally {
@@ -64,6 +67,8 @@ export function RegisterMarchButton() {
               <ManageLinkBox
                 id={result.id}
                 token={result.ownerToken}
+                entityType="march"
+                title={title}
                 basePath="/caravanas"
                 note="Con este enlace —y solo con él— podrás editar esta caravana (p. ej. cambiar la hora de salida) o eliminarla."
               />

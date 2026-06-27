@@ -15,7 +15,12 @@ const STATUS_CHIPS: { value: PersonStatus | "all"; label: string }[] = [
   { value: "fallecido", label: PERSON_STATUS_LABEL.fallecido },
 ];
 
-export function SearchAndFilters() {
+export function SearchAndFilters({ unidentified = false }: { unidentified?: boolean } = {}) {
+  // En "¿La reconoces?" la persona ya fue vista/ubicada: "Por localizar" no aplica.
+  const statusChips = unidentified
+    ? STATUS_CHIPS.filter((c) => c.value !== "por_localizar")
+    : STATUS_CHIPS;
+
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -104,7 +109,7 @@ export function SearchAndFilters() {
 
       {/* Chips rápidos por estado de localización */}
       <div className="no-scrollbar flex gap-2 overflow-x-auto pb-0.5">
-        {STATUS_CHIPS.map((chip) => (
+        {statusChips.map((chip) => (
           <button
             key={chip.value}
             onClick={() => setParams({ status: chip.value })}

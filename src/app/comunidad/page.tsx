@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Search, Users2 } from "lucide-react";
-import { getComments, getPosts } from "@/lib/data";
+import { getCommentsForEntities, getPosts } from "@/lib/data";
 import { POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PostCard } from "@/components/PostCard";
@@ -25,9 +25,9 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   const q = str(sp.q);
 
   const posts = await getPosts({ type, search: q });
-  const withComments = await Promise.all(
-    posts.map(async (p) => ({ post: p, comments: await getComments("post", p.id) })),
-  );
+  // Una sola consulta para los comentarios de todos los posts (evita el N+1).
+  const commentsByPost = await getCommentsForEntities("post", posts.map((p) => p.id));
+  const withComments = posts.map((p) => ({ post: p, comments: commentsByPost[p.id] ?? [] }));
 
   // Fijar arriba los rescates recientes (≈ activos) cuando no hay filtro de tipo,
   // para que lo urgente no quede enterrado por publicaciones más nuevas.

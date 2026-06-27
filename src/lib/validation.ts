@@ -31,6 +31,8 @@ export const personSchema = z
     locationText: z.string().trim().max(160).optional().or(z.literal("")),
     description: z.string().trim().max(800).optional().or(z.literal("")),
     isUnidentified: z.boolean().default(false),
+    // Solo aplica a avistamientos ("¿La reconoces?"): la persona ya está ubicada.
+    status: z.enum(["por_localizar", "localizado", "hospitalizado", "fallecido"]).optional(),
     contactName: z.string().trim().max(80).optional().or(z.literal("")),
     contactPhone: phone,
     contactEmail: z.string().trim().email("Correo no válido").optional().or(z.literal("")),
@@ -140,3 +142,29 @@ export const hospitalPatientSchema = z.object({
 });
 
 export type HospitalPatientInput = z.infer<typeof hospitalPatientSchema>;
+
+// ── Cuentas (login opcional) ────────────────────────────────────────────────
+// Usuario único + contraseña fuerte (mínimo 10). El correo es opcional y solo
+// sirve para recuperar la clave. NUNCA contraseñas cortas.
+const USERNAME_RE = /^[a-zA-Z0-9_.]{3,24}$/u;
+
+export const signupSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .regex(USERNAME_RE, "Usa 3–24 caracteres: letras, números, punto o guion bajo (sin espacios)."),
+  password: z
+    .string()
+    .min(10, "La contraseña debe tener al menos 10 caracteres.")
+    .max(72, "La contraseña es demasiado larga (máx. 72)."),
+  email: z.string().trim().email("Correo no válido").optional().or(z.literal("")),
+});
+
+export type SignupInput = z.infer<typeof signupSchema>;
+
+export const loginSchema = z.object({
+  username: z.string().trim().min(1, "Indica tu usuario."),
+  password: z.string().min(1, "Indica tu contraseña."),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;

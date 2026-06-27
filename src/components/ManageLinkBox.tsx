@@ -2,19 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { Check, Copy, KeyRound } from "lucide-react";
+import { addMyPub, type MyPubType } from "@/lib/myPubs";
 
 // Muestra el enlace privado de gestión que se entrega a quien publica.
 // Con ese enlace —y solo con él— el autor puede editar o eliminar su
 // publicación (y, en personas, cambiar su estado), sin crear una cuenta.
 // `basePath` define la sección: /persona, /ayuda o /caravanas.
+// Además, recuerda la publicación en este dispositivo (para "Mis publicaciones"
+// y los avisos de actividad), sin crear cuenta ni pedir datos.
 export function ManageLinkBox({
   id,
   token,
+  entityType,
+  title,
   basePath = "/persona",
   note = "Con este enlace —y solo con él— podrás marcar a la persona como localizada, editar o eliminar la publicación.",
 }: {
   id: string;
   token: string;
+  entityType: MyPubType;
+  title: string;
   basePath?: string;
   note?: string;
 }) {
@@ -25,6 +32,11 @@ export function ManageLinkBox({
     const origin = window.location.origin;
     setUrl(`${origin}${basePath}/${id}/gestion?token=${token}`);
   }, [id, token, basePath]);
+
+  // Recuerda esta publicación en el dispositivo para la campanita de avisos.
+  useEffect(() => {
+    addMyPub({ type: entityType, id, token, title, createdAt: new Date().toISOString() });
+  }, [entityType, id, token, title]);
 
   async function copy() {
     try {

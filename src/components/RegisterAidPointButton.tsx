@@ -18,6 +18,7 @@ export function RegisterAidPointButton() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const fileRef = useRef<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -38,6 +39,7 @@ export function RegisterAidPointButton() {
     setResult(null);
     try {
       const form = new FormData(e.currentTarget);
+      setTitle(String(form.get("name") ?? "").trim() || "Punto de ayuda");
       if (fileRef.current) {
         try {
           const compressed = await compressImage(fileRef.current);
@@ -81,6 +83,8 @@ export function RegisterAidPointButton() {
               <ManageLinkBox
                 id={result.id}
                 token={result.ownerToken}
+                entityType="aid_point"
+                title={title}
                 basePath="/ayuda"
                 note="Con este enlace —y solo con él— podrás editar este punto (recursos, horario, ubicación) o eliminarlo."
               />
