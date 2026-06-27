@@ -22,6 +22,7 @@ import {
   likeHospital,
   likeMarch,
   reactToPerson,
+  setAidAvailability,
   reactToPost,
   updateAidPointFields,
   updateHospitalStatus,
@@ -742,28 +743,56 @@ export async function ownerDeleteMarchAction(
 export async function voteAidAvailabilityAction(
   id: string,
   vote: "available" | "depleted",
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
+  // Votar es una señal NO vinculante y requiere sesión (anti-spam). La
+  // disponibilidad oficial la fija el dueño del punto o el admin.
+  if (!(await getCurrentUser())) {
+    return { ok: false, error: "Inicia sesión para opinar sobre la disponibilidad." };
+  }
   try {
     await voteAidAvailability(id, vote);
     revalidatePath("/ayuda");
     revalidatePath("/mapa");
     return { ok: true };
   } catch {
-    return { ok: false };
+    return { ok: false, error: "No se pudo registrar tu voto." };
+  }
+}
+
+/** El AUTOR del punto (o el admin) marca disponible/agotado. */
+export async function ownerSetAidAvailabilityAction(
+  id: string,
+  token: string,
+  available: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await verifyResourceOwner("aid_point", id, token))) {
+    return { ok: false, error: "Enlace de gestión no válido." };
+  }
+  try {
+    await setAidAvailability(id, available);
+    revalidatePath("/ayuda");
+    revalidatePath(`/ayuda/${id}`);
+    revalidatePath("/mapa");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No se pudo actualizar la disponibilidad." };
   }
 }
 
 export async function voteHospitalSuppliesAction(
   id: string,
   vote: "yes" | "no",
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await getCurrentUser())) {
+    return { ok: false, error: "Inicia sesión para opinar sobre los insumos." };
+  }
   try {
     await voteHospitalSupplies(id, vote);
     revalidatePath("/hospitales");
     revalidatePath(`/hospitales/${id}`);
     return { ok: true };
   } catch {
-    return { ok: false };
+    return { ok: false, error: "No se pudo registrar tu voto." };
   }
 }
 
@@ -803,7 +832,12 @@ export async function updateHospitalStatusAction(
   id: string,
   status: HospitalStatus,
   needsText: string,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
+  // La capacidad/insumos oficiales los actualiza personal con sesión (o el admin),
+  // no de forma anónima.
+  if (!(await getCurrentUser())) {
+    return { ok: false, error: "Inicia sesión para actualizar el hospital." };
+  }
   try {
     await updateHospitalStatus(id, status, needsText);
     revalidatePath("/hospitales");

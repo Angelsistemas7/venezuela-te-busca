@@ -778,7 +778,6 @@ export async function voteAidAvailability(id: string, vote: "available" | "deple
     if (point) {
       if (vote === "available") point.votesAvailable++;
       else point.votesDepleted++;
-      point.available = point.votesDepleted > point.votesAvailable ? false : true;
       point.updatedAt = now;
     }
     return;
@@ -793,8 +792,25 @@ export async function voteAidAvailability(id: string, vote: "available" | "deple
   const vd = (data.votes_depleted ?? 0) + (vote === "depleted" ? 1 : 0);
   await sb
     .from("aid_points")
-    .update({ votes_available: va, votes_depleted: vd, available: vd <= va, updated_at: now })
+    .update({ votes_available: va, votes_depleted: vd, updated_at: now })
     .eq("id", id);
+}
+
+// La disponibilidad oficial (disponible/agotado) la fija el AUTOR del punto o el
+// admin; el voto comunitario es solo una señal y ya no la cambia.
+export async function setAidAvailability(id: string, available: boolean): Promise<void> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const point = mem.aidPoints.find((p) => p.id === id);
+    if (point) {
+      point.available = available;
+      point.updatedAt = now;
+    }
+    return;
+  }
+  const { error } = await sb.from("aid_points").update({ available, updated_at: now }).eq("id", id);
+  if (error) throw error;
 }
 
 // ── Marchas ──────────────────────────────────────────────────────────────────

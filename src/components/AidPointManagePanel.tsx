@@ -2,15 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Trash2, TriangleAlert } from "lucide-react";
+import { Check, Loader2, Trash2, TriangleAlert, X } from "lucide-react";
 import type { AidPoint, AidPointType } from "@/lib/types";
 import { AID_POINT_TYPE_LABEL, ESTADOS } from "@/lib/types";
 import {
   ownerDeleteAidPointAction,
+  ownerSetAidAvailabilityAction,
   ownerUpdateAidPointAction,
   type ActionResult,
 } from "@/app/actions";
 import { Field, Input, Select, Textarea } from "./FormControls";
+import { cn } from "@/lib/utils";
 
 const TYPES = Object.keys(AID_POINT_TYPE_LABEL) as AidPointType[];
 
@@ -21,6 +23,19 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [available, setAvailable] = useState(point.available);
+  const [availPending, startAvailTransition] = useTransition();
+
+  function setAvail(next: boolean) {
+    if (next === available || availPending) return;
+    startAvailTransition(async () => {
+      const res = await ownerSetAidAvailabilityAction(point.id, token, next);
+      if (res.ok) {
+        setAvailable(next);
+        router.refresh();
+      }
+    });
+  }
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,8 +67,8 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="font-bold text-zinc-900">Datos del punto</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Edita la información del punto. La disponibilidad (“sí hay / se acabó”) la mantiene la
-          comunidad por consenso, no se cambia desde aquí.
+          Edita la información del punto. La <strong>disponibilidad</strong> la marcas tú abajo; el
+          voto de la comunidad es solo una señal orientativa.
         </p>
 
         <form onSubmit={save} className="mt-4 space-y-4">
@@ -126,6 +141,43 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
             </button>
           </div>
         </form>
+      </section>
+
+      {/* Disponibilidad: la fija el dueño (o el admin) */}
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="font-bold text-zinc-900">Disponibilidad</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Marca si el punto tiene recursos ahora mismo. Es lo que ve la gente (Disponible / Agotado).
+        </p>
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAvail(true)}
+            disabled={availPending}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-60",
+              available
+                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
+            )}
+          >
+            <Check className="h-4 w-4" /> Disponible
+          </button>
+          <button
+            type="button"
+            onClick={() => setAvail(false)}
+            disabled={availPending}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-60",
+              !available
+                ? "border-rose-300 bg-rose-50 text-rose-700"
+                : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
+            )}
+          >
+            <X className="h-4 w-4" /> Agotado
+          </button>
+          {availPending && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
+        </div>
       </section>
 
       {/* Eliminar */}
