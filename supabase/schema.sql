@@ -91,6 +91,22 @@ create table if not exists resource_owners (
   primary key (entity_type, entity_id)
 );
 
+-- ── Gestores delegados de recursos (los asigna el admin) ────────────────────
+-- El admin da a un usuario (cuenta) permiso para administrar un hospital o un
+-- punto de ayuda concreto (estado/disponibilidad/insumos, edición), sin ser el
+-- admin global ni el publicador. Tabla PRIVADA: solo el servidor (service role)
+-- la lee/escribe. La verificación del permiso se hace en el servidor.
+create table if not exists resource_managers (
+  entity_type text not null check (entity_type in ('aid_point','hospital')),
+  entity_id   uuid not null,
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  granted_by  text,
+  created_at  timestamptz not null default now(),
+  primary key (entity_type, entity_id, user_id)
+);
+create index if not exists resource_managers_entity_idx on resource_managers (entity_type, entity_id);
+create index if not exists resource_managers_user_idx   on resource_managers (user_id);
+
 -- ── Reportes de cambio de estado (con verificación anti-abuso) ──────────────
 create table if not exists status_reports (
   id uuid primary key default uuid_generate_v4(),
@@ -158,6 +174,7 @@ create table if not exists hospitals (
   needs_text    text default '',
   contact_name  text,
   contact_phone text,
+  verified      boolean not null default false,
   votes_supplies    int not null default 0,
   votes_no_supplies int not null default 0,
   likes             int not null default 0,
@@ -190,12 +207,14 @@ create table if not exists posts (
   link_url      text,
   author_name   text not null,
   contact_phone text,
+  pinned        boolean not null default false,
   reactions     jsonb not null default '{"apoyo":0,"corazon":0,"hecho":0}',
   created_at timestamptz not null default now()
 );
 create index if not exists posts_type_idx    on posts (type);
 create index if not exists posts_estado_idx  on posts (estado);
 create index if not exists posts_created_idx on posts (created_at desc);
+create index if not exists posts_pinned_idx  on posts (pinned);
 
 -- ── Comentarios (foro de comunidad) ─────────────────────────────────────────
 create table if not exists comments (
@@ -236,6 +255,9 @@ alter table hospitals        enable row level security;
 alter table hospital_patients enable row level security;
 alter table person_owners    enable row level security;
 alter table resource_owners  enable row level security;
+alter table resource_managers enable row level security;
+-- resource_managers: SIN políticas (solo service role). Quién gestiona un recurso
+-- no es público; se resuelve en el servidor con la service role.
 
 -- person_owners / resource_owners: SIN lectura pública (los tokens son secretos)
 -- y SIN inserción pública. Se escriben con service role al publicar.
@@ -301,8 +323,17 @@ alter table posts      add column if not exists user_id uuid references auth.use
 alter table aid_points add column if not exists user_id uuid references auth.users(id) on delete set null;
 alter table marches    add column if not exists user_id uuid references auth.users(id) on delete set null;
 alter table comments   add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table hospitals  add column if not exists user_id uuid references auth.users(id) on delete set null;
 
 create index if not exists idx_persons_user_id    on persons(user_id);
 create index if not exists idx_posts_user_id      on posts(user_id);
 create index if not exists idx_aid_points_user_id on aid_points(user_id);
 create index if not exists idx_marches_user_id    on marches(user_id);
+create index if not exists idx_hospitals_user_id  on hospitals(user_id);
+
+-- Migración para bases ya creadas: el "visto bueno" del admin a hospitales.
+-- (En instalaciones nuevas ya viene en el create table de hospitals.)
+alter table hospitals  add column if not exists verified boolean not null default false;
+
+-- Migración para bases ya creadas: publicaciones fijadas (destacadas) en el muro.
+alter table posts      add column if not exists pinned boolean not null default false;

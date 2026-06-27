@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   addHospitalPatient,
+  canManageHospital,
   createAidPoint,
   createComment,
   createHospital,
@@ -43,6 +44,7 @@ import {
   signUp,
   updatePassword,
 } from "@/lib/auth";
+import { isAdmin } from "@/lib/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
 import type { CommentEntity, HospitalStatus, PersonReaction, PersonStatus, ReactionKind } from "@/lib/types";
 import {
@@ -819,13 +821,21 @@ export async function registerHospitalAction(form: FormData): Promise<ActionResu
   }
 
   try {
-    const hospital = await createHospital(parsed.data);
+    const hospital = await createHospital(parsed.data, (await getCurrentUser())?.id ?? null);
     revalidatePath("/hospitales");
     revalidatePath("/mapa");
-    return { ok: true, id: hospital.id, message: "Hospital publicado. Gracias por mantener la información al día." };
+    return { ok: true, id: hospital.id, message: "Hospital publicado. Aparecerá como 'por verificar' hasta que se confirme." };
   } catch {
     return { ok: false, error: "No se pudo publicar el hospital. Intenta de nuevo." };
   }
+}
+
+/** ¿Puede el usuario actual gestionar el estado oficial de este hospital?
+ *  (admin, autor por cuenta o gestor delegado). Lo usa la UI para decidir si
+ *  muestra el control de edición. */
+export async function canManageHospitalAction(id: string): Promise<boolean> {
+  if (await isAdmin()) return true;
+  return canManageHospital(id);
 }
 
 export async function updateHospitalStatusAction(
@@ -833,10 +843,15 @@ export async function updateHospitalStatusAction(
   status: HospitalStatus,
   needsText: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  // La capacidad/insumos oficiales los actualiza personal con sesión (o el admin),
-  // no de forma anónima.
-  if (!(await getCurrentUser())) {
-    return { ok: false, error: "Inicia sesión para actualizar el hospital." };
+  // El estado oficial (capacidad/insumos) lo fija el ADMIN, el autor por cuenta
+  // o un GESTOR delegado. El resto de la comunidad opina con el voto de insumos
+  // (no vinculante) o por comentarios. No basta con tener sesión.
+  if (!(await isAdmin()) && !(await canManageHospital(id))) {
+    return {
+      ok: false,
+      error:
+        "Solo el equipo o un gestor designado puede actualizar el estado oficial. Puedes opinar con el voto de insumos o por comentarios.",
+    };
   }
   try {
     await updateHospitalStatus(id, status, needsText);

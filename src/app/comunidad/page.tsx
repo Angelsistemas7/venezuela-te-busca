@@ -29,18 +29,22 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   const commentsByPost = await getCommentsForEntities("post", posts.map((p) => p.id));
   const withComments = posts.map((p) => ({ post: p, comments: commentsByPost[p.id] ?? [] }));
 
-  // Fijar arriba los rescates recientes (≈ activos) cuando no hay filtro de tipo,
-  // para que lo urgente no quede enterrado por publicaciones más nuevas.
+  // Fijar arriba (cuando no hay filtro de tipo): primero las publicaciones
+  // DESTACADAS por el equipo (avisos importantes), luego los rescates recientes.
   const RECENT_MS = 72 * 60 * 60 * 1000;
   const nowMs = Date.now();
+  const featured = type === "all" ? withComments.filter((x) => x.post.pinned) : [];
+  const featuredIds = new Set(featured.map((x) => x.post.id));
   const pinned =
     type === "all"
       ? withComments.filter(
           (x) =>
-            x.post.type === "rescate" && nowMs - new Date(x.post.createdAt).getTime() < RECENT_MS,
+            !featuredIds.has(x.post.id) &&
+            x.post.type === "rescate" &&
+            nowMs - new Date(x.post.createdAt).getTime() < RECENT_MS,
         )
       : [];
-  const pinnedIds = new Set(pinned.map((x) => x.post.id));
+  const pinnedIds = new Set([...featuredIds, ...pinned.map((x) => x.post.id)]);
   const rest = withComments.filter((x) => !pinnedIds.has(x.post.id));
 
   // Enlaces de tipo que conservan la búsqueda activa.
@@ -121,6 +125,19 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
         </div>
       ) : (
         <>
+          {featured.length > 0 && (
+            <section className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-3">
+              <h2 className="mb-2 flex items-center gap-1.5 px-1 text-sm font-bold text-amber-700">
+                <span>📌</span> Destacado
+              </h2>
+              <div className="space-y-4">
+                {featured.map(({ post, comments }) => (
+                  <PostCard key={post.id} post={post} comments={comments} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {pinned.length > 0 && (
             <section className="mb-5 rounded-2xl border border-red-200 bg-red-50/40 p-3">
               <h2 className="mb-2 flex items-center gap-1.5 px-1 text-sm font-bold text-red-700">

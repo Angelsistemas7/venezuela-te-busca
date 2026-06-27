@@ -44,6 +44,22 @@ export async function isUsernameTaken(username: string): Promise<boolean> {
   return Boolean(data);
 }
 
+/** Busca una cuenta por su nombre de usuario (solo servidor / service role).
+ *  Lo usa el admin para asignar gestores. `profiles` es privada. */
+export async function findUserByUsername(
+  username: string,
+): Promise<{ id: string; username: string } | null> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return null;
+  const { data } = await admin
+    .from("profiles")
+    .select("user_id, username")
+    .eq("username_lower", username.trim().toLowerCase())
+    .maybeSingle();
+  if (!data) return null;
+  return { id: data.user_id as string, username: data.username as string };
+}
+
 export type AuthResult = { ok: true; username: string } | { ok: false; error: string };
 
 export async function signUp(input: SignupInput): Promise<AuthResult> {

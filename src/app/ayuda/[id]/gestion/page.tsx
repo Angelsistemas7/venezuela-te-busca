@@ -57,7 +57,7 @@ export default async function AidPointGestionPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Gestionar punto de ayuda</h1>
           <p className="mt-1 text-zinc-500">
-            {point.name} · Estás identificado como autor mediante tu enlace privado.
+            {point.name} · Estás identificado como autor (enlace privado o cuenta) o gestor designado.
           </p>
         </div>
       </div>

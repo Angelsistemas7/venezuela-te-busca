@@ -1,16 +1,41 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, Check, Clock, MapPin, Phone, ShieldCheck, UserCheck, X } from "lucide-react";
-import type { Person, PersonStatus, StatusReport } from "@/lib/types";
-import { PERSON_STATUS_LABEL } from "@/lib/types";
+import {
+  BadgeCheck,
+  Building2,
+  Check,
+  Clock,
+  HeartHandshake,
+  Loader2,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  UserCheck,
+  UserPlus,
+  X,
+} from "lucide-react";
+import type {
+  AidPoint,
+  Hospital,
+  ManagedEntity,
+  Person,
+  PersonStatus,
+  ResourceManager,
+  StatusReport,
+} from "@/lib/types";
+import { MANAGED_ENTITY_LABEL, PERSON_STATUS_LABEL } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import {
   approveReportAction,
+  assignManagerAction,
   dismissReportAction,
   logoutAdminAction,
+  removeManagerAction,
+  toggleAidPointVerifiedAction,
+  toggleHospitalVerifiedAction,
   togglePersonVerifiedAction,
 } from "@/app/admin/actions";
 
@@ -19,15 +44,30 @@ export type ReportWithName = StatusReport & { personName: string };
 export function AdminDashboard({
   reports,
   persons,
+  aidPoints,
+  hospitals,
+  managers,
   demoOpen,
 }: {
   reports: ReportWithName[];
   persons: Person[];
+  aidPoints: AidPoint[];
+  hospitals: Hospital[];
+  managers: ResourceManager[];
   demoOpen: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
+
+  // Gestores agrupados por recurso: `${entityType}:${entityId}` → gestores.
+  const managersByKey = useMemo(() => {
+    const map: Record<string, ResourceManager[]> = {};
+    for (const m of managers) {
+      (map[`${m.entityType}:${m.entityId}`] ??= []).push(m);
+    }
+    return map;
+  }, [managers]);
 
   function run(id: string, fn: () => Promise<unknown>) {
     setBusy(id);
@@ -49,7 +89,7 @@ export function AdminDashboard({
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Panel de moderación</h1>
             <p className="text-sm text-zinc-500">
               Verificar no es obligatorio para que algo aparezca: todo es visible de inmediato. Aquí
-              solo confirmas información y aplicas cambios de estado.
+              solo confirmas información, das el visto bueno y asignas gestores.
             </p>
           </div>
         </div>
@@ -64,6 +104,7 @@ export function AdminDashboard({
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <strong>Panel abierto (demo).</strong> Define <code className="rounded bg-amber-100 px-1">ADMIN_TOKEN</code>{" "}
           en <code className="rounded bg-amber-100 px-1">.env.local</code> para protegerlo con contraseña en producción.
+          {" "}Los gestores requieren cuentas reales (Supabase): en modo demostración no se pueden asignar.
         </div>
       )}
 
@@ -143,11 +184,11 @@ export function AdminDashboard({
         )}
       </section>
 
-      {/* Visto bueno a registros recientes */}
-      <section>
+      {/* Visto bueno a registros recientes de personas */}
+      <section className="mb-10">
         <h2 className="mb-3 flex items-center gap-2 font-bold text-zinc-900">
           <BadgeCheck className="h-4.5 w-4.5 text-zinc-500" />
-          Registros recientes
+          Registros recientes (personas)
         </h2>
         <ul className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
           {persons.map((p) => {
@@ -179,6 +220,282 @@ export function AdminDashboard({
           })}
         </ul>
       </section>
+
+      {/* Puntos de ayuda: verificar + gestores */}
+      <section className="mb-10">
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-zinc-900">
+          <HeartHandshake className="h-4.5 w-4.5 text-zinc-500" />
+          Puntos de ayuda
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-600">
+            {aidPoints.length}
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Revisa la evidencia (ubicación, contacto y foto) y da el visto bueno. Asigna un gestor para
+          que una cuenta de confianza administre el punto.
+        </p>
+        {aidPoints.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-zinc-300 bg-white py-8 text-center text-sm text-zinc-500">
+            Aún no hay puntos de ayuda.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {aidPoints.map((point) => (
+              <ResourceRow
+                key={point.id}
+                entityType="aid_point"
+                id={point.id}
+                name={point.name}
+                href={`/ayuda/${point.id}`}
+                verified={point.verified}
+                photoUrl={point.photoUrl}
+                location={[point.locationText, point.estado].filter(Boolean).join(", ")}
+                contact={[point.contactName, point.contactPhone].filter(Boolean).join(" · ")}
+                createdAt={point.createdAt}
+                managers={managersByKey[`aid_point:${point.id}`] ?? []}
+                demoOpen={demoOpen}
+                onToggleVerified={(v) => toggleAidPointVerifiedAction(point.id, v)}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Hospitales: verificar + gestores */}
+      <section>
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-zinc-900">
+          <Building2 className="h-4.5 w-4.5 text-zinc-500" />
+          Hospitales
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-600">
+            {hospitals.length}
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Da el visto bueno tras revisar el contacto y la ubicación. El gestor designado podrá
+          actualizar capacidad e insumos oficiales del hospital.
+        </p>
+        {hospitals.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-zinc-300 bg-white py-8 text-center text-sm text-zinc-500">
+            Aún no hay hospitales.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {hospitals.map((hospital) => (
+              <ResourceRow
+                key={hospital.id}
+                entityType="hospital"
+                id={hospital.id}
+                name={hospital.name}
+                href={`/hospitales/${hospital.id}`}
+                verified={hospital.verified}
+                photoUrl={null}
+                location={[hospital.locationText, hospital.estado].filter(Boolean).join(", ")}
+                contact={[hospital.contactName, hospital.contactPhone].filter(Boolean).join(" · ")}
+                createdAt={hospital.createdAt}
+                managers={managersByKey[`hospital:${hospital.id}`] ?? []}
+                demoOpen={demoOpen}
+                onToggleVerified={(v) => toggleHospitalVerifiedAction(hospital.id, v)}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ── Fila de moderación de un recurso (punto de ayuda u hospital) ─────────────
+function ResourceRow({
+  entityType,
+  id,
+  name,
+  href,
+  verified,
+  photoUrl,
+  location,
+  contact,
+  createdAt,
+  managers,
+  demoOpen,
+  onToggleVerified,
+}: {
+  entityType: ManagedEntity;
+  id: string;
+  name: string;
+  href: string;
+  verified: boolean;
+  photoUrl: string | null;
+  location: string;
+  contact: string;
+  createdAt: string;
+  managers: ResourceManager[];
+  demoOpen: boolean;
+  onToggleVerified: (value: boolean) => Promise<unknown>;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function toggleVerified() {
+    startTransition(async () => {
+      await onToggleVerified(!verified);
+      router.refresh();
+    });
+  }
+
+  return (
+    <li className="rounded-2xl border border-zinc-200 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 gap-3">
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt={name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+          ) : null}
+          <div className="min-w-0">
+            <Link href={href} className="font-semibold text-zinc-900 hover:underline">
+              {name}
+            </Link>
+            <div className="mt-1 space-y-0.5 text-xs text-zinc-500">
+              {location && (
+                <p className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+                  {location}
+                </p>
+              )}
+              {contact && (
+                <p className="flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 text-zinc-400" />
+                  {contact}
+                </p>
+              )}
+              <p className="text-zinc-400">{timeAgo(createdAt)}</p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={toggleVerified}
+          disabled={pending}
+          className={
+            verified
+              ? "flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+              : "flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          }
+        >
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
+          {verified ? "Verificado" : "Dar visto bueno"}
+        </button>
+      </div>
+
+      <ManagerControls entityType={entityType} entityId={id} managers={managers} disabled={demoOpen} />
+    </li>
+  );
+}
+
+// ── Gestores delegados de un recurso ─────────────────────────────────────────
+function ManagerControls({
+  entityType,
+  entityId,
+  managers,
+  disabled,
+}: {
+  entityType: ManagedEntity;
+  entityId: string;
+  managers: ResourceManager[];
+  disabled: boolean;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [username, setUsername] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function add() {
+    const value = username.trim();
+    if (!value) return;
+    setError(null);
+    const form = new FormData();
+    form.set("entityType", entityType);
+    form.set("entityId", entityId);
+    form.set("username", value);
+    startTransition(async () => {
+      const res = await assignManagerAction(form);
+      if (res.ok) {
+        setUsername("");
+        router.refresh();
+      } else {
+        setError(res.error ?? "No se pudo asignar.");
+      }
+    });
+  }
+
+  function remove(userId: string) {
+    startTransition(async () => {
+      await removeManagerAction(entityType, entityId, userId);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-3 border-t border-zinc-100 pt-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        Gestores de este {MANAGED_ENTITY_LABEL[entityType].toLowerCase()}
+      </p>
+
+      {managers.length > 0 ? (
+        <ul className="mb-2 flex flex-wrap gap-2">
+          {managers.map((m) => (
+            <li
+              key={m.userId}
+              className="flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              {m.username}
+              <button
+                onClick={() => remove(m.userId)}
+                disabled={pending}
+                title="Quitar gestor"
+                className="ml-0.5 rounded-full p-0.5 text-sky-500 hover:bg-sky-100 hover:text-sky-800 disabled:opacity-50"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mb-2 text-xs text-zinc-400">Sin gestores asignados.</p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center overflow-hidden rounded-lg border border-zinc-300 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
+          <span className="pl-2.5 text-sm text-zinc-400">@</span>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add();
+              }
+            }}
+            disabled={disabled || pending}
+            placeholder="nombre de usuario"
+            className="w-44 px-1.5 py-1.5 text-sm outline-none disabled:bg-zinc-50"
+          />
+        </div>
+        <button
+          onClick={add}
+          disabled={disabled || pending || !username.trim()}
+          className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+        >
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Asignar gestor
+        </button>
+      </div>
+      {disabled && (
+        <p className="mt-1.5 text-xs text-zinc-400">
+          Disponible al conectar la base de datos (Supabase) con cuentas reales.
+        </p>
+      )}
+      {error && <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p>}
     </div>
   );
 }

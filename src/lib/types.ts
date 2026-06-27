@@ -228,6 +228,8 @@ export interface Post {
   linkUrl: string | null; // enlace externo (video, red social)
   authorName: string;
   contactPhone: string | null;
+  /** Fijado arriba del muro (destacado por el equipo: avisos importantes). */
+  pinned: boolean;
   reactions: Record<ReactionKind, number>;
   createdAt: string;
 }
@@ -255,11 +257,39 @@ export interface Hospital {
   needsText: string;
   contactName: string | null;
   contactPhone: string | null;
+  /**
+   * Sello de "visto bueno" del moderador, igual que en personas y puntos de
+   * ayuda. Su ausencia NO oculta el hospital: aparece de inmediato, solo añade
+   * una insignia de confianza una vez revisada la evidencia.
+   */
+  verified: boolean;
   /** Consenso de la comunidad sobre si tiene insumos/abasto. */
   votesSupplies: number;
   votesNoSupplies: number;
   likes: number;
   updatedAt: string;
+  createdAt: string;
+}
+
+/**
+ * Recursos a los que el admin puede asignar un GESTOR delegado: una cuenta
+ * concreta que administra ese recurso (estado, disponibilidad, insumos, edición)
+ * sin ser el admin global ni el publicador original. Ver [[verificacion-gestores]].
+ */
+export type ManagedEntity = "aid_point" | "hospital";
+
+export const MANAGED_ENTITY_LABEL: Record<ManagedEntity, string> = {
+  aid_point: "Punto de ayuda",
+  hospital: "Hospital",
+};
+
+/** Gestor delegado de un recurso (asignado por el admin). */
+export interface ResourceManager {
+  entityType: ManagedEntity;
+  entityId: string;
+  userId: string;
+  /** Nombre de usuario (desnormalizado para mostrarlo en el panel). */
+  username: string;
   createdAt: string;
 }
 

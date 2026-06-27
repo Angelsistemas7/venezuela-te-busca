@@ -2,16 +2,17 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, LogIn, Pencil } from "lucide-react";
+import { Check, Loader2, ShieldCheck, Pencil } from "lucide-react";
 import { HOSPITAL_STATUS_LABEL, type HospitalStatus } from "@/lib/types";
-import { getSessionUserAction, updateHospitalStatusAction } from "@/app/actions";
+import { canManageHospitalAction, updateHospitalStatusAction } from "@/app/actions";
 import { HOSPITAL_STATUS_STYLE } from "./HospitalCard";
 import { cn } from "@/lib/utils";
 
 const STATUSES = Object.keys(HOSPITAL_STATUS_LABEL) as HospitalStatus[];
 
-// La capacidad/insumos oficiales los actualiza personal CON SESIÓN (o el admin),
-// no de forma anónima. El servidor también lo exige.
+// El estado oficial (capacidad/insumos) lo actualiza el ADMIN, el autor por
+// cuenta o un GESTOR delegado. El resto opina con el voto de insumos o por
+// comentarios. El servidor también lo exige.
 export function HospitalStatusControl({
   id,
   status,
@@ -26,14 +27,14 @@ export function HospitalStatusControl({
   const [pending, startTransition] = useTransition();
   const [draftStatus, setDraftStatus] = useState<HospitalStatus>(status);
   const [draftNeeds, setDraftNeeds] = useState(needsText);
-  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  const [canManage, setCanManage] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getSessionUserAction()
-      .then((u) => setLoggedIn(!!u))
-      .catch(() => setLoggedIn(false));
-  }, []);
+    canManageHospitalAction(id)
+      .then((ok) => setCanManage(ok))
+      .catch(() => setCanManage(false));
+  }, [id]);
 
   function save() {
     setError(null);
@@ -49,11 +50,13 @@ export function HospitalStatusControl({
   }
 
   if (!editing) {
-    if (loggedIn === false) {
+    // Mientras carga el permiso (null) no mostramos nada para no parpadear.
+    if (canManage === null) return null;
+    if (canManage === false) {
       return (
         <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400">
-          <LogIn className="h-3.5 w-3.5" />
-          Inicia sesión para actualizar el estado
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Solo el gestor designado actualiza el estado oficial
         </span>
       );
     }

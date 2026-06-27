@@ -179,3 +179,17 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+// ── Gestores delegados (asignación desde el panel admin) ─────────────────────
+// El admin asigna a un usuario (por su nombre de usuario) como gestor de un
+// recurso concreto (hospital o punto de ayuda).
+export const managerAssignSchema = z.object({
+  entityType: z.enum(["aid_point", "hospital"]),
+  entityId: z.string().min(1),
+  username: z
+    .string()
+    .trim()
+    .regex(USERNAME_RE, "Nombre de usuario no válido."),
+});
+
+export type ManagerAssignInput = z.infer<typeof managerAssignSchema>;

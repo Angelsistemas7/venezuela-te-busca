@@ -16,6 +16,7 @@ import type {
   Hospital,
   HospitalPatient,
   HospitalStatus,
+  ManagedEntity,
   March,
   Person,
   PersonReaction,
@@ -23,6 +24,7 @@ import type {
   Post,
   PostType,
   ReactionKind,
+  ResourceManager,
   ResourceOwnerEntity,
   Stats,
   StatusReport,
@@ -82,6 +84,8 @@ const mem = {
   // Tokens de gestión de recursos (puntos de ayuda, caravanas): el autor
   // gestiona su publicación con un enlace privado, igual que las personas.
   resourceOwners: [] as { entityType: ResourceOwnerEntity; entityId: string; token: string }[],
+  // Gestores delegados que asigna el admin (hospital / punto de ayuda).
+  resourceManagers: [] as ResourceManager[],
 };
 
 function newToken(): string {
@@ -382,6 +386,42 @@ async function sessionOwns(table: string, id: string): Promise<boolean> {
   return Boolean(data && (data as { user_id?: string }).user_id === user.id);
 }
 
+/** ¿La sesión actual es GESTOR delegado (asignado por el admin) de este recurso?
+ *  En modo demostración no hay sesión, así que devuelve false. */
+async function sessionIsManager(entityType: ManagedEntity, entityId: string): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user) return false;
+  if (!getSupabase()) {
+    return mem.resourceManagers.some(
+      (m) => m.entityType === entityType && m.entityId === entityId && m.userId === user.id,
+    );
+  }
+  const sb = getSupabaseAdmin();
+  if (!sb) return false;
+  const { data } = await sb
+    .from("resource_managers")
+    .select("user_id")
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/** ¿Puede la sesión actual gestionar este punto de ayuda? (autor por cuenta o
+ *  gestor delegado). El autor por TOKEN se verifica aparte con verifyResourceOwner. */
+export async function canManageAidPoint(id: string): Promise<boolean> {
+  if (await sessionOwns("aid_points", id)) return true;
+  return sessionIsManager("aid_point", id);
+}
+
+/** ¿Puede la sesión actual gestionar este hospital? (autor por cuenta o gestor
+ *  delegado). Los hospitales no usan token: la gestión es por cuenta o admin. */
+export async function canManageHospital(id: string): Promise<boolean> {
+  if (await sessionOwns("hospitals", id)) return true;
+  return sessionIsManager("hospital", id);
+}
+
 /** Verifica que quien gestiona es el autor: por token privado o por su cuenta. */
 export async function verifyOwner(personId: string, token: string): Promise<boolean> {
   if (token) {
@@ -581,7 +621,85 @@ export async function verifyResourceOwner(
   }
   const table =
     entityType === "post" ? "posts" : entityType === "aid_point" ? "aid_points" : "marches";
-  return sessionOwns(table, entityId);
+  if (await sessionOwns(table, entityId)) return true;
+  // Además del autor, un gestor delegado por el admin puede administrar el punto.
+  if (entityType === "aid_point" && (await sessionIsManager("aid_point", entityId))) return true;
+  return false;
+}
+
+// ── Gestores delegados de recursos (los asigna el admin) ────────────────────
+/** Todos los gestores delegados, con su nombre de usuario, para el panel admin. */
+export async function getAllResourceManagers(): Promise<ResourceManager[]> {
+  if (!getSupabase()) return mem.resourceManagers.slice();
+  const sb = getSupabaseAdmin();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("resource_managers")
+    .select("entity_type, entity_id, user_id, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const rows = data ?? [];
+  const ids = [...new Set(rows.map((r) => r.user_id as string))];
+  const nameById: Record<string, string> = {};
+  if (ids.length > 0) {
+    const { data: profs } = await sb.from("profiles").select("user_id, username").in("user_id", ids);
+    for (const p of profs ?? []) nameById[p.user_id as string] = p.username as string;
+  }
+  return rows.map((r) => ({
+    entityType: r.entity_type as ManagedEntity,
+    entityId: r.entity_id as string,
+    userId: r.user_id as string,
+    username: nameById[r.user_id as string] ?? "Usuario",
+    createdAt: r.created_at as string,
+  }));
+}
+
+/** Asigna a un usuario como gestor de un recurso (admin). Idempotente. */
+export async function addResourceManager(
+  entityType: ManagedEntity,
+  entityId: string,
+  userId: string,
+  username: string,
+  grantedBy: string,
+): Promise<void> {
+  const createdAt = new Date().toISOString();
+  if (!getSupabase()) {
+    const exists = mem.resourceManagers.some(
+      (m) => m.entityType === entityType && m.entityId === entityId && m.userId === userId,
+    );
+    if (!exists) mem.resourceManagers.push({ entityType, entityId, userId, username, createdAt });
+    return;
+  }
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
+  await sb
+    .from("resource_managers")
+    .upsert(
+      { entity_type: entityType, entity_id: entityId, user_id: userId, granted_by: grantedBy },
+      { onConflict: "entity_type,entity_id,user_id" },
+    );
+}
+
+/** Quita a un usuario como gestor de un recurso (admin). */
+export async function removeResourceManager(
+  entityType: ManagedEntity,
+  entityId: string,
+  userId: string,
+): Promise<void> {
+  if (!getSupabase()) {
+    mem.resourceManagers = mem.resourceManagers.filter(
+      (m) => !(m.entityType === entityType && m.entityId === entityId && m.userId === userId),
+    );
+    return;
+  }
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
+  await sb
+    .from("resource_managers")
+    .delete()
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .eq("user_id", userId);
 }
 
 // ── Puntos de ayuda ─────────────────────────────────────────────────────────
@@ -1207,6 +1325,30 @@ export async function setPersonVerified(personId: string, value: boolean): Promi
   if (error) throw error;
 }
 
+/** Da/quita el "visto bueno" del admin a un punto de ayuda. */
+export async function setAidPointVerified(id: string, value: boolean): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const point = mem.aidPoints.find((p) => p.id === id);
+    if (point) point.verified = value;
+    return;
+  }
+  const { error } = await sb.from("aid_points").update({ verified: value }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Da/quita el "visto bueno" del admin a un hospital. */
+export async function setHospitalVerified(id: string, value: boolean): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hospital = mem.hospitals.find((h) => h.id === id);
+    if (hospital) hospital.verified = value;
+    return;
+  }
+  const { error } = await sb.from("hospitals").update({ verified: value }).eq("id", id);
+  if (error) throw error;
+}
+
 /** Reacción de la comunidad a la ficha de una persona (🙏 ❤️ 📢). */
 export async function reactToPerson(id: string, kind: PersonReaction): Promise<void> {
   const sb = getSupabaseAdmin() ?? getSupabase();
@@ -1289,6 +1431,7 @@ function rowToPost(r: any): Post {
     linkUrl: r.link_url,
     authorName: r.author_name,
     contactPhone: r.contact_phone,
+    pinned: r.pinned ?? false,
     reactions: { apoyo: 0, corazon: 0, hecho: 0, ...(r.reactions ?? {}) },
     createdAt: r.created_at,
   };
@@ -1365,6 +1508,7 @@ export async function createPost(
       linkUrl: input.linkUrl || null,
       authorName: input.authorName,
       contactPhone: input.contactPhone || null,
+      pinned: false,
       reactions: { apoyo: 0, corazon: 0, hecho: 0 },
       createdAt: now,
     };
@@ -1507,6 +1651,7 @@ function rowToHospital(r: any): Hospital {
     needsText: r.needs_text ?? "",
     contactName: r.contact_name,
     contactPhone: r.contact_phone,
+    verified: r.verified ?? false,
     votesSupplies: r.votes_supplies ?? 0,
     votesNoSupplies: r.votes_no_supplies ?? 0,
     likes: r.likes ?? 0,
@@ -1551,7 +1696,10 @@ export async function getHospitalById(id: string): Promise<Hospital | null> {
   return data ? rowToHospital(data) : null;
 }
 
-export async function createHospital(input: HospitalInput): Promise<Hospital> {
+export async function createHospital(
+  input: HospitalInput,
+  userId: string | null = null,
+): Promise<Hospital> {
   const now = new Date().toISOString();
   const specialties = splitSpecialties(input.specialties);
   const sb = getSupabaseAdmin() ?? getSupabase();
@@ -1566,6 +1714,7 @@ export async function createHospital(input: HospitalInput): Promise<Hospital> {
       needsText: input.needsText || "",
       contactName: input.contactName || null,
       contactPhone: input.contactPhone || null,
+      verified: false,
       votesSupplies: 0,
       votesNoSupplies: 0,
       likes: 0,
@@ -1586,6 +1735,7 @@ export async function createHospital(input: HospitalInput): Promise<Hospital> {
       needs_text: input.needsText || "",
       contact_name: input.contactName || null,
       contact_phone: input.contactPhone || null,
+      user_id: userId,
     })
     .select("*")
     .single();

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock3, MapPin, PackageCheck, PackageX, Phone, Stethoscope, Users } from "lucide-react";
+import { BadgeCheck, Clock3, MapPin, PackageCheck, PackageX, Phone, ShieldQuestion, Stethoscope, Users } from "lucide-react";
 import type { Hospital, HospitalStatus } from "@/lib/types";
 import { HOSPITAL_STATUS_LABEL } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
@@ -25,6 +25,18 @@ export function HospitalCard({ hospital, patientCount }: { hospital: Hospital; p
           <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
           {HOSPITAL_STATUS_LABEL[hospital.status]}
         </span>
+      </div>
+
+      <div>
+        {hospital.verified ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+            <BadgeCheck className="h-3.5 w-3.5" /> Verificado
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+            <ShieldQuestion className="h-3.5 w-3.5" /> Por verificar
+          </span>
+        )}
       </div>
 
       {(hospital.locationText || hospital.estado) && (

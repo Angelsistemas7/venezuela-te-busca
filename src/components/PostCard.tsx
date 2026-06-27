@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, MapPin, MessageCircle } from "lucide-react";
+import { ExternalLink, MapPin, MessageCircle, Pin } from "lucide-react";
 import type { Comment, Post, ReactionKind } from "@/lib/types";
 import { POST_TYPE_EMOJI, POST_TYPE_LABEL, REACTION_EMOJI } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
@@ -51,6 +51,12 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
+        {post.pinned && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+            <Pin className="h-3.5 w-3.5" />
+            Fijado
+          </span>
+        )}
         <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold", TYPE_STYLE[post.type])}>
           <span>{POST_TYPE_EMOJI[post.type]}</span>
           {POST_TYPE_LABEL[post.type]}

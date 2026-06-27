@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock3, MapPin, Phone, Stethoscope } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion, Stethoscope } from "lucide-react";
 import { getComments, getHospitalById, getHospitalPatients } from "@/lib/data";
 import { HOSPITAL_STATUS_LABEL } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -42,10 +42,21 @@ export default async function HospitalPage({ params }: { params: Promise<{ id: s
               </p>
             )}
           </div>
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold", s.chip)}>
-            <span className={cn("h-2 w-2 rounded-full", s.dot)} />
-            {HOSPITAL_STATUS_LABEL[hospital.status]}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {hospital.verified ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                <BadgeCheck className="h-3.5 w-3.5" /> Verificado
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                <ShieldQuestion className="h-3.5 w-3.5" /> Por verificar
+              </span>
+            )}
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold", s.chip)}>
+              <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+              {HOSPITAL_STATUS_LABEL[hospital.status]}
+            </span>
+          </div>
         </div>
 
         {hospital.specialties.length > 0 && (

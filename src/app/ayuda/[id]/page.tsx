@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion } from "lucide-react";
-import { getAidPointById, getComments } from "@/lib/data";
+import { ArrowLeft, BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion, Settings } from "lucide-react";
+import { canManageAidPoint, getAidPointById, getComments } from "@/lib/data";
 import { AID_POINT_TYPE_LABEL } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { AidConsensusVote } from "@/components/AidConsensusVote";
@@ -14,7 +14,10 @@ export default async function AidPointPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const point = await getAidPointById(id);
   if (!point) notFound();
-  const comments = await getComments("aid_point", id);
+  const [comments, canManage] = await Promise.all([
+    getComments("aid_point", id),
+    canManageAidPoint(id),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -84,6 +87,16 @@ export default async function AidPointPage({ params }: { params: Promise<{ id: s
             )}
           </div>
           <p className="text-xs text-zinc-400">Actualizado {timeAgo(point.updatedAt)}</p>
+
+          {canManage && (
+            <Link
+              href={`/ayuda/${point.id}/gestion`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              <Settings className="h-4 w-4" />
+              Gestionar este punto
+            </Link>
+          )}
         </div>
       </article>
 

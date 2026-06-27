@@ -38,7 +38,8 @@ probada con prueba de humo (curl).
   🚐 Caravana, 🕊️ Identificar, 📣 Info. Con foto, enlace externo, reacciones y
   comentarios. Filtro por tipo.
 - **Buscar en el muro** (texto/sector/nombre); la búsqueda se conserva al cambiar de tipo.
-- **Rescates activos fijados arriba**: los 🚨 recientes (≤72 h) se anclan al tope.
+- **Destacado (fijado)**: publicaciones con `pinned` (avisos del equipo) se anclan
+  arriba en su propia sección 📌. Debajo, **rescates activos** (🚨 recientes ≤72 h).
 - **Gestión por el autor**: enlace privado (`/comunidad/[id]/gestion?token=…`) para
   editar la publicación o eliminarla (reutiliza `resource_owners`).
 
@@ -67,9 +68,23 @@ probada con prueba de humo (curl).
 
 ### Hospitales (`/hospitales`, `/hospitales/[id]`)
 - Capacidad por color (operativo/saturado/lleno/cerrado, editable), especialidades,
-  insumos. **Consenso de insumos** ("¿Tiene insumos? Sí/No").
+  insumos. **Consenso de insumos** ("¿Tiene insumos? Sí/No"). Sello verificado.
 - **Lista de personas atendidas** con buscador + alta. Foro con fotos (para que el
   personal suba listas de nombres) y mensaje de buena fe. "Me gusta".
+
+### Contenido inicial (para no salir vacío en el lanzamiento)
+- **Hospitales reales** de la zona afectada y de la red que recibe heridos
+  (La Guaira, Caracas/Distrito Capital, Miranda, Yaracuy, Carabobo, Aragua,
+  Falcón): nombre, dirección y teléfono de fuentes públicas. Algunos teléfonos
+  quedaron en blanco **a confirmar** (Periférico de Pariata, Naval, Materno de
+  Macuto). El estado de capacidad es ilustrativo.
+- **Puntos de ayuda** de ejemplo (refugios, acopios, agua, comedores) sin teléfono
+  (confirmar con cada organización).
+- **Publicaciones de comunidad** con comentarios, incluido un **aviso fijado** de
+  cómo entregar la ayuda de forma segura.
+- Vive en dos lugares: `src/lib/seed.ts` (modo demostración) y
+  **`supabase/seed-contenido.sql`** (cargar UNA vez en Supabase para producción,
+  después de `schema.sql`).
 
 ### Mapa (`/mapa`)
 - Leaflet. **Zonas afectadas** (marcador pulsante por estado; al pasar muestra
@@ -80,9 +95,23 @@ probada con prueba de humo (curl).
 - **Popups con enlace** a la ficha completa: puntos→`/ayuda/[id]`,
   hospitales→`/hospitales/[id]`, caravanas→`/caravanas/[id]`, rescates→`/comunidad`.
 
+### Verificación por el admin + gestores delegados
+- **Visto bueno con evidencia**: cualquiera publica un punto de ayuda u hospital y
+  aparece de inmediato como **"Por verificar"**. En `/admin` el moderador revisa la
+  evidencia (ubicación, contacto, foto) y lo marca **"Verificado"** (sello
+  `BadgeCheck`). Aplica a personas, puntos de ayuda y **hospitales** (campo
+  `verified` añadido a `hospitals`). El cambio de `verified` es solo por service role.
+- **Gestores delegados por recurso** (`resource_managers`): el admin otorga a una
+  **cuenta** permiso para administrar un hospital o punto concreto, sin ser el admin
+  global ni el publicador. Se asignan/quitan en `/admin` por nombre de usuario
+  (`profiles` es privada). El estado oficial del hospital (capacidad/insumos) y la
+  gestión del punto la pueden hacer: **admin, autor por cuenta o gestor delegado**;
+  el resto opina con el voto (no vinculante) o por comentarios.
+
 ### Transversal
 - **Moderación** (`/admin`, `ADMIN_TOKEN`): aprobar reportes (aplica estado),
-  dar visto bueno. No bloquea: todo es visible de inmediato.
+  dar visto bueno a personas/puntos/hospitales, asignar gestores. No bloquea: todo
+  es visible de inmediato.
 - **Anti-bot** Turnstile, **validación** zod en cliente y servidor.
 - **Compresión de fotos** a WebP antes de subir (`lib/image.ts`).
 - **Móvil**: barra de navegación inferior, estadísticas compactas, modales tipo hoja.
@@ -103,7 +132,9 @@ línea es desplegar (sección siguiente).
 > verificado y guardarlo en la persona.
 
 ### Ideas mencionadas, aún no priorizadas
-- Hospitales: con el tiempo, un responsable verificado por hospital que administre su info.
+- ¿Voto sólo para "usuarios verificados"? Hoy votar exige sesión (cualquier cuenta)
+  y es no vinculante. Se podría añadir un nivel de usuario de confianza aprobado por
+  el admin si se quiere endurecer (decisión abierta).
 - Más reacciones/medios (video) en publicaciones.
 - Agrupar por lugar exacto del hallazgo en "Confirmado sin vida" (ver nota de #4).
 
