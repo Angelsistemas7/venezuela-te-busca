@@ -7,6 +7,7 @@ import { getSessionUserAction, likeCommentAction, postCommentAction } from "@/ap
 import { uploadPhoto } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
 import { cn, timeAgo } from "@/lib/utils";
+import { Turnstile } from "./Turnstile";
 
 export function CommentSection({
   entityType,
@@ -75,6 +76,7 @@ export function CommentSection({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const formEl = e.currentTarget as HTMLFormElement;
     if (submitting || !canSubmit) return;
     setSubmitting(true);
     setError(null);
@@ -86,6 +88,14 @@ export function CommentSection({
     form.set("authorName", name);
     form.set("body", body);
     if (parentId) form.set("parentId", parentId);
+
+    // Anti-bot solo para anónimos; con sesión (identidad verificada) se omite.
+    if (!sessionName) {
+      const tokenEl = formEl.querySelector(
+        'input[name="cf-turnstile-response"]',
+      ) as HTMLInputElement | null;
+      form.set("cf-turnstile-response", tokenEl?.value ?? "");
+    }
 
     let photoUrl: string | null = null;
     if (fileRef.current) {
@@ -253,6 +263,7 @@ export function CommentSection({
             </button>
           </div>
         )}
+        {!sessionName && <Turnstile />}
         {error && <p className="text-xs font-medium text-rose-600">{error}</p>}
       </form>
 

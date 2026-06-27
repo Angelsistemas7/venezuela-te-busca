@@ -203,7 +203,7 @@ export function AuthMenu() {
               </Field>
             )}
 
-            {mode === "register" && <Turnstile />}
+            <Turnstile />
 
             {result && !result.ok && (
               <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">

@@ -1,12 +1,5 @@
 import Link from "next/link";
 
-const EMERGENCY = [
-  { num: "911", label: "Movistar" },
-  { num: "112", label: "Digitel" },
-  { num: "*1", label: "Movilnet" },
-  { num: "171", label: "CANTV fijo" },
-];
-
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t border-zinc-200 bg-white">
@@ -28,18 +21,18 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900">Teléfonos de emergencia</h3>
-          <ul className="mt-3 grid grid-cols-2 gap-2">
-            {EMERGENCY.map((e) => (
-              <li
-                key={e.num}
-                className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2"
-              >
-                <span className="text-lg font-bold text-rose-600">{e.num}</span>
-                <span className="text-xs text-zinc-500">{e.label}</span>
-              </li>
-            ))}
-          </ul>
+          <h3 className="text-sm font-semibold text-zinc-900">Emergencias</h3>
+          <a
+            href="tel:911"
+            className="mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 transition hover:bg-rose-100"
+          >
+            <span className="text-3xl font-extrabold leading-none text-rose-600">911</span>
+            <span className="text-xs leading-relaxed text-zinc-600">
+              <span className="font-semibold text-zinc-800">Línea única nacional (VEN 9‑1‑1).</span>{" "}
+              Policía, bomberos, Protección Civil y ambulancias. Funciona desde cualquier teléfono,
+              las 24 horas.
+            </span>
+          </a>
         </div>
       </div>
 

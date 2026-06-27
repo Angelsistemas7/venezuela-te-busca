@@ -99,6 +99,10 @@ export async function signUpAction(form: FormData): Promise<AuthActionResult> {
 }
 
 export async function signInAction(form: FormData): Promise<AuthActionResult> {
+  const token = getField(form, "cf-turnstile-response") || null;
+  if (!(await verifyTurnstile(token))) {
+    return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };
+  }
   const parsed = loginSchema.safeParse({
     username: getField(form, "username"),
     password: getField(form, "password"),
@@ -121,8 +125,11 @@ export async function signOutAction(): Promise<{ ok: true }> {
 /** Pide un enlace de recuperación. Respuesta SIEMPRE genérica (no revela si el
  *  usuario existe ni si tiene correo). */
 export async function requestPasswordResetAction(form: FormData): Promise<{ ok: true }> {
+  const token = getField(form, "cf-turnstile-response") || null;
   const username = getField(form, "username").trim();
-  if (username) await requestPasswordReset(username);
+  // Anti-bot para no permitir bombardeo de correos de recuperación. Respuesta
+  // siempre genérica (no revela si el usuario existe ni si pasó la verificación).
+  if (username && (await verifyTurnstile(token))) await requestPasswordReset(username);
   return { ok: true };
 }
 
@@ -393,6 +400,14 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
   const body = getField(form, "body").trim();
   const photoUrl = getField(form, "photoUrl") || null;
   const parentId = getField(form, "parentId") || null;
+
+  // Anti-bot solo para anónimos; con sesión (identidad verificada) no hace falta.
+  if (!sessionUser) {
+    const token = getField(form, "cf-turnstile-response") || null;
+    if (!(await verifyTurnstile(token))) {
+      return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };
+    }
+  }
 
   if (!entityId || authorName.length < 2 || (body.length < 2 && !photoUrl)) {
     return { ok: false, error: "Escribe tu nombre y un comentario (o adjunta una foto)." };
