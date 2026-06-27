@@ -11,6 +11,7 @@ import {
   createPost,
   createStatusReport,
   getCommentsForEntities,
+  getMyPublications,
   getReportCountsForPersons,
   likeComment,
   deleteAidPoint,
@@ -33,7 +34,14 @@ import {
   voteAidAvailability,
   voteHospitalSupplies,
 } from "@/lib/data";
-import { getCurrentUser, signIn, signOut, signUp } from "@/lib/auth";
+import {
+  getCurrentUser,
+  requestPasswordReset,
+  signIn,
+  signOut,
+  signUp,
+  updatePassword,
+} from "@/lib/auth";
 import { verifyTurnstile } from "@/lib/turnstile";
 import type { CommentEntity, HospitalStatus, PersonReaction, PersonStatus, ReactionKind } from "@/lib/types";
 import {
@@ -110,9 +118,40 @@ export async function signOutAction(): Promise<{ ok: true }> {
   return { ok: true };
 }
 
+/** Pide un enlace de recuperación. Respuesta SIEMPRE genérica (no revela si el
+ *  usuario existe ni si tiene correo). */
+export async function requestPasswordResetAction(form: FormData): Promise<{ ok: true }> {
+  const username = getField(form, "username").trim();
+  if (username) await requestPasswordReset(username);
+  return { ok: true };
+}
+
+/** Fija la nueva contraseña (con la sesión de recuperación ya abierta). */
+export async function updatePasswordAction(form: FormData): Promise<AuthActionResult> {
+  const parsed = signupSchema.pick({ password: true }).safeParse({
+    password: getField(form, "password"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+  const res = await updatePassword(parsed.data.password);
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/");
+  return { ok: true, username: res.username };
+}
+
 /** Sesión actual para la UI (cabecera, banner). null si no hay login. */
 export async function getSessionUserAction(): Promise<{ id: string; username: string } | null> {
   return getCurrentUser();
+}
+
+/** Publicaciones ligadas a la cuenta con sesión (cross-device). [] sin login. */
+export async function getMyPublicationsAction(): Promise<
+  { type: "person" | "post" | "aid_point" | "march"; id: string; title: string; createdAt: string }[]
+> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  return getMyPublications(user.id);
 }
 
 // ── Avisos para el autor: actividad (comentarios + reportes) por publicación ──
@@ -201,7 +240,11 @@ export async function registerPersonAction(form: FormData): Promise<ActionResult
   }
 
   try {
-    const { person, ownerToken } = await createPerson(parsed.data, photoUrl);
+    const { person, ownerToken } = await createPerson(
+      parsed.data,
+      photoUrl,
+      (await getCurrentUser())?.id ?? null,
+    );
     revalidatePath("/");
     revalidatePath("/sin-identificar");
     return {
@@ -276,7 +319,11 @@ export async function registerAidPointAction(form: FormData): Promise<ActionResu
   const photoUrl = getField(form, "photoUrl") || null;
 
   try {
-    const { point, ownerToken } = await createAidPoint(parsed.data, photoUrl);
+    const { point, ownerToken } = await createAidPoint(
+      parsed.data,
+      photoUrl,
+      (await getCurrentUser())?.id ?? null,
+    );
     revalidatePath("/ayuda");
     revalidatePath("/mapa");
     return {
@@ -313,7 +360,10 @@ export async function registerMarchAction(form: FormData): Promise<ActionResult>
   }
 
   try {
-    const { march, ownerToken } = await createMarch(parsed.data);
+    const { march, ownerToken } = await createMarch(
+      parsed.data,
+      (await getCurrentUser())?.id ?? null,
+    );
     revalidatePath("/caravanas");
     revalidatePath("/mapa");
     return {
@@ -336,7 +386,10 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
     | "post"
     | "hospital";
   const entityId = getField(form, "entityId");
-  const authorName = getField(form, "authorName").trim();
+  // Con sesión, el nombre del comentario es el de la cuenta (identidad verificada),
+  // no lo que venga del formulario.
+  const sessionUser = await getCurrentUser();
+  const authorName = sessionUser ? sessionUser.username : getField(form, "authorName").trim();
   const body = getField(form, "body").trim();
   const photoUrl = getField(form, "photoUrl") || null;
   const parentId = getField(form, "parentId") || null;
@@ -349,7 +402,7 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
   }
 
   try {
-    await createComment(entityType, entityId, authorName, body, photoUrl, parentId);
+    await createComment(entityType, entityId, authorName, body, photoUrl, parentId, sessionUser?.id ?? null);
     return { ok: true, message: "Comentario publicado." };
   } catch {
     return { ok: false, error: "No se pudo publicar el comentario." };
@@ -423,7 +476,11 @@ export async function createPostAction(form: FormData): Promise<ActionResult> {
   const photoUrl = getField(form, "photoUrl") || null;
 
   try {
-    const { post, ownerToken } = await createPost(parsed.data, photoUrl);
+    const { post, ownerToken } = await createPost(
+      parsed.data,
+      photoUrl,
+      (await getCurrentUser())?.id ?? null,
+    );
     revalidatePath("/comunidad");
     return {
       ok: true,

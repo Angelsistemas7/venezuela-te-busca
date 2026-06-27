@@ -7,8 +7,9 @@ const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 export async function verifyTurnstile(token: string | null, ip?: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
-    // Sin clave configurada: no bloqueamos en desarrollo.
-    return true;
+    // Sin clave: se omite en desarrollo, pero en PRODUCCIÓN se rechaza
+    // (fail-closed) para no quedar sin anti-bot por un despliegue mal configurado.
+    return process.env.NODE_ENV !== "production";
   }
   if (!token) return false;
 

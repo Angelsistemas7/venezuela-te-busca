@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CornerDownRight, Heart, ImagePlus, Loader2, MessageCircle, Reply, Send, X } from "lucide-react";
 import type { Comment, CommentEntity } from "@/lib/types";
-import { likeCommentAction, postCommentAction } from "@/app/actions";
+import { getSessionUserAction, likeCommentAction, postCommentAction } from "@/app/actions";
 import { uploadPhoto } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
 import { cn, timeAgo } from "@/lib/utils";
@@ -23,6 +23,7 @@ export function CommentSection({
 }) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [name, setName] = useState("");
+  const [sessionName, setSessionName] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,19 @@ export function CommentSection({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canSubmit = name.trim().length >= 2 && (body.trim().length >= 2 || fileRef.current);
+
+  // Con sesión, se comenta con la identidad de la cuenta (el servidor también lo
+  // impone). Ocultamos el campo de nombre y usamos el del usuario.
+  useEffect(() => {
+    getSessionUserAction()
+      .then((u) => {
+        if (u) {
+          setSessionName(u.username);
+          setName(u.username);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Hilos de un nivel: comentarios raíz (más recientes arriba) + respuestas por
   // raíz (en orden cronológico, para que la conversación se lea de arriba abajo).
@@ -173,13 +187,19 @@ export function CommentSection({
             </button>
           </div>
         )}
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Tu nombre"
-          aria-label="Tu nombre"
-          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-        />
+        {sessionName ? (
+          <p className="text-xs text-zinc-500">
+            Comentando como <span className="font-semibold text-zinc-700">{sessionName}</span>
+          </p>
+        ) : (
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Tu nombre"
+            aria-label="Tu nombre"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          />
+        )}
         <div className="flex gap-2">
           <textarea
             ref={textareaRef}

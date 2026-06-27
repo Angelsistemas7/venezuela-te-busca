@@ -13,6 +13,17 @@ const phone = z
   .optional()
   .or(z.literal(""));
 
+// Enlace externo seguro: SOLO http/https. `z.url()` por sí solo aceptaría
+// `javascript:` o `data:`, que pintados como href permitirían XSS al hacer clic.
+const httpUrl = (msg: string) =>
+  z
+    .string()
+    .trim()
+    .url(msg)
+    .refine((u) => /^https?:\/\//i.test(u), "El enlace debe empezar por http:// o https://")
+    .optional()
+    .or(z.literal(""));
+
 export const personSchema = z
   .object({
     // El nombre es obligatorio solo si SE SABE quién es la persona. En un
@@ -96,7 +107,7 @@ export const marchSchema = z.object({
     .string()
     .trim()
     .regex(/^[+\d\s()-]{7,20}$/u, "Teléfono de contacto no válido"),
-  whatsappUrl: z.string().trim().url("Enlace de WhatsApp no válido").optional().or(z.literal("")),
+  whatsappUrl: httpUrl("Enlace de WhatsApp no válido"),
   description: z.string().trim().max(800).optional().or(z.literal("")),
 });
 
@@ -107,7 +118,7 @@ export const postSchema = z.object({
   body: z.string().trim().min(5, "Escribe tu mensaje (mín. 5 caracteres)").max(1500),
   estado: estadoEnum.optional(),
   locationText: z.string().trim().max(160).optional().or(z.literal("")),
-  linkUrl: z.string().trim().url("Enlace no válido").optional().or(z.literal("")),
+  linkUrl: httpUrl("Enlace no válido"),
   authorName: z.string().trim().min(2, "Indica tu nombre").max(80),
   contactPhone: phone,
 });

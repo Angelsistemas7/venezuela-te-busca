@@ -237,11 +237,8 @@ alter table hospital_patients enable row level security;
 alter table person_owners    enable row level security;
 alter table resource_owners  enable row level security;
 
--- person_owners / resource_owners: inserción pública (para guardar el token al
--- publicar), pero SIN política de lectura → nadie puede leer los tokens con la
--- clave anon. La verificación del autor se hace en el servidor con service role.
-create policy "public_insert_owners" on person_owners for insert with check (true);
-create policy "public_insert_resource_owners" on resource_owners for insert with check (true);
+-- person_owners / resource_owners: SIN lectura pública (los tokens son secretos)
+-- y SIN inserción pública. Se escriben con service role al publicar.
 
 -- Lectura para todos
 create policy "public_read_persons"   on persons          for select using (true);
@@ -252,15 +249,21 @@ create policy "public_read_posts"     on posts            for select using (true
 create policy "public_read_hospitals" on hospitals        for select using (true);
 create policy "public_read_patients"  on hospital_patients for select using (true);
 
--- Inserción pública (la app filtra spam con Turnstile + validación)
-create policy "public_insert_persons"  on persons          for insert with check (true);
-create policy "public_insert_reports"  on status_reports   for insert with check (true);
-create policy "public_insert_aid"      on aid_points       for insert with check (true);
-create policy "public_insert_marches"  on marches          for insert with check (true);
-create policy "public_insert_comments" on comments         for insert with check (true);
-create policy "public_insert_posts"    on posts            for insert with check (true);
-create policy "public_insert_hospitals" on hospitals       for insert with check (true);
-create policy "public_insert_patients"  on hospital_patients for insert with check (true);
+-- Escrituras (INSERT/UPDATE/DELETE): SOLO por service role desde el servidor.
+-- Antes había inserción pública con la clave anon; se quitó porque permitía
+-- saltarse Turnstile y la validación, e incluso falsear `user_id`. Todas las
+-- acciones escriben con SUPABASE_SERVICE_ROLE_KEY (obligatoria en producción).
+-- Re-ejecutar este archivo elimina las políticas antiguas si ya existían:
+drop policy if exists "public_insert_persons"            on persons;
+drop policy if exists "public_insert_reports"            on status_reports;
+drop policy if exists "public_insert_aid"                on aid_points;
+drop policy if exists "public_insert_marches"            on marches;
+drop policy if exists "public_insert_comments"           on comments;
+drop policy if exists "public_insert_posts"              on posts;
+drop policy if exists "public_insert_hospitals"          on hospitals;
+drop policy if exists "public_insert_patients"           on hospital_patients;
+drop policy if exists "public_insert_owners"             on person_owners;
+drop policy if exists "public_insert_resource_owners"    on resource_owners;
 
 -- Reacciones a publicaciones y disponibilidad de puntos: se actualizan vía
 -- acciones del servidor. Si no usas service role, habilita estas dos:
@@ -289,3 +292,17 @@ alter table profiles enable row level security;
 -- Sin políticas a propósito: `profiles` solo se lee/escribe con la service role
 -- desde el servidor (registro e inicio de sesión). Con la clave anon no se puede
 -- leer ni el nombre de usuario, ni el correo de recuperación.
+
+-- ── Cuentas: enlazar publicaciones y comentarios a la cuenta (OPCIONAL) ───────
+-- Si publicas con sesión iniciada, la fila queda ligada a tu user_id y la puedes
+-- gestionar desde cualquier dispositivo. Sigue conviviendo con el token anónimo.
+alter table persons    add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table posts      add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table aid_points add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table marches    add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table comments   add column if not exists user_id uuid references auth.users(id) on delete set null;
+
+create index if not exists idx_persons_user_id    on persons(user_id);
+create index if not exists idx_posts_user_id      on posts(user_id);
+create index if not exists idx_aid_points_user_id on aid_points(user_id);
+create index if not exists idx_marches_user_id    on marches(user_id);

@@ -10,13 +10,15 @@ const COOKIE = "vtb_admin";
 export const adminConfigured = Boolean(ADMIN_TOKEN);
 
 export async function isAdmin(): Promise<boolean> {
-  if (!ADMIN_TOKEN) return true; // modo demostración: panel abierto
+  // Sin ADMIN_TOKEN: abierto en desarrollo (demo), CERRADO en producción para no
+  // dejar la moderación expuesta si se olvida configurar el secreto.
+  if (!ADMIN_TOKEN) return process.env.NODE_ENV !== "production";
   const store = await cookies();
   return store.get(COOKIE)?.value === ADMIN_TOKEN;
 }
 
 export async function signInAdmin(password: string): Promise<boolean> {
-  if (!ADMIN_TOKEN) return true;
+  if (!ADMIN_TOKEN) return process.env.NODE_ENV !== "production";
   if (password !== ADMIN_TOKEN) return false;
   const store = await cookies();
   store.set(COOKIE, ADMIN_TOKEN, {

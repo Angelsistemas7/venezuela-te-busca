@@ -1,4 +1,5 @@
 import "server-only";
+import { headers } from "next/headers";
 import { getSupabaseServer } from "./supabaseServer";
 import { getSupabaseAdmin } from "./supabase";
 import type { SignupInput, LoginInput } from "./validation";
@@ -128,4 +129,44 @@ export async function signIn(input: LoginInput): Promise<AuthResult> {
 export async function signOut(): Promise<void> {
   const sb = await getSupabaseServer();
   if (sb) await sb.auth.signOut();
+}
+
+// ── Recuperar contraseña (solo si el usuario dio un correo) ──────────────────
+async function siteOrigin(): Promise<string> {
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL;
+  if (fromEnv) return fromEnv.replace(/\/+$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/** Envía un enlace de recuperación al correo del usuario, si dio uno al registrarse.
+ *  Silencioso a propósito: no revela si el usuario existe ni si tiene correo. */
+export async function requestPasswordReset(username: string): Promise<void> {
+  const admin = getSupabaseAdmin();
+  const sb = await getSupabaseServer();
+  if (!admin || !sb) return;
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("login_email, recovery_email")
+    .eq("username_lower", username.trim().toLowerCase())
+    .maybeSingle();
+  if (!prof || !prof.recovery_email) return; // sin correo: no hay a dónde enviar
+  const origin = await siteOrigin();
+  await sb.auth.resetPasswordForEmail(prof.login_email as string, {
+    redirectTo: `${origin}/cuenta/confirmar`,
+  });
+}
+
+/** Cambia la contraseña del usuario con sesión (tras abrir el enlace del correo). */
+export async function updatePassword(newPassword: string): Promise<AuthResult> {
+  const sb = await getSupabaseServer();
+  if (!sb) return { ok: false, error: "No disponible en modo demostración." };
+  const { data } = await sb.auth.getUser();
+  if (!data.user) return { ok: false, error: "Enlace inválido o expirado. Pide uno nuevo." };
+  const { error } = await sb.auth.updateUser({ password: newPassword });
+  if (error) return { ok: false, error: "No se pudo cambiar la contraseña. Intenta de nuevo." };
+  const username = (data.user.user_metadata?.username as string | undefined) ?? "Usuario";
+  return { ok: true, username };
 }

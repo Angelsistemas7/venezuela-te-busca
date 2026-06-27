@@ -40,10 +40,15 @@ fotos y anti-bot.
 3. En el menú izquierdo, **SQL Editor → New query**. Abre el archivo
    [`supabase/schema.sql`](../supabase/schema.sql), copia **todo** su contenido,
    pégalo y pulsa **Run**. Debe decir *Success*.
-4. **Storage → New bucket**. Nombre: `photos`. Marca **Public bucket**. Crear.
-   - Luego entra al bucket `photos` → **Policies** → crea una policy de tipo
-     **INSERT** para el rol `anon` (así la web puede subir fotos). Plantilla:
-     *"Allow uploads"* con `true`.
+4. **Storage → New bucket**. Nombre: `photos`. Marca **Public bucket**.
+   - En **Additional configuration** (o después en *Settings* del bucket) pon:
+     **Restrict file MIME types** = `image/jpeg, image/png, image/webp` y
+     **File size limit** = `8 MB`. *(Evita que suban archivos peligrosos —p. ej.
+     SVG con scripts— o enormes; es el control de seguridad clave de las fotos.)*
+   - Crear. Luego entra al bucket `photos` → **Policies** → crea una policy de tipo
+     **INSERT** para el rol `anon` (así la web puede subir fotos). Plantilla
+     *"Allow uploads"* con `true`. *(El tipo y el tamaño ya quedan limitados por el
+     paso anterior.)*
 5. **Project Settings (⚙️) → API**. Copia estos 3 valores (los usarás en el Paso 4):
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
    - **anon public** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -104,6 +109,20 @@ node scripts/import-data.mjs ./datos.json
 ```
 
 Formato esperado documentado en [`scripts/import-data.mjs`](../scripts/import-data.mjs).
+
+---
+
+## 🔒 Seguridad (importante)
+
+- **`ADMIN_TOKEN` y `TURNSTILE_SECRET_KEY` son obligatorios en producción.** Sin
+  ellos, el panel `/admin` queda **cerrado** y los formularios **rechazan** los
+  envíos. Es a propósito (*fail-closed*): así un despliegue mal configurado no deja
+  la moderación abierta ni el sitio sin anti-bot.
+- **`SUPABASE_SERVICE_ROLE_KEY` también es obligatoria:** las escrituras pasan por
+  el servidor con esa clave. Ya **no** hay inserción pública con la clave anon
+  (evita bots por REST y que se falsee la autoría).
+- Si **actualizas** el proyecto, **vuelve a ejecutar `supabase/schema.sql`** en el
+  SQL Editor (es idempotente): aplica los ajustes de RLS y las tablas/columnas nuevas.
 
 ---
 

@@ -1,4 +1,5 @@
 import { getSupabase, getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
+import { getCurrentUser } from "./auth";
 import {
   seedAidPoints,
   seedComments,
@@ -292,6 +293,7 @@ export interface CreatePersonResult {
 export async function createPerson(
   input: PersonInput,
   photoUrl: string | null,
+  userId: string | null = null,
 ): Promise<CreatePersonResult> {
   const now = new Date().toISOString();
   const ownerToken = newToken();
@@ -354,6 +356,7 @@ export async function createPerson(
       contact_name: input.contactName || null,
       contact_phone: input.contactPhone || null,
       contact_email: input.contactEmail || null,
+      user_id: userId,
     })
     .select("*")
     .single();
@@ -364,23 +367,40 @@ export async function createPerson(
   return { person, ownerToken };
 }
 
-// ── Gestión por el autor de la publicación (enlace privado) ─────────────────
-/** Verifica que el token corresponde al autor de la publicación. */
+// ── Gestión por el autor de la publicación ──────────────────────────────────
+// El autor demuestra ser dueño de DOS formas: con su token privado (anónimo) o
+// con su cuenta (sesión iniciada cuyo user_id coincide con el de la fila).
+
+/** ¿La sesión actual es dueña de esta fila por cuenta (user_id)? Solo aplica con
+ *  Supabase; en modo demostración no hay sesión, así que devuelve false. */
+async function sessionOwns(table: string, id: string): Promise<boolean> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return false;
+  const user = await getCurrentUser();
+  if (!user) return false;
+  const { data } = await sb.from(table).select("user_id").eq("id", id).maybeSingle();
+  return Boolean(data && (data as { user_id?: string }).user_id === user.id);
+}
+
+/** Verifica que quien gestiona es el autor: por token privado o por su cuenta. */
 export async function verifyOwner(personId: string, token: string): Promise<boolean> {
-  if (!token) return false;
-  const sb = getSupabaseAdmin();
-  if (!getSupabase()) {
-    // Modo memoria (demo).
-    return mem.ownerTokens[personId] === token;
+  if (token) {
+    if (!getSupabase()) {
+      // Modo memoria (demo).
+      if (mem.ownerTokens[personId] === token) return true;
+    } else {
+      const sb = getSupabaseAdmin();
+      if (sb) {
+        const { data } = await sb
+          .from("person_owners")
+          .select("token")
+          .eq("person_id", personId)
+          .maybeSingle();
+        if (data && data.token === token) return true;
+      }
+    }
   }
-  if (!sb) return false; // sin service role no se puede verificar el secreto
-  const { data, error } = await sb
-    .from("person_owners")
-    .select("token")
-    .eq("person_id", personId)
-    .single();
-  if (error || !data) return false;
-  return data.token === token;
+  return sessionOwns("persons", personId);
 }
 
 /** Cambia el estado de una persona (uso interno: autor o moderador). */
@@ -537,23 +557,31 @@ export async function verifyResourceOwner(
   entityId: string,
   token: string,
 ): Promise<boolean> {
-  if (!token) return false;
-  if (!getSupabase()) {
-    // Modo memoria (demo).
-    return mem.resourceOwners.some(
-      (o) => o.entityType === entityType && o.entityId === entityId && o.token === token,
-    );
+  if (token) {
+    if (!getSupabase()) {
+      // Modo memoria (demo).
+      if (
+        mem.resourceOwners.some(
+          (o) => o.entityType === entityType && o.entityId === entityId && o.token === token,
+        )
+      )
+        return true;
+    } else {
+      const sb = getSupabaseAdmin();
+      if (sb) {
+        const { data } = await sb
+          .from("resource_owners")
+          .select("token")
+          .eq("entity_type", entityType)
+          .eq("entity_id", entityId)
+          .maybeSingle();
+        if (data && data.token === token) return true;
+      }
+    }
   }
-  const sb = getSupabaseAdmin();
-  if (!sb) return false; // sin service role no se puede verificar el secreto
-  const { data, error } = await sb
-    .from("resource_owners")
-    .select("token")
-    .eq("entity_type", entityType)
-    .eq("entity_id", entityId)
-    .single();
-  if (error || !data) return false;
-  return data.token === token;
+  const table =
+    entityType === "post" ? "posts" : entityType === "aid_point" ? "aid_points" : "marches";
+  return sessionOwns(table, entityId);
 }
 
 // ── Puntos de ayuda ─────────────────────────────────────────────────────────
@@ -625,6 +653,7 @@ export interface CreateAidPointResult {
 export async function createAidPoint(
   input: AidPointInput,
   photoUrl: string | null,
+  userId: string | null = null,
 ): Promise<CreateAidPointResult> {
   const now = new Date().toISOString();
   const ownerToken = newToken();
@@ -665,6 +694,7 @@ export async function createAidPoint(
       photo_url: photoUrl,
       contact_name: input.contactName || null,
       contact_phone: input.contactPhone || null,
+      user_id: userId,
     })
     .select("*")
     .single();
@@ -810,7 +840,10 @@ export interface CreateMarchResult {
   ownerToken: string;
 }
 
-export async function createMarch(input: MarchInput): Promise<CreateMarchResult> {
+export async function createMarch(
+  input: MarchInput,
+  userId: string | null = null,
+): Promise<CreateMarchResult> {
   const now = new Date().toISOString();
   const ownerToken = newToken();
   const sb = getSupabaseAdmin() ?? getSupabase();
@@ -844,6 +877,7 @@ export async function createMarch(input: MarchInput): Promise<CreateMarchResult>
       organizer_phone: input.organizerPhone,
       whatsapp_url: input.whatsappUrl || null,
       description: input.description || "",
+      user_id: userId,
     })
     .select("*")
     .single();
@@ -995,6 +1029,7 @@ export async function createComment(
   body: string,
   photoUrl: string | null = null,
   parentId: string | null = null,
+  userId: string | null = null,
 ): Promise<Comment> {
   const now = new Date().toISOString();
   const sb = getSupabaseAdmin() ?? getSupabase();
@@ -1022,6 +1057,7 @@ export async function createComment(
       author_name: authorName,
       body,
       photo_url: photoUrl,
+      user_id: userId,
     })
     .select("*")
     .single();
@@ -1297,6 +1333,7 @@ export interface CreatePostResult {
 export async function createPost(
   input: PostInput,
   photoUrl: string | null,
+  userId: string | null = null,
 ): Promise<CreatePostResult> {
   const now = new Date().toISOString();
   const ownerToken = newToken();
@@ -1331,6 +1368,7 @@ export async function createPost(
       author_name: input.authorName,
       contact_phone: input.contactPhone || null,
       reactions: { apoyo: 0, corazon: 0, hecho: 0 },
+      user_id: userId,
     })
     .select("*")
     .single();
@@ -1338,6 +1376,48 @@ export async function createPost(
   const post = rowToPost(data);
   await createResourceOwner("post", post.id, ownerToken);
   return { post, ownerToken };
+}
+
+// Publicaciones ligadas a una cuenta (para "Mis publicaciones" cross-device).
+// Solo aplica con Supabase; en demo no hay sesión, así que devuelve [].
+export type MyPublication = {
+  type: "person" | "post" | "aid_point" | "march";
+  id: string;
+  title: string;
+  createdAt: string;
+};
+
+export async function getMyPublications(userId: string): Promise<MyPublication[]> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return [];
+  const [persons, posts, aids, marches] = await Promise.all([
+    sb.from("persons").select("id, first_name, last_name, created_at").eq("user_id", userId),
+    sb.from("posts").select("id, body, created_at").eq("user_id", userId),
+    sb.from("aid_points").select("id, name, created_at").eq("user_id", userId),
+    sb.from("marches").select("id, title, created_at").eq("user_id", userId),
+  ]);
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const out: MyPublication[] = [];
+  for (const r of (persons.data ?? []) as any[]) {
+    out.push({
+      type: "person",
+      id: r.id,
+      title: `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || "Persona sin identificar",
+      createdAt: r.created_at,
+    });
+  }
+  for (const r of (posts.data ?? []) as any[]) {
+    out.push({ type: "post", id: r.id, title: String(r.body ?? "").slice(0, 40) || "Publicación", createdAt: r.created_at });
+  }
+  for (const r of (aids.data ?? []) as any[]) {
+    out.push({ type: "aid_point", id: r.id, title: r.name || "Punto de ayuda", createdAt: r.created_at });
+  }
+  for (const r of (marches.data ?? []) as any[]) {
+    out.push({ type: "march", id: r.id, title: r.title || "Caravana", createdAt: r.created_at });
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+  out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return out;
 }
 
 /** Edita una publicación de la comunidad (autor). No toca reacciones ni foto. */

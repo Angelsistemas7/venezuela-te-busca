@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, ExternalLink, FileWarning, MessageCircle } from "lucide-react";
-import { getActivityForEntities } from "@/app/actions";
+import { getActivityForEntities, getMyPublicationsAction } from "@/app/actions";
 import {
   activityKey,
   getMyPubs,
@@ -34,15 +34,30 @@ export function NotificationBell() {
   const ref = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
-    const myPubs = getMyPubs();
-    setPubs(myPubs);
+    // Publicaciones de este dispositivo (token) + las de tu cuenta (cross-device).
+    const local = getMyPubs();
+    let all = local;
+    try {
+      const account = await getMyPublicationsAction();
+      if (account.length > 0) {
+        const known = new Set(local.map((p) => activityKey(p.type, p.id)));
+        const extra: MyPub[] = account
+          .filter((a) => !known.has(activityKey(a.type, a.id)))
+          .map((a) => ({ type: a.type, id: a.id, token: "", title: a.title, createdAt: a.createdAt }));
+        all = [...local, ...extra];
+      }
+    } catch {
+      /* sin sesión o sin Supabase: solo las locales */
+    }
+
+    setPubs(all);
     setSeenState(getSeen());
-    if (myPubs.length === 0) {
+    if (all.length === 0) {
       setActivity({});
       return;
     }
     try {
-      const act = await getActivityForEntities(myPubs.map((p) => ({ type: p.type, id: p.id })));
+      const act = await getActivityForEntities(all.map((p) => ({ type: p.type, id: p.id })));
       setActivity(act);
     } catch {
       /* si falla la consulta, no rompemos la cabecera */

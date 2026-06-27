@@ -89,5 +89,6 @@ export function managePath(type: MyPubType, id: string, token: string): string {
         : type === "aid_point"
           ? "/ayuda"
           : "/caravanas";
-  return `${base}/${id}/gestion?token=${token}`;
+  // Con cuenta no hace falta token: la sesión demuestra la propiedad.
+  return token ? `${base}/${id}/gestion?token=${token}` : `${base}/${id}/gestion`;
 }
