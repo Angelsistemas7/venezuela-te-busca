@@ -38,6 +38,13 @@ probada con prueba de humo (curl).
   🚐 Caravana, 🕊️ Identificar, 📣 Info. Con foto, enlace externo, reacciones y
   comentarios. Filtro por tipo.
 
+### Comentarios (transversal a todas las secciones)
+- Foro con foto en personas, posts, puntos, caravanas y hospitales.
+- **Respuestas en hilo de un nivel**: botón "Responder", banner "Respondiendo a…",
+  respuestas anidadas bajo el comentario raíz (`comments.parent_id`).
+- **"Me gusta" por comentario** (uno por dispositivo, dedup con `localStorage`;
+  `comments.likes`).
+
 ### Puntos de ayuda (`/ayuda`, `/ayuda/[id]`)
 - **Varios recursos por punto** (comida + agua + refugio…). Foto, horario, contacto.
 - **Consenso de disponibilidad** ("✅ Sí hay / ❌ Se acabó" → marca Agotado solo).

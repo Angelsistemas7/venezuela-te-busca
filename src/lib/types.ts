@@ -291,10 +291,14 @@ export interface Comment {
   id: string;
   entityType: CommentEntity;
   entityId: string;
+  /** Si es respuesta a otro comentario, el id de su raíz; null si es de primer nivel. */
+  parentId: string | null;
   authorName: string;
   body: string;
   /** Foto opcional adjunta al comentario (evidencia). */
   photoUrl: string | null;
+  /** "Me gusta" de la comunidad al comentario (uno por dispositivo). */
+  likes: number;
   createdAt: string;
 }
 

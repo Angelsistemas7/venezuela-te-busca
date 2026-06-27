@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { ImagePlus, Loader2, MessageCircle, Send, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CornerDownRight, Heart, ImagePlus, Loader2, MessageCircle, Reply, Send, X } from "lucide-react";
 import type { Comment, CommentEntity } from "@/lib/types";
-import { postCommentAction } from "@/app/actions";
+import { likeCommentAction, postCommentAction } from "@/app/actions";
 import { uploadPhoto } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
-import { timeAgo } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 
 export function CommentSection({
   entityType,
@@ -27,9 +27,37 @@ export function CommentSection({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; authorName: string } | null>(null);
   const fileRef = useRef<File | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canSubmit = name.trim().length >= 2 && (body.trim().length >= 2 || fileRef.current);
+
+  // Hilos de un nivel: comentarios raíz (más recientes arriba) + respuestas por
+  // raíz (en orden cronológico, para que la conversación se lea de arriba abajo).
+  const { roots, repliesByParent } = useMemo(() => {
+    const roots = comments
+      .filter((c) => !c.parentId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const repliesByParent = new Map<string, Comment[]>();
+    for (const c of comments) {
+      if (!c.parentId) continue;
+      const arr = repliesByParent.get(c.parentId) ?? [];
+      arr.push(c);
+      repliesByParent.set(c.parentId, arr);
+    }
+    for (const arr of repliesByParent.values()) {
+      arr.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }
+    return { roots, repliesByParent };
+  }, [comments]);
+
+  function startReply(c: Comment) {
+    // Si responden a una respuesta, el hilo se mantiene en un solo nivel:
+    // cuelga de la raíz, pero se menciona a quién se responde.
+    setReplyTo({ id: c.parentId ?? c.id, authorName: c.authorName });
+    textareaRef.current?.focus();
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,11 +65,13 @@ export function CommentSection({
     setSubmitting(true);
     setError(null);
 
+    const parentId = replyTo?.id ?? null;
     const form = new FormData();
     form.set("entityType", entityType);
     form.set("entityId", entityId);
     form.set("authorName", name);
     form.set("body", body);
+    if (parentId) form.set("parentId", parentId);
 
     let photoUrl: string | null = null;
     if (fileRef.current) {
@@ -60,20 +90,62 @@ export function CommentSection({
           id: `tmp-${Date.now()}`,
           entityType,
           entityId,
+          parentId,
           authorName: name,
           body,
           photoUrl: photoUrl ?? preview,
+          likes: 0,
           createdAt: new Date().toISOString(),
         },
         ...prev,
       ]);
       setBody("");
       setPreview(null);
+      setReplyTo(null);
       fileRef.current = null;
     } else {
       setError(res.error);
     }
     setSubmitting(false);
+  }
+
+  function renderComment(c: Comment, isReply: boolean) {
+    const replies = isReply ? [] : repliesByParent.get(c.id) ?? [];
+    return (
+      <li key={c.id} className={isReply ? "" : "rounded-xl bg-zinc-50 p-3"}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-zinc-800">{c.authorName}</span>
+          <span className="text-xs text-zinc-400">{timeAgo(c.createdAt)}</span>
+        </div>
+        {c.body && <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">{c.body}</p>}
+        {c.photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={c.photoUrl}
+            alt="Evidencia"
+            loading="lazy"
+            className="mt-2 max-h-72 rounded-lg object-cover"
+          />
+        )}
+        <div className="mt-1.5 flex items-center gap-4">
+          <CommentLike id={c.id} likes={c.likes} />
+          <button
+            type="button"
+            onClick={() => startReply(c)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-brand-700"
+          >
+            <Reply className="h-3.5 w-3.5" />
+            Responder
+          </button>
+        </div>
+
+        {replies.length > 0 && (
+          <ul className="mt-2 space-y-2.5 border-l-2 border-zinc-200 pl-3">
+            {replies.map((r) => renderComment(r, true))}
+          </ul>
+        )}
+      </li>
+    );
   }
 
   return (
@@ -85,6 +157,22 @@ export function CommentSection({
       </h2>
 
       <form onSubmit={submit} className="mt-4 space-y-2">
+        {replyTo && (
+          <div className="flex items-center justify-between rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-800">
+            <span className="inline-flex items-center gap-1">
+              <CornerDownRight className="h-3.5 w-3.5" />
+              Respondiendo a {replyTo.authorName}
+            </span>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              className="hover:text-brand-900"
+              aria-label="Cancelar respuesta"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -93,9 +181,10 @@ export function CommentSection({
         />
         <div className="flex gap-2">
           <textarea
+            ref={textareaRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder={placeholder}
+            placeholder={replyTo ? `Responde a ${replyTo.authorName}...` : placeholder}
             rows={2}
             className="w-full resize-y rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
@@ -143,30 +232,46 @@ export function CommentSection({
       </form>
 
       <ul className="mt-5 space-y-3">
-        {comments.length === 0 && (
+        {roots.length === 0 && (
           <li className="py-4 text-center text-sm text-zinc-400">
             Aún no hay comentarios. Sé el primero en aportar información.
           </li>
         )}
-        {comments.map((c) => (
-          <li key={c.id} className="rounded-xl bg-zinc-50 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-zinc-800">{c.authorName}</span>
-              <span className="text-xs text-zinc-400">{timeAgo(c.createdAt)}</span>
-            </div>
-            {c.body && <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">{c.body}</p>}
-            {c.photoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={c.photoUrl}
-                alt="Evidencia"
-                loading="lazy"
-                className="mt-2 max-h-72 rounded-lg object-cover"
-              />
-            )}
-          </li>
-        ))}
+        {roots.map((c) => renderComment(c, false))}
       </ul>
     </section>
+  );
+}
+
+// "Me gusta" a un comentario. Uno por dispositivo (dedup con localStorage).
+function CommentLike({ id, likes }: { id: string; likes: number }) {
+  const [count, setCount] = useState(likes);
+  const [liked, setLiked] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem(`vtb_clike_${id}`)) setLiked(true);
+  }, [id]);
+
+  async function like() {
+    if (liked) return;
+    setLiked(true);
+    setCount((n) => n + 1);
+    localStorage.setItem(`vtb_clike_${id}`, "1");
+    await likeCommentAction(id);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={like}
+      disabled={liked}
+      className={cn(
+        "inline-flex items-center gap-1 text-xs font-medium transition",
+        liked ? "text-rose-600" : "text-zinc-500 hover:text-rose-600",
+      )}
+    >
+      <Heart className={cn("h-3.5 w-3.5", liked && "fill-rose-500 text-rose-500")} />
+      <span className="tabular-nums">{count}</span>
+    </button>
   );
 }

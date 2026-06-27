@@ -923,9 +923,11 @@ export async function getComments(entityType: Comment["entityType"], entityId: s
     id: r.id,
     entityType: r.entity_type,
     entityId: r.entity_id,
+    parentId: r.parent_id ?? null,
     authorName: r.author_name,
     body: r.body,
     photoUrl: r.photo_url ?? null,
+    likes: r.likes ?? 0,
     createdAt: r.created_at,
   }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -937,6 +939,7 @@ export async function createComment(
   authorName: string,
   body: string,
   photoUrl: string | null = null,
+  parentId: string | null = null,
 ): Promise<Comment> {
   const now = new Date().toISOString();
   const sb = getSupabaseAdmin() ?? getSupabase();
@@ -945,9 +948,11 @@ export async function createComment(
       id: uid("comment"),
       entityType,
       entityId,
+      parentId,
       authorName,
       body,
       photoUrl,
+      likes: 0,
       createdAt: now,
     };
     mem.comments.unshift(comment);
@@ -955,7 +960,14 @@ export async function createComment(
   }
   const { data, error } = await sb
     .from("comments")
-    .insert({ entity_type: entityType, entity_id: entityId, author_name: authorName, body, photo_url: photoUrl })
+    .insert({
+      entity_type: entityType,
+      entity_id: entityId,
+      parent_id: parentId,
+      author_name: authorName,
+      body,
+      photo_url: photoUrl,
+    })
     .select("*")
     .single();
   if (error) throw error;
@@ -963,11 +975,26 @@ export async function createComment(
     id: data.id,
     entityType: data.entity_type,
     entityId: data.entity_id,
+    parentId: data.parent_id ?? null,
     authorName: data.author_name,
     body: data.body,
     photoUrl: data.photo_url ?? null,
+    likes: data.likes ?? 0,
     createdAt: data.created_at,
   };
+}
+
+/** "Me gusta" de la comunidad a un comentario (uno por dispositivo). */
+export async function likeComment(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const c = mem.comments.find((c) => c.id === id);
+    if (c) c.likes++;
+    return;
+  }
+  const { data, error } = await sb.from("comments").select("likes").eq("id", id).single();
+  if (error) throw error;
+  await sb.from("comments").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
 }
 
 // ── Reportes: lectura pública + moderación (no bloqueante) ──────────────────

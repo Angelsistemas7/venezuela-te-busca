@@ -10,6 +10,7 @@ import {
   createPerson,
   createPost,
   createStatusReport,
+  likeComment,
   deleteAidPoint,
   deleteMarch,
   deletePerson,
@@ -244,6 +245,7 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
   const authorName = getField(form, "authorName").trim();
   const body = getField(form, "body").trim();
   const photoUrl = getField(form, "photoUrl") || null;
+  const parentId = getField(form, "parentId") || null;
 
   if (!entityId || authorName.length < 2 || (body.length < 2 && !photoUrl)) {
     return { ok: false, error: "Escribe tu nombre y un comentario (o adjunta una foto)." };
@@ -253,10 +255,19 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
   }
 
   try {
-    await createComment(entityType, entityId, authorName, body, photoUrl);
+    await createComment(entityType, entityId, authorName, body, photoUrl, parentId);
     return { ok: true, message: "Comentario publicado." };
   } catch {
     return { ok: false, error: "No se pudo publicar el comentario." };
+  }
+}
+
+export async function likeCommentAction(id: string): Promise<{ ok: boolean }> {
+  try {
+    await likeComment(id);
+    return { ok: true };
+  } catch {
+    return { ok: false };
   }
 }
 

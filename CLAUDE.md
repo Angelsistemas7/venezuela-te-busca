@@ -101,5 +101,8 @@ La validación de `personSchema` exige nombre solo si `!isUnidentified` (superRe
 ### Notas
 - Modales: el cuerpo scrollable necesita `min-h-0` (ya está en `Modal.tsx`) para no cortar el encabezado.
 - Mapa: Leaflet se carga client-only vía `next/dynamic({ ssr:false })` (`components/map/CrisisMap.tsx`).
-- Comentarios soportan foto (`comments.photo_url`) y aplican a entidades: person, post, aid_point, march, hospital.
+- Comentarios soportan foto (`comments.photo_url`), **respuestas en hilo de un nivel**
+  (`comments.parent_id` → raíz; responder a una respuesta cuelga de la misma raíz),
+  **"me gusta"** por comentario (`comments.likes`, dedup por dispositivo) y aplican a
+  entidades: person, post, aid_point, march, hospital.
 - No commitear (.env). El usuario decide cuándo desplegar.

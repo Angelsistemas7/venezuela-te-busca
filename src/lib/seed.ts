@@ -197,9 +197,11 @@ export const seedComments: Comment[] = [
     id: "seed-comment-1",
     entityType: "person",
     entityId: "seed-person-3",
+    parentId: null,
     authorName: "Vecino de Macuto",
     body: "Creo haberlo visto en el refugio de Caraballeda el día de ayer. Voy a confirmar y aviso.",
     photoUrl: null,
+    likes: 0,
     createdAt: new Date("2026-06-25T20:30:00-04:00").toISOString(),
   },
 ];

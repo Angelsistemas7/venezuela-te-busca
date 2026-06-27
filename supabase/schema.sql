@@ -202,12 +202,16 @@ create table if not exists comments (
   id uuid primary key default uuid_generate_v4(),
   entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital')),
   entity_id   uuid not null,
+  -- Respuesta en hilo (un nivel): apunta al comentario raíz; null si es de primer nivel.
+  parent_id   uuid references comments(id) on delete cascade,
   author_name text not null,
   body        text not null check (length(body) between 1 and 1000),
   photo_url   text,
+  likes       int not null default 0,
   created_at timestamptz not null default now()
 );
 create index if not exists comments_entity_idx on comments (entity_type, entity_id);
+create index if not exists comments_parent_idx on comments (parent_id);
 
 -- ── updated_at automático en persons ────────────────────────────────────────
 create or replace function touch_updated_at() returns trigger as $$
