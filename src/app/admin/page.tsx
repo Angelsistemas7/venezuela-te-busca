@@ -5,6 +5,7 @@ import {
   getHospitals,
   getPendingReports,
   getPersonById,
+  getPosts,
   getRecentPersons,
 } from "@/lib/data";
 import { AdminLogin } from "@/components/admin/AdminLogin";
@@ -17,12 +18,13 @@ export default async function AdminPage() {
     return <AdminLogin />;
   }
 
-  const [pending, persons, aidPoints, hospitals, managers] = await Promise.all([
+  const [pending, persons, aidPoints, hospitals, managers, posts] = await Promise.all([
     getPendingReports(),
     getRecentPersons(30),
     getAidPoints(),
     getHospitals(),
     getAllResourceManagers(),
+    getPosts({}),
   ]);
 
   // Enriquecemos cada reporte con el nombre de la persona.
@@ -48,6 +50,7 @@ export default async function AdminPage() {
       aidPoints={aidPoints}
       hospitals={hospitalsRecent}
       managers={managers}
+      posts={posts.slice(0, 25)}
       demoOpen={!adminConfigured}
     />
   );

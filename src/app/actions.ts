@@ -6,11 +6,13 @@ import {
   canManageHospital,
   createAidPoint,
   createComment,
+  createComplaint,
   createHospital,
   createMarch,
   createPerson,
   createPost,
   createStatusReport,
+  supportComplaint,
   getCommentsForEntities,
   getMyPublications,
   getReportCountsForPersons,
@@ -49,6 +51,7 @@ import { verifyTurnstile } from "@/lib/turnstile";
 import type { CommentEntity, HospitalStatus, PersonReaction, PersonStatus, ReactionKind } from "@/lib/types";
 import {
   aidPointSchema,
+  complaintSchema,
   hospitalPatientSchema,
   hospitalSchema,
   loginSchema,
@@ -394,7 +397,8 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
     | "aid_point"
     | "march"
     | "post"
-    | "hospital";
+    | "hospital"
+    | "complaint";
   const entityId = getField(form, "entityId");
   // Con sesión, el nombre del comentario es el de la cuenta (identidad verificada),
   // no lo que venga del formulario.
@@ -508,6 +512,54 @@ export async function createPostAction(form: FormData): Promise<ActionResult> {
     };
   } catch {
     return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
+  }
+}
+
+// ── Denuncias de irregularidades ─────────────────────────────────────────────
+// Publicar EXIGE sesión (responsabilidad: no anónimo frente al sistema). El
+// nombre mostrado es el de la cuenta. La UI muestra el aviso legal y pide
+// confirmación antes de enviar.
+export async function createComplaintAction(form: FormData): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "Inicia sesión para denunciar. Las denuncias no son anónimas ante el sistema." };
+  }
+
+  const parsed = complaintSchema.safeParse({
+    category: getField(form, "category"),
+    body: getField(form, "body"),
+    estado: getField(form, "estado") || undefined,
+    locationText: getField(form, "locationText"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+
+  const photoUrl = getField(form, "photoUrl") || null;
+
+  try {
+    const complaint = await createComplaint(parsed.data, photoUrl, user.id, user.username);
+    revalidatePath("/denuncias");
+    return {
+      ok: true,
+      id: complaint.id,
+      message: "Denuncia publicada. Gracias por reportar de forma responsable.",
+    };
+  } catch {
+    return { ok: false, error: "No se pudo publicar la denuncia. Intenta de nuevo." };
+  }
+}
+
+export async function supportComplaintAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  if (!(await getCurrentUser())) {
+    return { ok: false, error: "Inicia sesión para apoyar una denuncia." };
+  }
+  try {
+    await supportComplaint(id);
+    revalidatePath("/denuncias");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No se pudo registrar tu apoyo." };
   }
 }
 

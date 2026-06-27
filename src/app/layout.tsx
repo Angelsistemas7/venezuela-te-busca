@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { MobileNav } from "@/components/MobileNav";
 import { AccountBanner } from "@/components/AccountBanner";
+import { SafetyBanner } from "@/components/SafetyBanner";
 
 // En producción, define NEXT_PUBLIC_SITE_URL (p. ej. https://venezuelatebusca.org)
 // para que la imagen Open Graph y los enlaces sociales sean absolutos. En Vercel
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Saltar al contenido
         </a>
         <SiteHeader />
+        <SafetyBanner />
         <AccountBanner />
         <main id="contenido" tabIndex={-1} className="flex-1 pb-20 outline-none md:pb-0">
           {children}

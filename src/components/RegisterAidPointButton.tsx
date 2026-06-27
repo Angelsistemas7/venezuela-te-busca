@@ -73,7 +73,7 @@ export function RegisterAidPointButton() {
         open={open}
         onClose={close}
         title="Registrar punto de ayuda"
-        subtitle="Donatón de comida, agua, refugio o medicinas. Se publicará como 'por verificar'."
+        subtitle="Comida, agua, refugio, medicinas o alojamiento (tu casa abre sus puertas). Se publicará como 'por verificar'."
       >
         {result?.ok ? (
           <div className="flex flex-col items-center py-8 text-center">

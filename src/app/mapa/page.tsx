@@ -25,6 +25,7 @@ const TYPE_EMOJI: Record<AidPointType, string> = {
   agua: "💧",
   medicina: "💊",
   refugio: "🏠",
+  alojamiento: "🛏️",
   ropa: "👕",
   otro: "📦",
 };

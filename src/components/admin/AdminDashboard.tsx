@@ -11,7 +11,10 @@ import {
   HeartHandshake,
   Loader2,
   MapPin,
+  MessagesSquare,
   Phone,
+  Pin,
+  PinOff,
   ShieldCheck,
   UserCheck,
   UserPlus,
@@ -23,10 +26,11 @@ import type {
   ManagedEntity,
   Person,
   PersonStatus,
+  Post,
   ResourceManager,
   StatusReport,
 } from "@/lib/types";
-import { MANAGED_ENTITY_LABEL, PERSON_STATUS_LABEL } from "@/lib/types";
+import { MANAGED_ENTITY_LABEL, PERSON_STATUS_LABEL, POST_TYPE_EMOJI, POST_TYPE_LABEL } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import {
   approveReportAction,
@@ -37,6 +41,7 @@ import {
   toggleAidPointVerifiedAction,
   toggleHospitalVerifiedAction,
   togglePersonVerifiedAction,
+  togglePostPinnedAction,
 } from "@/app/admin/actions";
 
 export type ReportWithName = StatusReport & { personName: string };
@@ -47,6 +52,7 @@ export function AdminDashboard({
   aidPoints,
   hospitals,
   managers,
+  posts,
   demoOpen,
 }: {
   reports: ReportWithName[];
@@ -54,6 +60,7 @@ export function AdminDashboard({
   aidPoints: AidPoint[];
   hospitals: Hospital[];
   managers: ResourceManager[];
+  posts: Post[];
   demoOpen: boolean;
 }) {
   const router = useRouter();
@@ -296,6 +303,59 @@ export function AdminDashboard({
                 demoOpen={demoOpen}
                 onToggleVerified={(v) => toggleHospitalVerifiedAction(hospital.id, v)}
               />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Publicaciones de la comunidad: fijar/desfijar */}
+      <section className="mt-10">
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-zinc-900">
+          <MessagesSquare className="h-4.5 w-4.5 text-zinc-500" />
+          Publicaciones (comunidad)
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-600">
+            {posts.length}
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Fija arriba del muro los avisos importantes (📌 Destacado). Puedes desfijar cuando dejen de
+          ser relevantes.
+        </p>
+        {posts.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-zinc-300 bg-white py-8 text-center text-sm text-zinc-500">
+            Aún no hay publicaciones.
+          </p>
+        ) : (
+          <ul className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+            {posts.map((p) => (
+              <li key={p.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                      {POST_TYPE_EMOJI[p.type]} {POST_TYPE_LABEL[p.type]}
+                    </span>
+                    {p.pinned && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                        <Pin className="h-3 w-3" /> Fijado
+                      </span>
+                    )}
+                    <span className="text-xs text-zinc-400">{timeAgo(p.createdAt)}</span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{p.body}</p>
+                </div>
+                <button
+                  onClick={() => run(p.id, () => togglePostPinnedAction(p.id, !p.pinned))}
+                  disabled={pending && busy === p.id}
+                  className={
+                    p.pinned
+                      ? "flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                      : "flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                  }
+                >
+                  {p.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                  {p.pinned ? "Desfijar" : "Fijar"}
+                </button>
+              </li>
             ))}
           </ul>
         )}

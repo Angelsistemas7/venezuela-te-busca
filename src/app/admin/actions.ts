@@ -10,6 +10,7 @@ import {
   setAidPointVerified,
   setHospitalVerified,
   setPersonVerified,
+  setPostPinned,
   verifyAndApplyReport,
 } from "@/lib/data";
 import type { ManagedEntity } from "@/lib/types";
@@ -78,6 +79,18 @@ export async function toggleHospitalVerifiedAction(
   revalidatePath("/hospitales");
   revalidatePath(`/hospitales/${id}`);
   revalidatePath("/mapa");
+  return { ok: true };
+}
+
+// ── Fijar/desfijar publicaciones de la comunidad ─────────────────────────────
+export async function togglePostPinnedAction(
+  id: string,
+  value: boolean,
+): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await setPostPinned(id, value);
+  revalidatePath("/admin");
+  revalidatePath("/comunidad");
   return { ok: true };
 }
 

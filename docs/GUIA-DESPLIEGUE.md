@@ -40,6 +40,11 @@ fotos y anti-bot.
 3. En el menú izquierdo, **SQL Editor → New query**. Abre el archivo
    [`supabase/schema.sql`](../supabase/schema.sql), copia **todo** su contenido,
    pégalo y pulsa **Run**. Debe decir *Success*.
+   - **Contenido inicial (recomendado):** abre **New query** otra vez, pega TODO
+     [`supabase/seed-contenido.sql`](../supabase/seed-contenido.sql) y pulsa **Run**.
+     Carga hospitales, puntos de ayuda y publicaciones para que el sitio no salga
+     vacío. Es re-ejecutable (no duplica). ⚠️ Confirma los teléfonos de hospitales y
+     los puntos de acopio internacionales antes de promocionarlos.
 4. **Storage → New bucket**. Nombre: `photos`. Marca **Public bucket**.
    - En **Additional configuration** (o después en *Settings* del bucket) pon:
      **Restrict file MIME types** = `image/jpeg, image/png, image/webp` y

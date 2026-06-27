@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, HeartHandshake, Map, Search, Users2 } from "lucide-react";
+import { Building2, HeartHandshake, Map, Megaphone, Search, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Barra de navegación inferior, solo en móvil: acceso con el pulgar a las
@@ -12,6 +12,7 @@ const TABS = [
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
   { href: "/hospitales", label: "Hospital", icon: Building2 },
   { href: "/ayuda", label: "Ayuda", icon: HeartHandshake },
+  { href: "/denuncias", label: "Denuncia", icon: Megaphone },
   { href: "/mapa", label: "Mapa", icon: Map },
 ];
 

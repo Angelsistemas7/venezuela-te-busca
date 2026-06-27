@@ -3,6 +3,7 @@ import { getCurrentUser } from "./auth";
 import {
   seedAidPoints,
   seedComments,
+  seedComplaints,
   seedHospitalPatients,
   seedHospitals,
   seedMarches,
@@ -13,6 +14,8 @@ import {
 import type {
   AidPoint,
   Comment,
+  Complaint,
+  ComplaintCategory,
   Hospital,
   HospitalPatient,
   HospitalStatus,
@@ -31,6 +34,7 @@ import type {
 } from "./types";
 import type {
   AidPointInput,
+  ComplaintInput,
   HospitalInput,
   HospitalPatientInput,
   MarchInput,
@@ -77,6 +81,7 @@ const mem = {
   marches: [...seedMarches],
   comments: [...seedComments],
   posts: [...seedPosts],
+  complaints: [...seedComplaints],
   hospitals: [...seedHospitals],
   patients: [...seedHospitalPatients],
   // Token privado de gestión por persona (solo lo conoce quien publicó).
@@ -1611,6 +1616,18 @@ export async function updatePostFields(id: string, input: PostInput): Promise<vo
   if (error) throw error;
 }
 
+/** Fija/desfija una publicación en el muro (destacado por el admin). */
+export async function setPostPinned(id: string, value: boolean): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const post = mem.posts.find((p) => p.id === id);
+    if (post) post.pinned = value;
+    return;
+  }
+  const { error } = await sb.from("posts").update({ pinned: value }).eq("id", id);
+  if (error) throw error;
+}
+
 /** Elimina una publicación de la comunidad (autor). */
 export async function deletePost(id: string): Promise<void> {
   const sb = getSupabaseAdmin() ?? getSupabase();
@@ -1636,6 +1653,115 @@ export async function reactToPost(id: string, kind: ReactionKind): Promise<void>
   const reactions = { apoyo: 0, corazon: 0, hecho: 0, ...(data.reactions ?? {}) };
   reactions[kind] = (reactions[kind] ?? 0) + 1;
   await sb.from("posts").update({ reactions }).eq("id", id);
+}
+
+// ── Denuncias de irregularidades ────────────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToComplaint(r: any): Complaint {
+  return {
+    id: r.id,
+    category: r.category,
+    body: r.body,
+    estado: r.estado,
+    locationText: r.location_text ?? "",
+    photoUrl: r.photo_url,
+    authorName: r.author_name,
+    supports: r.supports ?? 0,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getComplaints(
+  filter: { category?: ComplaintCategory | "all"; search?: string } = {},
+): Promise<Complaint[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.complaints.slice();
+    if (filter.category && filter.category !== "all")
+      items = items.filter((c) => c.category === filter.category);
+    if (filter.search) {
+      const s = filter.search.toLowerCase().trim();
+      items = items.filter((c) =>
+        [c.body, c.locationText, c.authorName, c.estado]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(s),
+      );
+    }
+    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  let query = sb.from("complaints").select("*").order("created_at", { ascending: false }).limit(200);
+  if (filter.category && filter.category !== "all") query = query.eq("category", filter.category);
+  if (filter.search) {
+    const s = filter.search.replace(/[,()*]/g, " ").trim();
+    if (s) query = query.or(`body.ilike.%${s}%,location_text.ilike.%${s}%,author_name.ilike.%${s}%`);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(rowToComplaint);
+}
+
+export async function getComplaintById(id: string): Promise<Complaint | null> {
+  const sb = getSupabase();
+  if (!sb) return mem.complaints.find((c) => c.id === id) ?? null;
+  const { data, error } = await sb.from("complaints").select("*").eq("id", id).single();
+  if (error) return null;
+  return data ? rowToComplaint(data) : null;
+}
+
+export async function createComplaint(
+  input: ComplaintInput,
+  photoUrl: string | null,
+  userId: string,
+  authorName: string,
+): Promise<Complaint> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const complaint: Complaint = {
+      id: uid("complaint"),
+      category: input.category,
+      body: input.body,
+      estado: input.estado ?? null,
+      locationText: input.locationText || "",
+      photoUrl,
+      authorName,
+      supports: 0,
+      createdAt: now,
+    };
+    mem.complaints.unshift(complaint);
+    return complaint;
+  }
+  const { data, error } = await sb
+    .from("complaints")
+    .insert({
+      category: input.category,
+      body: input.body,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      photo_url: photoUrl,
+      author_name: authorName,
+      user_id: userId,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToComplaint(data);
+}
+
+/** Apoyo de la comunidad a una denuncia (uno por dispositivo; exige sesión). */
+export async function supportComplaint(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const c = mem.complaints.find((c) => c.id === id);
+    if (c) c.supports++;
+    return;
+  }
+  const { data, error } = await sb.from("complaints").select("supports").eq("id", id).single();
+  if (error) throw error;
+  await sb.from("complaints").update({ supports: (data.supports ?? 0) + 1 }).eq("id", id);
 }
 
 // ── Hospitales ──────────────────────────────────────────────────────────────

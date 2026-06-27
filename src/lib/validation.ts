@@ -82,7 +82,7 @@ export type StatusReportInput = z.infer<typeof statusReportSchema>;
 export const aidPointSchema = z.object({
   name: z.string().trim().min(2, "Nombre del punto obligatorio").max(120),
   types: z
-    .array(z.enum(["comida", "agua", "medicina", "refugio", "ropa", "otro"]))
+    .array(z.enum(["comida", "agua", "medicina", "refugio", "alojamiento", "ropa", "otro"]))
     .min(1, "Selecciona al menos un recurso"),
   estado: estadoEnum.optional(),
   locationText: z.string().trim().min(2, "Indica la ubicación").max(160),
@@ -193,3 +193,20 @@ export const managerAssignSchema = z.object({
 });
 
 export type ManagerAssignInput = z.infer<typeof managerAssignSchema>;
+
+// ── Denuncias de irregularidades ─────────────────────────────────────────────
+export const complaintSchema = z.object({
+  category: z.enum([
+    "riesgo_ninos",
+    "desvio_ayuda",
+    "fraude",
+    "abuso_autoridad",
+    "persona_desaparecida",
+    "otra",
+  ]),
+  body: z.string().trim().min(10, "Describe la irregularidad (mín. 10 caracteres)").max(1500),
+  estado: estadoEnum.optional(),
+  locationText: z.string().trim().max(160).optional().or(z.literal("")),
+});
+
+export type ComplaintInput = z.infer<typeof complaintSchema>;

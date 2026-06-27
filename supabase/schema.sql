@@ -23,8 +23,10 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type aid_point_type as enum ('comida', 'agua', 'medicina', 'refugio', 'ropa', 'otro');
+  create type aid_point_type as enum ('comida', 'agua', 'medicina', 'refugio', 'alojamiento', 'ropa', 'otro');
 exception when duplicate_object then null; end $$;
+-- Migración para bases ya creadas: añade 'alojamiento' (hogares que abren sus puertas).
+alter type aid_point_type add value if not exists 'alojamiento';
 
 -- ── Personas ───────────────────────────────────────────────────────────────
 create table if not exists persons (
@@ -216,10 +218,29 @@ create index if not exists posts_estado_idx  on posts (estado);
 create index if not exists posts_created_idx on posts (created_at desc);
 create index if not exists posts_pinned_idx  on posts (pinned);
 
+-- ── Denuncias de irregularidades ────────────────────────────────────────────
+-- Reportes ciudadanos de irregularidades. Publicar requiere sesión (la app lo
+-- exige); por eso `user_id` no es opcional en la práctica. La comunidad "Apoya".
+create table if not exists complaints (
+  id uuid primary key default uuid_generate_v4(),
+  category      text not null check (category in ('riesgo_ninos','desvio_ayuda','fraude','abuso_autoridad','persona_desaparecida','otra')),
+  body          text not null check (length(body) between 10 and 1500),
+  estado        text,
+  location_text text default '',
+  photo_url     text,
+  author_name   text not null,
+  supports      int not null default 0,
+  user_id       uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists complaints_category_idx on complaints (category);
+create index if not exists complaints_created_idx  on complaints (created_at desc);
+create index if not exists complaints_user_idx     on complaints (user_id);
+
 -- ── Comentarios (foro de comunidad) ─────────────────────────────────────────
 create table if not exists comments (
   id uuid primary key default uuid_generate_v4(),
-  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital')),
+  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint')),
   entity_id   uuid not null,
   -- Respuesta en hilo (un nivel): apunta al comentario raíz; null si es de primer nivel.
   parent_id   uuid references comments(id) on delete cascade,
@@ -251,6 +272,7 @@ alter table aid_points     enable row level security;
 alter table marches        enable row level security;
 alter table comments         enable row level security;
 alter table posts            enable row level security;
+alter table complaints       enable row level security;
 alter table hospitals        enable row level security;
 alter table hospital_patients enable row level security;
 alter table person_owners    enable row level security;
@@ -268,6 +290,7 @@ create policy "public_read_aid"       on aid_points       for select using (true
 create policy "public_read_marches"   on marches          for select using (true);
 create policy "public_read_comments"  on comments         for select using (true);
 create policy "public_read_posts"     on posts            for select using (true);
+create policy "public_read_complaints" on complaints      for select using (true);
 create policy "public_read_hospitals" on hospitals        for select using (true);
 create policy "public_read_patients"  on hospital_patients for select using (true);
 
@@ -337,3 +360,9 @@ alter table hospitals  add column if not exists verified boolean not null defaul
 
 -- Migración para bases ya creadas: publicaciones fijadas (destacadas) en el muro.
 alter table posts      add column if not exists pinned boolean not null default false;
+
+-- Migración para bases ya creadas: permitir comentarios en denuncias.
+-- (Recrea el check de comments.entity_type para incluir 'complaint'.)
+alter table comments drop constraint if exists comments_entity_type_check;
+alter table comments add constraint comments_entity_type_check
+  check (entity_type in ('person','aid_point','march','post','hospital','complaint'));

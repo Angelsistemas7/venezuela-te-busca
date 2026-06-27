@@ -40,8 +40,20 @@ probada con prueba de humo (curl).
 - **Buscar en el muro** (texto/sector/nombre); la búsqueda se conserva al cambiar de tipo.
 - **Destacado (fijado)**: publicaciones con `pinned` (avisos del equipo) se anclan
   arriba en su propia sección 📌. Debajo, **rescates activos** (🚨 recientes ≤72 h).
+  El admin **fija/desfija** publicaciones desde `/admin` (sección "Publicaciones").
 - **Gestión por el autor**: enlace privado (`/comunidad/[id]/gestion?token=…`) para
   editar la publicación o eliminarla (reutiliza `resource_owners`).
+
+### Denuncias de irregularidades (`/denuncias`)
+- Reportes ciudadanos por **categoría** (riesgo a la niñez, desvío/robo de ayuda,
+  fraude, abuso de autoridad, persona desaparecida, otra). Foto, ubicación, búsqueda.
+- **Apoyar** (uno por dispositivo) y **comentarios** por denuncia.
+- **Publicar exige sesión** (no anónimo ante el sistema = responsabilidad) y pasa por
+  un **aviso legal + confirmación** ("la información es veraz; una acusación falsa
+  tiene consecuencias"). Riesgo a menores → recuerda llamar al 911.
+- Salvaguarda de diseño: la guía pide **no señalar a personas con nombre/foto sin
+  pruebas**; los ejemplos sembrados son neutrales (no acusan a nadie). Modelo:
+  tabla `complaints` + comentarios con `entity_type='complaint'`.
 
 ### Comentarios (transversal a todas las secciones)
 - Foro con foto en personas, posts, puntos, caravanas y hospitales.
@@ -78,13 +90,28 @@ probada con prueba de humo (curl).
   Falcón): nombre, dirección y teléfono de fuentes públicas. Algunos teléfonos
   quedaron en blanco **a confirmar** (Periférico de Pariata, Naval, Materno de
   Macuto). El estado de capacidad es ilustrativo.
-- **Puntos de ayuda** de ejemplo (refugios, acopios, agua, comedores) sin teléfono
-  (confirmar con cada organización).
-- **Publicaciones de comunidad** con comentarios, incluido un **aviso fijado** de
-  cómo entregar la ayuda de forma segura.
+- **Puntos de ayuda**: refugios, acopios, agua, comedores; **alojamiento** (hogares
+  que abren sus puertas) y **acopios en el exterior** (Colombia: Cartagena, Medellín,
+  Bogotá, Cúcuta; Panamá, España/Madrid, EE. UU./Miami, Chile, Perú, Ecuador,
+  Brasil/Boa Vista — diáspora que reúne y envía). Sin teléfono (confirmar con cada
+  organización). Los internacionales van como **"Por verificar"** y SIN atribuir a
+  ningún medio hasta confirmarlo.
+- **Publicaciones de comunidad** con comentarios humanizados por tema, incl. dos
+  **avisos fijados**: cómo entregar la ayuda de forma segura y **protección a la
+  niñez**.
 - Vive en dos lugares: `src/lib/seed.ts` (modo demostración) y
   **`supabase/seed-contenido.sql`** (cargar UNA vez en Supabase para producción,
   después de `schema.sql`).
+
+### Tipo de punto "alojamiento" + barra de seguridad
+- Nuevo tipo de punto de ayuda **`alojamiento`** (🛏️): hogares/casas que ofrecen
+  techo. Aparece en filtros de `/ayuda`, en el formulario y en el mapa. Requiere
+  migración del enum `aid_point_type` (incluida en `schema.sql`).
+- **Barra fija de protección a la niñez** (`components/SafetyBanner.tsx`) en todo el
+  sitio, ocultable por dispositivo. Mensaje suavizado + enlace al 911.
+- **Mapa**: los puntos internacionales se ubican con coordenadas en `lib/geo.ts`
+  (Colombia/Panamá); el mapa sigue centrado en la zona del sismo (acercar/alejar
+  para ver el exterior).
 
 ### Mapa (`/mapa`)
 - Leaflet. **Zonas afectadas** (marcador pulsante por estado; al pasar muestra

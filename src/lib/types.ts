@@ -119,6 +119,7 @@ export type AidPointType =
   | "agua"
   | "medicina"
   | "refugio"
+  | "alojamiento" // hogares/casas que abren sus puertas para que la gente duerma
   | "ropa"
   | "otro";
 
@@ -127,6 +128,7 @@ export const AID_POINT_TYPE_LABEL: Record<AidPointType, string> = {
   agua: "Agua",
   medicina: "Medicinas",
   refugio: "Refugio",
+  alojamiento: "Alojamiento",
   ropa: "Ropa",
   otro: "Otro",
 };
@@ -314,7 +316,54 @@ export interface HospitalPatient {
   createdAt: string;
 }
 
-export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital";
+export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint";
+
+// ── Denuncias de irregularidades ────────────────────────────────────────────
+/** Categoría de una denuncia ciudadana de irregularidad. */
+export type ComplaintCategory =
+  | "riesgo_ninos" // riesgo o desprotección de menores
+  | "desvio_ayuda" // desvío o robo de ayuda/donaciones
+  | "fraude" // estafa o fraude
+  | "abuso_autoridad" // abuso de autoridad
+  | "persona_desaparecida" // persona desaparecida (también ver sección Personas)
+  | "otra"; // otra irregularidad
+
+export const COMPLAINT_CATEGORY_LABEL: Record<ComplaintCategory, string> = {
+  riesgo_ninos: "Riesgo a la niñez",
+  desvio_ayuda: "Desvío o robo de ayuda",
+  fraude: "Fraude o estafa",
+  abuso_autoridad: "Abuso de autoridad",
+  persona_desaparecida: "Persona desaparecida",
+  otra: "Otra irregularidad",
+};
+
+export const COMPLAINT_CATEGORY_EMOJI: Record<ComplaintCategory, string> = {
+  riesgo_ninos: "🧒",
+  desvio_ayuda: "📦",
+  fraude: "💸",
+  abuso_autoridad: "🛑",
+  persona_desaparecida: "🔍",
+  otra: "⚠️",
+};
+
+/**
+ * Denuncia ciudadana de una irregularidad (desvío de ayuda, riesgo a menores,
+ * fraude, abuso...). Requiere SESIÓN para publicar (responsabilidad: no anónimo
+ * frente al sistema). La comunidad puede "Apoyar" y comentar.
+ */
+export interface Complaint {
+  id: string;
+  category: ComplaintCategory;
+  body: string;
+  estado: Estado | null;
+  locationText: string;
+  photoUrl: string | null;
+  /** Nombre mostrado (el de la cuenta con sesión que publicó). */
+  authorName: string;
+  /** Apoyos de la comunidad ("Apoyar"), uno por dispositivo. */
+  supports: number;
+  createdAt: string;
+}
 
 /** Comentario de la comunidad (foro) sobre cualquier publicación. */
 export interface Comment {
