@@ -316,7 +316,7 @@ export interface HospitalPatient {
   createdAt: string;
 }
 
-export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint" | "pet" | "hero";
+export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint" | "pet" | "hero" | "news_item";
 
 // ── Denuncias de irregularidades ────────────────────────────────────────────
 /** Categoría de una denuncia ciudadana de irregularidad. */
@@ -455,6 +455,8 @@ export interface Volunteer {
   locationText: string;
   contactPhone: string | null;
   contactEmail: string | null;
+  /** Foto opcional de quien se ofrece (rostro o equipo). */
+  photoUrl: string | null;
   createdAt: string;
 }
 
@@ -515,6 +517,33 @@ export interface Hero {
   authorName: string;
   /** Visto bueno del moderador. Los propuestos por la comunidad nacen en false. */
   verified: boolean;
+  likes: number;
+  createdAt: string;
+}
+
+// ── Noticias curadas (sección de Noticias, las agrega el equipo) ─────────────
+/** Tipo de entrada curada: ayuda humanitaria internacional o noticia/titular. */
+export type NewsKind = "ayuda" | "noticia";
+
+export const NEWS_KIND_LABEL: Record<NewsKind, string> = {
+  ayuda: "Ayuda humanitaria",
+  noticia: "Noticia",
+};
+
+/**
+ * Noticia o reporte de ayuda CURADO por el equipo (no lo publica el público).
+ * Convive con el feed en vivo de las APIs y nunca se inventa: cada entrada
+ * conserva su fuente. Tiene "me gusta" y comentarios.
+ */
+export interface NewsItem {
+  id: string;
+  kind: NewsKind;
+  title: string;
+  body: string;
+  /** Fuente (medio, organización) y su enlace. */
+  sourceName: string | null;
+  sourceUrl: string | null;
+  photoUrl: string | null;
   likes: number;
   createdAt: string;
 }

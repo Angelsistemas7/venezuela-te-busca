@@ -125,40 +125,10 @@ values
   ('f0000000-0000-4000-8000-000000000004', 'otra', 'Edificio con grietas visibles y sin inspección de las autoridades. Se solicita una evaluación de riesgo estructural antes de que las familias regresen. Mientras tanto, no ingresen.', 'Distrito Capital', 'Parroquia Antímano, Caracas', null, 'consejo_comunal', 6, now() - interval '52 minutes')
 on conflict (id) do nothing;
 
--- ── Mascotas (ejemplos) ─────────────────────────────────────────────────────
-insert into pets
-  (id, status, species, name, description, photo_url, estado, location_text, contact_phone, created_at)
-values
-  ('a1000000-0000-4000-8000-000000000001', 'perdida', 'gato', 'Luna', 'Gata siamés de ojos azules, arisca. Se perdió tras el sismo. Lleva collar.', null, 'La Guaira', 'Playa Grande', null, now() - interval '29 minutes'),
-  ('a1000000-0000-4000-8000-000000000002', 'perdida', 'perro', 'Kai', 'Perro mediano, marrón claro, pelaje corto, ojos amarillos. Responde a Kai.', null, 'La Guaira', 'Caribe', null, now() - interval '58 minutes'),
-  ('a1000000-0000-4000-8000-000000000003', 'encontrada', 'perro', '', 'Perrita marrón claro con collar rosado, encontrada desorientada. Buscamos a su familia.', null, 'Carabobo', 'San Blas, Valencia', null, now() - interval '87 minutes'),
-  ('a1000000-0000-4000-8000-000000000004', 'refugio', 'perro', '', 'Perro rescatado en La Guaira, resguardado en refugio temporal de animales. Esperando a su familia.', null, 'La Guaira', 'Refugio temporal, La Guaira', null, now() - interval '116 minutes'),
-  ('a1000000-0000-4000-8000-000000000005', 'perdida', 'gato', 'Latte', 'Gato siamés cream point, blanco con anillos naranjas en la cola. Tiene 3 años.', null, 'Distrito Capital', 'Av. Fuerzas Armadas, Caracas', null, now() - interval '145 minutes'),
-  ('a1000000-0000-4000-8000-000000000006', 'encontrada', 'gato', '', 'Gato siamés de ojos azules, patas y cara marrón oscuro. Encontrado sano y resguardado.', null, 'La Guaira', 'El Caribe', null, now() - interval '174 minutes')
-on conflict (id) do nothing;
-
--- Comentario en una mascota
-insert into comments
-  (id, entity_type, entity_id, parent_id, author_name, body, likes, created_at)
-values
-  ('e0000000-0000-4000-8000-000000000011', 'pet', 'a1000000-0000-4000-8000-000000000002', null, 'Vecino del Caribe', 'Creo que vi un perro parecido cerca de la plaza esta mañana. Voy a estar pendiente y aviso por aquí.', 3, now() - interval '15 minutes')
-on conflict (id) do nothing;
-
--- ── Voluntarios (ejemplos) ──────────────────────────────────────────────────
-insert into volunteers
-  (id, type, name, availability_text, skills_text, estado, location_text, contact_phone, contact_email, created_at)
-values
-  ('b2000000-0000-4000-8000-000000000001', 'medico', 'Dr. Clemente Romero', 'Según disponibilidad', 'Neurocirujano. Apoyo en evaluación de trauma craneal y referencias.', 'Miranda', 'Caracas', null, null, now() - interval '21 minutes'),
-  ('b2000000-0000-4000-8000-000000000002', 'rescatista', 'Alberto Rosales', 'Disponible', 'Rescate y remoción de escombros. Brigada vecinal.', 'La Guaira', 'La Guaira', null, null, now() - interval '42 minutes'),
-  ('b2000000-0000-4000-8000-000000000003', 'traductor', 'Voluntaria desde Bolivia', '24/7', 'Traducción inglés – español – portugués para coordinar con rescatistas extranjeros.', null, 'La Paz (fuera del país)', null, null, now() - interval '63 minutes'),
-  ('b2000000-0000-4000-8000-000000000004', 'conductor', 'Conductor voluntario', 'Mañanas', 'Camioneta para subir insumos de Caracas a Maiquetía y Macuto.', 'Distrito Capital', 'Plaza Venezuela, Caracas', null, null, now() - interval '84 minutes'),
-  ('b2000000-0000-4000-8000-000000000005', 'enfermero', 'Enfermera voluntaria', 'Tardes y noches', 'Primeros auxilios, curas y control de signos vitales.', 'La Guaira', 'Caraballeda', null, null, now() - interval '105 minutes'),
-  ('b2000000-0000-4000-8000-000000000006', 'psicologo', 'Psicólogo voluntario', 'Cita previa', 'Apoyo emocional y primeros auxilios psicológicos a familias y rescatistas.', 'Distrito Capital', 'Caracas', null, null, now() - interval '126 minutes'),
-  ('b2000000-0000-4000-8000-000000000007', 'cocinero', 'Brigada de cocina', 'Almuerzo y cena', 'Ollas comunitarias; aportamos manos y coordinamos víveres.', 'La Guaira', 'Naiguatá', null, null, now() - interval '147 minutes'),
-  ('b2000000-0000-4000-8000-000000000008', 'traductor', 'Voluntario desde Francia', 'Tardes y noches (por WhatsApp)', 'Traducción francés, español e inglés para equipos internacionales.', null, 'Francia (fuera del país)', null, null, now() - interval '168 minutes'),
-  ('b2000000-0000-4000-8000-000000000009', 'electricista', 'Electricista voluntario', 'Disponible', 'Revisión de instalaciones y conexiones seguras en refugios.', 'Distrito Capital', 'Caracas', null, null, now() - interval '189 minutes'),
-  ('b2000000-0000-4000-8000-000000000010', 'otra', 'Apoyo remoto', 'Todo el día', 'Transcripción y verificación de datos desde el exterior para apoyar la plataforma.', null, 'Fuera del país', null, null, now() - interval '210 minutes')
-on conflict (id) do nothing;
+-- ── Mascotas y voluntarios: SIN ejemplos ────────────────────────────────────
+-- Antes había mascotas y voluntarios de muestra; se quitaron para no mostrar
+-- registros genéricos como si fueran reales. Estas secciones se llenan solo con
+-- lo que publique la gente.
 
 -- ── Héroes (sección curada de Noticias) ─────────────────────────────────────
 -- Reconocimientos POR CATEGORÍA (no señalan a personas concretas) para no

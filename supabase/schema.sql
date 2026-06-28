@@ -264,6 +264,7 @@ create table if not exists volunteers (
   location_text text default '',
   contact_phone text,
   contact_email text,
+  photo_url     text,
   created_at timestamptz not null default now()
 );
 create index if not exists volunteers_type_idx    on volunteers (type);
@@ -289,10 +290,24 @@ create table if not exists heroes (
 );
 create index if not exists heroes_verified_idx on heroes (verified, created_at desc);
 
+-- ── Noticias curadas (las agrega el equipo, con su fuente) ───────────────────
+create table if not exists news_items (
+  id uuid primary key default uuid_generate_v4(),
+  kind        text not null check (kind in ('ayuda','noticia')),
+  title       text not null,
+  body        text not null,
+  source_name text,
+  source_url  text,
+  photo_url   text,
+  likes       int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists news_items_kind_idx on news_items (kind, created_at desc);
+
 -- ── Comentarios (foro de comunidad) ─────────────────────────────────────────
 create table if not exists comments (
   id uuid primary key default uuid_generate_v4(),
-  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero')),
+  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero','news_item')),
   entity_id   uuid not null,
   -- Respuesta en hilo (un nivel): apunta al comentario raíz; null si es de primer nivel.
   parent_id   uuid references comments(id) on delete cascade,
@@ -328,6 +343,7 @@ alter table complaints       enable row level security;
 alter table pets             enable row level security;
 alter table volunteers       enable row level security;
 alter table heroes           enable row level security;
+alter table news_items       enable row level security;
 alter table hospitals        enable row level security;
 alter table hospital_patients enable row level security;
 alter table person_owners    enable row level security;
@@ -339,7 +355,21 @@ alter table resource_managers enable row level security;
 -- person_owners / resource_owners: SIN lectura pública (los tokens son secretos)
 -- y SIN inserción pública. Se escriben con service role al publicar.
 
--- Lectura para todos
+-- Lectura para todos. Drop antes de create para que re-ejecutar el archivo sea
+-- idempotente (Postgres no tiene "create policy if not exists").
+drop policy if exists "public_read_persons"    on persons;
+drop policy if exists "public_read_aid"        on aid_points;
+drop policy if exists "public_read_marches"    on marches;
+drop policy if exists "public_read_comments"   on comments;
+drop policy if exists "public_read_posts"      on posts;
+drop policy if exists "public_read_complaints" on complaints;
+drop policy if exists "public_read_pets"       on pets;
+drop policy if exists "public_read_volunteers" on volunteers;
+drop policy if exists "public_read_heroes"     on heroes;
+drop policy if exists "public_read_news"       on news_items;
+drop policy if exists "public_read_hospitals"  on hospitals;
+drop policy if exists "public_read_patients"   on hospital_patients;
+
 create policy "public_read_persons"   on persons          for select using (true);
 create policy "public_read_aid"       on aid_points       for select using (true);
 create policy "public_read_marches"   on marches          for select using (true);
@@ -349,6 +379,7 @@ create policy "public_read_complaints" on complaints      for select using (true
 create policy "public_read_pets"      on pets             for select using (true);
 create policy "public_read_volunteers" on volunteers      for select using (true);
 create policy "public_read_heroes"    on heroes           for select using (true);
+create policy "public_read_news"      on news_items       for select using (true);
 create policy "public_read_hospitals" on hospitals        for select using (true);
 create policy "public_read_patients"  on hospital_patients for select using (true);
 
@@ -419,8 +450,11 @@ alter table hospitals  add column if not exists verified boolean not null defaul
 -- Migración para bases ya creadas: publicaciones fijadas (destacadas) en el muro.
 alter table posts      add column if not exists pinned boolean not null default false;
 
+-- Migración para bases ya creadas: foto opcional en voluntarios.
+alter table volunteers add column if not exists photo_url text;
+
 -- Migración para bases ya creadas: permitir comentarios en denuncias, mascotas
 -- y héroes. (Recrea el check de comments.entity_type para incluirlos.)
 alter table comments drop constraint if exists comments_entity_type_check;
 alter table comments add constraint comments_entity_type_check
-  check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero'));
+  check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero','news_item'));

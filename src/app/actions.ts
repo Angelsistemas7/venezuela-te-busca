@@ -16,6 +16,7 @@ import {
   createVolunteer,
   createHero,
   likeHero,
+  likeNewsItem,
   supportComplaint,
   getCommentsForEntities,
   getMyPublications,
@@ -574,8 +575,10 @@ export async function registerVolunteerAction(form: FormData): Promise<ActionRes
     return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
   }
 
+  const photoUrl = getField(form, "photoUrl") || null;
+
   try {
-    const volunteer = await createVolunteer(parsed.data);
+    const volunteer = await createVolunteer(parsed.data, photoUrl);
     revalidatePath("/voluntarios");
     return { ok: true, id: volunteer.id, message: "¡Gracias por ofrecerte! Tu disponibilidad ya es visible." };
   } catch {
@@ -626,6 +629,16 @@ export async function registerHeroAction(form: FormData): Promise<ActionResult> 
 export async function likeHeroAction(id: string): Promise<{ ok: boolean }> {
   try {
     await likeHero(id);
+    revalidatePath("/noticias");
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function likeNewsItemAction(id: string): Promise<{ ok: boolean }> {
+  try {
+    await likeNewsItem(id);
     revalidatePath("/noticias");
     return { ok: true };
   } catch {

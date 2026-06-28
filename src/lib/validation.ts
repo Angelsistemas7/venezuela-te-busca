@@ -268,3 +268,13 @@ export const heroSchema = z.object({
 });
 
 export type HeroInput = z.infer<typeof heroSchema>;
+
+export const newsItemSchema = z.object({
+  kind: z.enum(["ayuda", "noticia"]),
+  title: z.string().trim().min(4, "Indica el titular").max(200),
+  body: z.string().trim().min(10, "Escribe un resumen").max(1200),
+  sourceName: z.string().trim().max(120).optional().or(z.literal("")),
+  sourceUrl: httpUrl("Enlace de la fuente no válido"),
+});
+
+export type NewsItemInput = z.infer<typeof newsItemSchema>;

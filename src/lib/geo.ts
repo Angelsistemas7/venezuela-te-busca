@@ -40,16 +40,16 @@ export const SECTOR_COORDS: Record<string, LatLng> = {
   maiquetía: [10.598, -66.975],
   maiquetia: [10.598, -66.975],
   "la guaira": [10.601, -66.931],
-  caraballeda: [10.612, -66.84],
-  naiguatá: [10.617, -66.74],
-  naiguata: [10.617, -66.74],
-  "camurí grande": [10.617, -66.7],
-  "camuri grande": [10.617, -66.7],
-  "playa grande": [10.607, -67.0],
-  caribe: [10.61, -66.98],
-  "los corales": [10.61, -66.85],
-  tanaguarena: [10.617, -66.815],
-  anare: [10.62, -66.78],
+  caraballeda: [10.606, -66.85],
+  naiguatá: [10.608, -66.745],
+  naiguata: [10.608, -66.745],
+  "camurí grande": [10.608, -66.705],
+  "camuri grande": [10.608, -66.705],
+  "playa grande": [10.603, -67.0],
+  caribe: [10.605, -66.98],
+  "los corales": [10.605, -66.85],
+  tanaguarena: [10.608, -66.815],
+  anare: [10.609, -66.78],
   "el cojo": [10.606, -66.88],
   "punta de mulatos": [10.607, -66.87],
   higuerote: [10.48, -66.1],
@@ -62,7 +62,7 @@ export const SECTOR_COORDS: Record<string, LatLng> = {
   guatire: [10.47, -66.54],
   vargas: [10.6, -66.93],
   // Puntos de acopio en el exterior (diáspora que reúne y envía ayuda).
-  cartagena: [10.42, -75.54],
+  cartagena: [10.4, -75.49],
   medellín: [6.25, -75.57],
   medellin: [6.25, -75.57],
   bogotá: [4.65, -74.1],
@@ -103,12 +103,16 @@ export const QUAKE_INFO = {
   sourceName: "CNN, Euronews, Wikipedia",
 };
 
-/** Pequeño desplazamiento determinista para que los puntos no se solapen. */
+/**
+ * Pequeño desplazamiento determinista para que los puntos no se solapen.
+ * Muy reducido (~±0.5 km): en la franja costera de La Guaira un desplazamiento
+ * grande tiraba los marcadores al mar. Mejor que se solapen un poco a que floten.
+ */
 function jitter(coord: LatLng, seed: string): LatLng {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-  const dx = ((h % 100) / 100 - 0.5) * 0.04;
-  const dy = (((h >> 8) % 100) / 100 - 0.5) * 0.04;
+  const dx = ((h % 100) / 100 - 0.5) * 0.01;
+  const dy = (((h >> 8) % 100) / 100 - 0.5) * 0.01;
   return [coord[0] + dy, coord[1] + dx];
 }
 

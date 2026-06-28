@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { DenunciaButton } from "@/components/DenunciaButton";
+import { CommunityTabs } from "@/components/CommunityTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
+      <CommunityTabs />
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white">

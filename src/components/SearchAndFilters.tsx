@@ -15,6 +15,17 @@ const STATUS_CHIPS: { value: PersonStatus | "all"; label: string }[] = [
   { value: "fallecido", label: PERSON_STATUS_LABEL.fallecido },
 ];
 
+// Chips rápidos por grupo de edad (atajos a minAge/maxAge). Útil para buscar
+// niños perdidos primero, que es lo más urgente.
+const AGE_CHIPS: { label: string; min: string; max: string }[] = [
+  { label: "Todas las edades", min: "", max: "" },
+  { label: "👶 Niños (0–11)", min: "0", max: "11" },
+  { label: "🧒 Adolescentes (12–17)", min: "12", max: "17" },
+  { label: "🧑 Jóvenes (18–29)", min: "18", max: "29" },
+  { label: "🧔 Adultos (30–59)", min: "30", max: "59" },
+  { label: "🧓 Mayores (60+)", min: "60", max: "" },
+];
+
 export function SearchAndFilters({ unidentified = false }: { unidentified?: boolean } = {}) {
   // En "¿La reconoces?" la persona ya fue vista/ubicada: "Por localizar" no aplica.
   const statusChips = unidentified
@@ -123,6 +134,27 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
             {chip.label}
           </button>
         ))}
+      </div>
+
+      {/* Chips rápidos por grupo de edad */}
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-0.5">
+        {AGE_CHIPS.map((chip) => {
+          const active = minAge === chip.min && maxAge === chip.max;
+          return (
+            <button
+              key={chip.label}
+              onClick={() => setParams({ minAge: chip.min || null, maxAge: chip.max || null })}
+              className={cn(
+                "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+                active
+                  ? "border-sky-400 bg-sky-50 text-sky-700"
+                  : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
+              )}
+            >
+              {chip.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Panel de filtros avanzados */}

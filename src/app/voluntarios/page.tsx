@@ -4,6 +4,7 @@ import { getVolunteers } from "@/lib/data";
 import { VOLUNTEER_TYPE_EMOJI, VOLUNTEER_TYPE_LABEL, type VolunteerType } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { RegisterVolunteerButton } from "@/components/RegisterVolunteerButton";
+import { CommunityTabs } from "@/components/CommunityTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
+      <CommunityTabs />
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
@@ -93,7 +95,17 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
       ) : (
         <ul className="space-y-3">
           {volunteers.map((v) => (
-            <li key={v.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
+            <li key={v.id} className="flex gap-3 rounded-2xl border border-zinc-200 bg-white p-4">
+              {v.photoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={v.photoUrl}
+                  alt=""
+                  loading="lazy"
+                  className="h-14 w-14 shrink-0 rounded-full object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                   {VOLUNTEER_TYPE_EMOJI[v.type]} {VOLUNTEER_TYPE_LABEL[v.type]}
@@ -128,6 +140,7 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
                     {v.contactEmail}
                   </a>
                 )}
+              </div>
               </div>
             </li>
           ))}

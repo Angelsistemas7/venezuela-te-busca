@@ -5,7 +5,9 @@ import { isAdmin, signInAdmin, signOutAdmin } from "@/lib/admin";
 import { findUserByUsername } from "@/lib/auth";
 import {
   addResourceManager,
+  createNewsItem,
   deleteHero,
+  deleteNewsItem,
   dismissReport,
   removeResourceManager,
   setAidPointVerified,
@@ -16,7 +18,7 @@ import {
   verifyAndApplyReport,
 } from "@/lib/data";
 import type { ManagedEntity } from "@/lib/types";
-import { managerAssignSchema } from "@/lib/validation";
+import { managerAssignSchema, newsItemSchema } from "@/lib/validation";
 
 export async function loginAdminAction(form: FormData): Promise<{ ok: boolean; error?: string }> {
   const password = String(form.get("password") ?? "");
@@ -99,6 +101,45 @@ export async function toggleHeroVerifiedAction(
 export async function deleteHeroAction(id: string): Promise<{ ok: boolean }> {
   if (!(await isAdmin())) return { ok: false };
   await deleteHero(id);
+  revalidatePath("/admin");
+  revalidatePath("/noticias");
+  return { ok: true };
+}
+
+// ── Noticias curadas: las agrega/quita el equipo (admin) ─────────────────────
+export async function createNewsItemAction(
+  form: FormData,
+): Promise<{ ok: boolean; error?: string; fieldErrors?: Record<string, string> }> {
+  if (!(await isAdmin())) return { ok: false, error: "Solo el equipo puede agregar noticias." };
+  const get = (k: string) => String(form.get(k) ?? "").trim();
+  const parsed = newsItemSchema.safeParse({
+    kind: get("kind"),
+    title: get("title"),
+    body: get("body"),
+    sourceName: get("sourceName"),
+    sourceUrl: get("sourceUrl"),
+  });
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const i of parsed.error.issues) {
+      const key = String(i.path[0] ?? "form");
+      if (!fieldErrors[key]) fieldErrors[key] = i.message;
+    }
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors };
+  }
+  try {
+    await createNewsItem(parsed.data, get("photoUrl") || null);
+    revalidatePath("/noticias");
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No se pudo guardar la noticia." };
+  }
+}
+
+export async function deleteNewsItemAction(id: string): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await deleteNewsItem(id);
   revalidatePath("/admin");
   revalidatePath("/noticias");
   return { ok: true };

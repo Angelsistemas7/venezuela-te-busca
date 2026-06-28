@@ -9,6 +9,32 @@ probada con prueba de humo (curl).
 
 ---
 
+## 🔄 Reorganización de navegación (28 jun. 2026 — sin subir aún, build verde)
+- **Menú de 8 ítems** (arriba y barra inferior móvil con íconos): Se busca ·
+  Comunidad · Noticias · Hospitales · Puntos de ayuda · Mascotas · Emergencias ·
+  Mapa. (`SiteHeader`, `MobileNav`).
+- **Comunidad = centro con pestañas** (`CommunityTabs`): Muro · Voluntarios ·
+  Caravanas · Denuncias (páginas separadas con barra común; "Comunidad" se
+  resalta en todas).
+- **Noticias = pestañas** (`NoticiasTabs`): Héroes · Ayuda humanitaria · Últimas
+  noticias · **Sismos** (el widget de réplicas USGS se movió aquí desde el inicio).
+- **Portada con interruptor** (`PersonViewToggle`): "Se busca" ↔ "¿La reconoces?"
+  vía `?view=`. `/sin-identificar` ahora **redirige** a `/?view=reconoces`.
+- **Noticias curadas** (`news_items`): el admin agrega noticias/ayuda con su fuente
+  (botón en las pestañas), con like + comentarios (`entity_type='news_item'`).
+  Conviven con el feed en vivo. No se siembran (no se inventan); `getNewsItems`
+  tolera tabla ausente (`.catch(()=>[])`).
+- **Foto en voluntarios** (columna `volunteers.photo_url`).
+- **Genéricos quitados** del seed (voluntarios + mascotas de ejemplo). ⚠️ En la
+  base EN VIVO hay que borrarlos a mano (SQL) — siguen ahí del primer seed.
+- **Fix modal** (`Modal.tsx`): usa `dvh` en vez de `vh` para que el login/los
+  modales no salgan cortados en móvil.
+- **Mapa**: `jitter` reducido y coordenadas costeras/Cartagena corregidas (ya no
+  caen "en el agua").
+- **Al desplegar este bloque**: re-correr `supabase/schema.sql` (crea `heroes` ya
+  estaba; ahora `news_items`, columna `volunteers.photo_url`, y amplía el check de
+  `comments.entity_type`). Idempotente.
+
 ## ✅ Construido y funcionando
 
 ### Personas — dos intenciones (reformulado por claridad)

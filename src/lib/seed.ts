@@ -3,6 +3,7 @@ import type {
   Comment,
   Complaint,
   Hero,
+  NewsItem,
   Hospital,
   HospitalPatient,
   March,
@@ -1004,130 +1005,9 @@ export const seedPets: Pet[] = [
   },
 ];
 
-const volBase = (n: number) => new Date(Date.parse("2026-06-25T20:00:00-04:00") - n * 21 * 60_000).toISOString();
-
-export const seedVolunteers: Volunteer[] = [
-  {
-    id: "seed-vol-1",
-    type: "medico",
-    name: "Dr. Clemente Romero",
-    availabilityText: "Según disponibilidad",
-    skillsText: "Neurocirujano. Apoyo en evaluación de trauma craneal y referencias.",
-    estado: "Miranda",
-    locationText: "Caracas",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(0),
-  },
-  {
-    id: "seed-vol-2",
-    type: "rescatista",
-    name: "Alberto Rosales",
-    availabilityText: "Disponible",
-    skillsText: "Rescate y remoción de escombros. Brigada vecinal.",
-    estado: "La Guaira",
-    locationText: "La Guaira",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(1),
-  },
-  {
-    id: "seed-vol-3",
-    type: "traductor",
-    name: "Voluntaria desde Bolivia",
-    availabilityText: "24/7",
-    skillsText: "Traducción inglés – español – portugués para coordinar con rescatistas extranjeros.",
-    estado: null,
-    locationText: "La Paz (fuera del país)",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(2),
-  },
-  {
-    id: "seed-vol-4",
-    type: "conductor",
-    name: "Conductor voluntario",
-    availabilityText: "Mañanas",
-    skillsText: "Camioneta para subir insumos de Caracas a Maiquetía y Macuto.",
-    estado: "Distrito Capital",
-    locationText: "Plaza Venezuela, Caracas",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(3),
-  },
-  {
-    id: "seed-vol-5",
-    type: "enfermero",
-    name: "Enfermera voluntaria",
-    availabilityText: "Tardes y noches",
-    skillsText: "Primeros auxilios, curas y control de signos vitales.",
-    estado: "La Guaira",
-    locationText: "Caraballeda",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(4),
-  },
-  {
-    id: "seed-vol-6",
-    type: "psicologo",
-    name: "Psicólogo voluntario",
-    availabilityText: "Cita previa",
-    skillsText: "Apoyo emocional y primeros auxilios psicológicos a familias y rescatistas.",
-    estado: "Distrito Capital",
-    locationText: "Caracas",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(5),
-  },
-  {
-    id: "seed-vol-7",
-    type: "cocinero",
-    name: "Brigada de cocina",
-    availabilityText: "Almuerzo y cena",
-    skillsText: "Ollas comunitarias; aportamos manos y coordinamos víveres.",
-    estado: "La Guaira",
-    locationText: "Naiguatá",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(6),
-  },
-  {
-    id: "seed-vol-8",
-    type: "traductor",
-    name: "Voluntario desde Francia",
-    availabilityText: "Tardes y noches (por WhatsApp)",
-    skillsText: "Traducción francés, español e inglés para equipos internacionales.",
-    estado: null,
-    locationText: "Francia (fuera del país)",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(7),
-  },
-  {
-    id: "seed-vol-9",
-    type: "electricista",
-    name: "Electricista voluntario",
-    availabilityText: "Disponible",
-    skillsText: "Revisión de instalaciones y conexiones seguras en refugios.",
-    estado: "Distrito Capital",
-    locationText: "Caracas",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(8),
-  },
-  {
-    id: "seed-vol-10",
-    type: "otra",
-    name: "Apoyo remoto",
-    availabilityText: "Todo el día",
-    skillsText: "Transcripción y verificación de datos desde el exterior para apoyar la plataforma.",
-    estado: null,
-    locationText: "Fuera del país",
-    contactPhone: null,
-    contactEmail: null,
-    createdAt: volBase(9),
-  },
-];
+// Sin voluntarios de ejemplo: los publica la gente real. Quedan así para no
+// mostrar perfiles genéricos como si fueran personas que de verdad se ofrecieron.
+export const seedVolunteers: Volunteer[] = [];
 
 // Héroes de la emergencia. Reconocimientos POR CATEGORÍA (no señalan a personas
 // concretas) para no atribuir nada falso: son ciertos a nivel de grupo y no
@@ -1213,6 +1093,10 @@ export const seedHeroes: Hero[] = [
     createdAt: heroBase(4),
   },
 ];
+
+// Noticias curadas: vacío a propósito. Las agrega el equipo con su fuente real
+// desde la sección de Noticias; no se siembran noticias inventadas.
+export const seedNewsItems: NewsItem[] = [];
 
 // Hospitales REALES de la zona afectada y de la red que recibe heridos.
 // Direcciones y teléfonos tomados de fuentes públicas (jun. 2026); donde no se

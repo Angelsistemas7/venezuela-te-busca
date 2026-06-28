@@ -2,25 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, HandHeart, HeartHandshake, LifeBuoy, Map, MapPinned, Megaphone, Newspaper, PawPrint, Search, Users, Users2 } from "lucide-react";
+import { Building2, HeartHandshake, LifeBuoy, Map, Newspaper, PawPrint, Search, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "./NotificationBell";
 import { AuthMenu } from "./AuthMenu";
 
 const NAV = [
   { href: "/", label: "Se busca", icon: Search },
-  { href: "/sin-identificar", label: "¿La reconoces?", icon: Users },
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
   { href: "/noticias", label: "Noticias", icon: Newspaper },
   { href: "/hospitales", label: "Hospitales", icon: Building2 },
   { href: "/ayuda", label: "Puntos de ayuda", icon: HeartHandshake },
-  { href: "/voluntarios", label: "Voluntarios", icon: HandHeart },
-  { href: "/caravanas", label: "Caravanas", icon: MapPinned },
   { href: "/mascotas", label: "Mascotas", icon: PawPrint },
-  { href: "/denuncias", label: "Denuncias", icon: Megaphone },
   { href: "/emergencias", label: "Emergencias", icon: LifeBuoy },
   { href: "/mapa", label: "Mapa", icon: Map },
 ];
+
+// Sub-secciones que viven bajo la pestaña "Comunidad" (se resaltan con ella).
+const COMMUNITY_PATHS = ["/comunidad", "/voluntarios", "/caravanas", "/denuncias"];
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -40,7 +39,12 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <nav className="no-scrollbar hidden items-center gap-1 overflow-x-auto md:flex">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            const active =
+              href === "/"
+                ? pathname === "/"
+                : href === "/comunidad"
+                  ? COMMUNITY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+                  : pathname.startsWith(href);
             return (
               <Link
                 key={href}

@@ -5,6 +5,7 @@ import {
   seedComments,
   seedComplaints,
   seedHeroes,
+  seedNewsItems,
   seedHospitalPatients,
   seedHospitals,
   seedMarches,
@@ -20,6 +21,7 @@ import type {
   Complaint,
   ComplaintCategory,
   Hero,
+  NewsItem,
   Hospital,
   HospitalPatient,
   HospitalStatus,
@@ -44,6 +46,7 @@ import type {
   AidPointInput,
   ComplaintInput,
   HeroInput,
+  NewsItemInput,
   HospitalInput,
   HospitalPatientInput,
   MarchInput,
@@ -96,6 +99,7 @@ const mem = {
   pets: [...seedPets],
   volunteers: [...seedVolunteers],
   heroes: [...seedHeroes],
+  newsItems: [...seedNewsItems],
   hospitals: [...seedHospitals],
   patients: [...seedHospitalPatients],
   // Token privado de gestión por persona (solo lo conoce quien publicó).
@@ -1955,6 +1959,7 @@ function rowToVolunteer(r: any): Volunteer {
     locationText: r.location_text ?? "",
     contactPhone: r.contact_phone,
     contactEmail: r.contact_email,
+    photoUrl: r.photo_url ?? null,
     createdAt: r.created_at,
   };
 }
@@ -1990,7 +1995,10 @@ export async function getVolunteers(
   return (data ?? []).map(rowToVolunteer);
 }
 
-export async function createVolunteer(input: VolunteerInput): Promise<Volunteer> {
+export async function createVolunteer(
+  input: VolunteerInput,
+  photoUrl: string | null = null,
+): Promise<Volunteer> {
   const now = new Date().toISOString();
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) {
@@ -2004,6 +2012,7 @@ export async function createVolunteer(input: VolunteerInput): Promise<Volunteer>
       locationText: input.locationText || "",
       contactPhone: input.contactPhone || null,
       contactEmail: input.contactEmail || null,
+      photoUrl: photoUrl || null,
       createdAt: now,
     };
     mem.volunteers.unshift(volunteer);
@@ -2020,6 +2029,7 @@ export async function createVolunteer(input: VolunteerInput): Promise<Volunteer>
       location_text: input.locationText || "",
       contact_phone: input.contactPhone || null,
       contact_email: input.contactEmail || null,
+      photo_url: photoUrl || null,
     })
     .select("*")
     .single();
@@ -2146,6 +2156,96 @@ export async function deleteHero(id: string): Promise<void> {
     return;
   }
   const { error } = await sb.from("heroes").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Noticias curadas (las agrega el equipo) ─────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToNewsItem(r: any): NewsItem {
+  return {
+    id: r.id,
+    kind: r.kind,
+    title: r.title,
+    body: r.body ?? "",
+    sourceName: r.source_name ?? null,
+    sourceUrl: r.source_url ?? null,
+    photoUrl: r.photo_url ?? null,
+    likes: r.likes ?? 0,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** Noticias curadas; con `kind` se filtra por ayuda humanitaria o titulares. */
+export async function getNewsItems(kind?: NewsItem["kind"]): Promise<NewsItem[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.newsItems.slice();
+    if (kind) items = items.filter((n) => n.kind === kind);
+    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  let query = sb.from("news_items").select("*").order("created_at", { ascending: false }).limit(200);
+  if (kind) query = query.eq("kind", kind);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(rowToNewsItem);
+}
+
+export async function createNewsItem(input: NewsItemInput, photoUrl: string | null = null): Promise<NewsItem> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const item: NewsItem = {
+      id: uid("news"),
+      kind: input.kind,
+      title: input.title,
+      body: input.body,
+      sourceName: input.sourceName || null,
+      sourceUrl: input.sourceUrl || null,
+      photoUrl: photoUrl || null,
+      likes: 0,
+      createdAt: now,
+    };
+    mem.newsItems.unshift(item);
+    return item;
+  }
+  const { data, error } = await sb
+    .from("news_items")
+    .insert({
+      kind: input.kind,
+      title: input.title,
+      body: input.body,
+      source_name: input.sourceName || null,
+      source_url: input.sourceUrl || null,
+      photo_url: photoUrl || null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToNewsItem(data);
+}
+
+/** "Me gusta" a una noticia curada (comunidad). */
+export async function likeNewsItem(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const item = mem.newsItems.find((n) => n.id === id);
+    if (item) item.likes++;
+    return;
+  }
+  const { data, error } = await sb.from("news_items").select("likes").eq("id", id).single();
+  if (error) throw error;
+  await sb.from("news_items").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+}
+
+/** Elimina una noticia curada (solo el equipo). */
+export async function deleteNewsItem(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.newsItems = mem.newsItems.filter((n) => n.id !== id);
+    return;
+  }
+  const { error } = await sb.from("news_items").delete().eq("id", id);
   if (error) throw error;
 }
 

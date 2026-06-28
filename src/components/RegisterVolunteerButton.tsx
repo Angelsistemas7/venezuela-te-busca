@@ -2,9 +2,11 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, HandHeart, Loader2 } from "lucide-react";
+import { CheckCircle2, HandHeart, ImagePlus, Loader2 } from "lucide-react";
 import { ESTADOS, VOLUNTEER_TYPE_LABEL, type VolunteerType } from "@/lib/types";
 import { registerVolunteerAction, type ActionResult } from "@/app/actions";
+import { uploadPhoto } from "@/lib/upload";
+import { compressImage } from "@/lib/image";
 import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
@@ -16,12 +18,16 @@ export function RegisterVolunteerButton() {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileRef = useRef<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   function close() {
     setOpen(false);
     setTimeout(() => {
       setResult(null);
+      setPreview(null);
+      fileRef.current = null;
       formRef.current?.reset();
     }, 200);
   }
@@ -32,7 +38,17 @@ export function RegisterVolunteerButton() {
     setSubmitting(true);
     setResult(null);
     try {
-      const res = await registerVolunteerAction(new FormData(e.currentTarget));
+      const form = new FormData(e.currentTarget);
+      if (fileRef.current) {
+        try {
+          const compressed = await compressImage(fileRef.current);
+          const url = await uploadPhoto(compressed);
+          if (url) form.set("photoUrl", url);
+        } catch {
+          /* sigue sin foto */
+        }
+      }
+      const res = await registerVolunteerAction(form);
       setResult(res);
       if (res.ok) router.refresh();
     } finally {
@@ -71,6 +87,29 @@ export function RegisterVolunteerButton() {
           </div>
         ) : (
           <form ref={formRef} onSubmit={onSubmit} className="space-y-5">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-6 hover:border-emerald-400 hover:bg-emerald-50">
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt="Vista previa" className="h-28 w-28 rounded-full object-cover" />
+              ) : (
+                <>
+                  <ImagePlus className="h-7 w-7 text-zinc-400" />
+                  <span className="text-sm font-medium text-zinc-700">Tu foto (opcional)</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  fileRef.current = file;
+                  setPreview(URL.createObjectURL(file));
+                }}
+              />
+            </label>
+
             <Field label="¿Cómo puedes ayudar?" htmlFor="type" required>
               <Select id="type" name="type" defaultValue="medico">
                 {TYPES.map((t) => (
@@ -118,6 +157,7 @@ export function RegisterVolunteerButton() {
               </Field>
             </div>
 
+            <input type="hidden" name="photoUrl" />
             <Turnstile />
 
             {result && !result.ok && (
