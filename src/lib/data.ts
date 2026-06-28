@@ -8,8 +8,10 @@ import {
   seedHospitals,
   seedMarches,
   seedPersons,
+  seedPets,
   seedPosts,
   seedStatusReports,
+  seedVolunteers,
 } from "./seed";
 import type {
   AidPoint,
@@ -24,6 +26,8 @@ import type {
   Person,
   PersonReaction,
   PersonStatus,
+  Pet,
+  PetStatus,
   Post,
   PostType,
   ReactionKind,
@@ -31,6 +35,8 @@ import type {
   ResourceOwnerEntity,
   Stats,
   StatusReport,
+  Volunteer,
+  VolunteerType,
 } from "./types";
 import type {
   AidPointInput,
@@ -39,8 +45,10 @@ import type {
   HospitalPatientInput,
   MarchInput,
   PersonInput,
+  PetInput,
   PostInput,
   StatusReportInput,
+  VolunteerInput,
 } from "./validation";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -82,6 +90,8 @@ const mem = {
   comments: [...seedComments],
   posts: [...seedPosts],
   complaints: [...seedComplaints],
+  pets: [...seedPets],
+  volunteers: [...seedVolunteers],
   hospitals: [...seedHospitals],
   patients: [...seedHospitalPatients],
   // Token privado de gestión por persona (solo lo conoce quien publicó).
@@ -320,7 +330,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       ninos: p.filter((x) => x.age != null && x.age < 18).length,
       denuncias: mem.complaints.length,
       necesidades: mem.posts.filter((x) => x.type === "necesito").length,
-      voluntarios: mem.posts.filter((x) => x.type === "ofrezco").length,
+      voluntarios: mem.volunteers.length,
     };
   }
   const { data: persons } = await sb.from("persons").select("status,age");
@@ -330,7 +340,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const [{ count: denuncias }, { count: necesidades }, { count: voluntarios }] = await Promise.all([
     sb.from("complaints").select("*", { count: "exact", head: true }),
     sb.from("posts").select("*", { count: "exact", head: true }).eq("type", "necesito"),
-    sb.from("posts").select("*", { count: "exact", head: true }).eq("type", "ofrezco"),
+    sb.from("volunteers").select("*", { count: "exact", head: true }),
   ]);
   return {
     registered: rows.length,
@@ -1833,6 +1843,184 @@ export async function supportComplaint(id: string): Promise<void> {
   const { data, error } = await sb.from("complaints").select("supports").eq("id", id).single();
   if (error) throw error;
   await sb.from("complaints").update({ supports: (data.supports ?? 0) + 1 }).eq("id", id);
+}
+
+// ── Mascotas ────────────────────────────────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToPet(r: any): Pet {
+  return {
+    id: r.id,
+    status: r.status,
+    species: r.species ?? "perro",
+    name: r.name ?? "",
+    description: r.description ?? "",
+    photoUrl: r.photo_url,
+    estado: r.estado,
+    locationText: r.location_text ?? "",
+    contactPhone: r.contact_phone,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getPets(
+  filter: { status?: PetStatus | "all"; search?: string } = {},
+): Promise<Pet[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.pets.slice();
+    if (filter.status && filter.status !== "all") items = items.filter((p) => p.status === filter.status);
+    if (filter.search) {
+      const s = filter.search.toLowerCase().trim();
+      items = items.filter((p) =>
+        [p.name, p.description, p.locationText, p.estado]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(s),
+      );
+    }
+    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  let query = sb.from("pets").select("*").order("created_at", { ascending: false }).limit(200);
+  if (filter.status && filter.status !== "all") query = query.eq("status", filter.status);
+  if (filter.search) {
+    const s = filter.search.replace(/[,()*]/g, " ").trim();
+    if (s) query = query.or(`name.ilike.%${s}%,description.ilike.%${s}%,location_text.ilike.%${s}%`);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(rowToPet);
+}
+
+export async function getPetById(id: string): Promise<Pet | null> {
+  const sb = getSupabase();
+  if (!sb) return mem.pets.find((p) => p.id === id) ?? null;
+  const { data, error } = await sb.from("pets").select("*").eq("id", id).single();
+  if (error) return null;
+  return data ? rowToPet(data) : null;
+}
+
+export async function createPet(input: PetInput, photoUrl: string | null): Promise<Pet> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const pet: Pet = {
+      id: uid("pet"),
+      status: input.status,
+      species: input.species,
+      name: input.name || "",
+      description: input.description,
+      photoUrl,
+      estado: input.estado ?? null,
+      locationText: input.locationText || "",
+      contactPhone: input.contactPhone || null,
+      createdAt: now,
+    };
+    mem.pets.unshift(pet);
+    return pet;
+  }
+  const { data, error } = await sb
+    .from("pets")
+    .insert({
+      status: input.status,
+      species: input.species,
+      name: input.name || "",
+      description: input.description,
+      photo_url: photoUrl,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      contact_phone: input.contactPhone || null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToPet(data);
+}
+
+// ── Voluntarios ─────────────────────────────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToVolunteer(r: any): Volunteer {
+  return {
+    id: r.id,
+    type: r.type,
+    name: r.name,
+    availabilityText: r.availability_text ?? "",
+    skillsText: r.skills_text ?? "",
+    estado: r.estado,
+    locationText: r.location_text ?? "",
+    contactPhone: r.contact_phone,
+    contactEmail: r.contact_email,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getVolunteers(
+  filter: { type?: VolunteerType | "all"; search?: string } = {},
+): Promise<Volunteer[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.volunteers.slice();
+    if (filter.type && filter.type !== "all") items = items.filter((v) => v.type === filter.type);
+    if (filter.search) {
+      const s = filter.search.toLowerCase().trim();
+      items = items.filter((v) =>
+        [v.name, v.skillsText, v.locationText, v.estado]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(s),
+      );
+    }
+    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  let query = sb.from("volunteers").select("*").order("created_at", { ascending: false }).limit(300);
+  if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
+  if (filter.search) {
+    const s = filter.search.replace(/[,()*]/g, " ").trim();
+    if (s) query = query.or(`name.ilike.%${s}%,skills_text.ilike.%${s}%,location_text.ilike.%${s}%`);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(rowToVolunteer);
+}
+
+export async function createVolunteer(input: VolunteerInput): Promise<Volunteer> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const volunteer: Volunteer = {
+      id: uid("vol"),
+      type: input.type,
+      name: input.name,
+      availabilityText: input.availabilityText || "",
+      skillsText: input.skillsText || "",
+      estado: input.estado ?? null,
+      locationText: input.locationText || "",
+      contactPhone: input.contactPhone || null,
+      contactEmail: input.contactEmail || null,
+      createdAt: now,
+    };
+    mem.volunteers.unshift(volunteer);
+    return volunteer;
+  }
+  const { data, error } = await sb
+    .from("volunteers")
+    .insert({
+      type: input.type,
+      name: input.name,
+      availability_text: input.availabilityText || "",
+      skills_text: input.skillsText || "",
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      contact_phone: input.contactPhone || null,
+      contact_email: input.contactEmail || null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToVolunteer(data);
 }
 
 // ── Hospitales ──────────────────────────────────────────────────────────────

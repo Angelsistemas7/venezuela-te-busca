@@ -210,3 +210,40 @@ export const complaintSchema = z.object({
 });
 
 export type ComplaintInput = z.infer<typeof complaintSchema>;
+
+// ── Mascotas ─────────────────────────────────────────────────────────────────
+export const petSchema = z.object({
+  status: z.enum(["perdida", "encontrada", "refugio", "veterinario"]),
+  species: z.enum(["perro", "gato", "otro"]),
+  name: z.string().trim().max(60).optional().or(z.literal("")),
+  description: z.string().trim().min(5, "Describe a la mascota (color, raza, señas)").max(800),
+  estado: estadoEnum.optional(),
+  locationText: z.string().trim().max(160).optional().or(z.literal("")),
+  contactPhone: phone,
+});
+
+export type PetInput = z.infer<typeof petSchema>;
+
+// ── Voluntarios ──────────────────────────────────────────────────────────────
+export const volunteerSchema = z.object({
+  type: z.enum([
+    "medico",
+    "enfermero",
+    "psicologo",
+    "rescatista",
+    "conductor",
+    "cocinero",
+    "traductor",
+    "electricista",
+    "otra",
+  ]),
+  name: z.string().trim().min(2, "Indica tu nombre").max(80),
+  availabilityText: z.string().trim().max(160).optional().or(z.literal("")),
+  skillsText: z.string().trim().max(400).optional().or(z.literal("")),
+  estado: estadoEnum.optional(),
+  locationText: z.string().trim().max(160).optional().or(z.literal("")),
+  contactPhone: phone,
+  contactEmail: z.string().trim().email("Correo no válido").optional().or(z.literal("")),
+});
+
+export type VolunteerInput = z.infer<typeof volunteerSchema>;

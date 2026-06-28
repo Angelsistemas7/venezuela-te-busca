@@ -237,10 +237,42 @@ create index if not exists complaints_category_idx on complaints (category);
 create index if not exists complaints_created_idx  on complaints (created_at desc);
 create index if not exists complaints_user_idx     on complaints (user_id);
 
+-- ── Mascotas ────────────────────────────────────────────────────────────────
+create table if not exists pets (
+  id uuid primary key default uuid_generate_v4(),
+  status        text not null check (status in ('perdida','encontrada','refugio','veterinario')),
+  species       text not null default 'perro' check (species in ('perro','gato','otro')),
+  name          text default '',
+  description   text not null check (length(description) between 5 and 800),
+  photo_url     text,
+  estado        text,
+  location_text text default '',
+  contact_phone text,
+  created_at timestamptz not null default now()
+);
+create index if not exists pets_status_idx  on pets (status);
+create index if not exists pets_created_idx on pets (created_at desc);
+
+-- ── Voluntarios ("Puedo ayudar") ────────────────────────────────────────────
+create table if not exists volunteers (
+  id uuid primary key default uuid_generate_v4(),
+  type          text not null check (type in ('medico','enfermero','psicologo','rescatista','conductor','cocinero','traductor','electricista','otra')),
+  name          text not null,
+  availability_text text default '',
+  skills_text   text default '',
+  estado        text,
+  location_text text default '',
+  contact_phone text,
+  contact_email text,
+  created_at timestamptz not null default now()
+);
+create index if not exists volunteers_type_idx    on volunteers (type);
+create index if not exists volunteers_created_idx  on volunteers (created_at desc);
+
 -- ── Comentarios (foro de comunidad) ─────────────────────────────────────────
 create table if not exists comments (
   id uuid primary key default uuid_generate_v4(),
-  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint')),
+  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet')),
   entity_id   uuid not null,
   -- Respuesta en hilo (un nivel): apunta al comentario raíz; null si es de primer nivel.
   parent_id   uuid references comments(id) on delete cascade,
@@ -273,6 +305,8 @@ alter table marches        enable row level security;
 alter table comments         enable row level security;
 alter table posts            enable row level security;
 alter table complaints       enable row level security;
+alter table pets             enable row level security;
+alter table volunteers       enable row level security;
 alter table hospitals        enable row level security;
 alter table hospital_patients enable row level security;
 alter table person_owners    enable row level security;
@@ -291,6 +325,8 @@ create policy "public_read_marches"   on marches          for select using (true
 create policy "public_read_comments"  on comments         for select using (true);
 create policy "public_read_posts"     on posts            for select using (true);
 create policy "public_read_complaints" on complaints      for select using (true);
+create policy "public_read_pets"      on pets             for select using (true);
+create policy "public_read_volunteers" on volunteers      for select using (true);
 create policy "public_read_hospitals" on hospitals        for select using (true);
 create policy "public_read_patients"  on hospital_patients for select using (true);
 
@@ -361,8 +397,8 @@ alter table hospitals  add column if not exists verified boolean not null defaul
 -- Migración para bases ya creadas: publicaciones fijadas (destacadas) en el muro.
 alter table posts      add column if not exists pinned boolean not null default false;
 
--- Migración para bases ya creadas: permitir comentarios en denuncias.
--- (Recrea el check de comments.entity_type para incluir 'complaint'.)
+-- Migración para bases ya creadas: permitir comentarios en denuncias y mascotas.
+-- (Recrea el check de comments.entity_type para incluir 'complaint' y 'pet'.)
 alter table comments drop constraint if exists comments_entity_type_check;
 alter table comments add constraint comments_entity_type_check
-  check (entity_type in ('person','aid_point','march','post','hospital','complaint'));
+  check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet'));

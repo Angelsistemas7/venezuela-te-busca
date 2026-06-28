@@ -55,6 +55,19 @@ probada con prueba de humo (curl).
   pruebas**; los ejemplos sembrados son neutrales (no acusan a nadie). Modelo:
   tabla `complaints` + comentarios con `entity_type='complaint'`.
 
+### Mascotas (`/mascotas`)
+- Reportes de mascotas **perdida / encontrada / en refugio / en veterinario**, por
+  especie (perro/gato/otro). Foto, descripción, ubicación, contacto y **comentarios**
+  (igual que personas). Filtros por estado del reporte y búsqueda por nombre/ciudad.
+- Modelo: tabla `pets` + comentarios `entity_type='pet'`. Publicar es abierto (Turnstile).
+
+### Voluntarios (`/voluntarios`, "Puedo ayudar")
+- Directorio de quienes se ofrecen: tipo (médico, enfermero, psicólogo, rescatista,
+  conductor, cocinero, traductor, electricista, otra), disponibilidad, habilidades,
+  ciudad y contacto (teléfono/correo). Filtro por tipo y búsqueda por nombre/ciudad.
+- Modelo: tabla `volunteers`. Publicar es abierto (Turnstile). Alimenta el contador
+  "Voluntarios" del panel de cifras del inicio.
+
 ### Comentarios (transversal a todas las secciones)
 - Foro con foto en personas, posts, puntos, caravanas y hospitales.
 - **Respuestas en hilo de un nivel**: botón "Responder", banner "Respondiendo a…",

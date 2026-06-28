@@ -10,8 +10,10 @@ import {
   createHospital,
   createMarch,
   createPerson,
+  createPet,
   createPost,
   createStatusReport,
+  createVolunteer,
   supportComplaint,
   getCommentsForEntities,
   getMyPublications,
@@ -57,9 +59,11 @@ import {
   loginSchema,
   marchSchema,
   personSchema,
+  petSchema,
   postSchema,
   signupSchema,
   statusReportSchema,
+  volunteerSchema,
 } from "@/lib/validation";
 
 export type ActionResult =
@@ -510,6 +514,67 @@ export async function createPostAction(form: FormData): Promise<ActionResult> {
       ownerToken,
       message: "Publicado. Gracias por mantener informada a la comunidad.",
     };
+  } catch {
+    return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
+  }
+}
+
+// ── Mascotas ──────────────────────────────────────────────────────────────────
+export async function registerPetAction(form: FormData): Promise<ActionResult> {
+  const token = getField(form, "cf-turnstile-response") || null;
+  if (!(await verifyTurnstile(token))) {
+    return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };
+  }
+
+  const parsed = petSchema.safeParse({
+    status: getField(form, "status"),
+    species: getField(form, "species"),
+    name: getField(form, "name"),
+    description: getField(form, "description"),
+    estado: getField(form, "estado") || undefined,
+    locationText: getField(form, "locationText"),
+    contactPhone: getField(form, "contactPhone"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+
+  const photoUrl = getField(form, "photoUrl") || null;
+
+  try {
+    const pet = await createPet(parsed.data, photoUrl);
+    revalidatePath("/mascotas");
+    return { ok: true, id: pet.id, message: "Publicado. Gracias por ayudar a reunir a las mascotas con su familia." };
+  } catch {
+    return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
+  }
+}
+
+// ── Voluntarios ───────────────────────────────────────────────────────────────
+export async function registerVolunteerAction(form: FormData): Promise<ActionResult> {
+  const token = getField(form, "cf-turnstile-response") || null;
+  if (!(await verifyTurnstile(token))) {
+    return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };
+  }
+
+  const parsed = volunteerSchema.safeParse({
+    type: getField(form, "type"),
+    name: getField(form, "name"),
+    availabilityText: getField(form, "availabilityText"),
+    skillsText: getField(form, "skillsText"),
+    estado: getField(form, "estado") || undefined,
+    locationText: getField(form, "locationText"),
+    contactPhone: getField(form, "contactPhone"),
+    contactEmail: getField(form, "contactEmail"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+
+  try {
+    const volunteer = await createVolunteer(parsed.data);
+    revalidatePath("/voluntarios");
+    return { ok: true, id: volunteer.id, message: "¡Gracias por ofrecerte! Tu disponibilidad ya es visible." };
   } catch {
     return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
   }

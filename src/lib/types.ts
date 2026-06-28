@@ -316,7 +316,7 @@ export interface HospitalPatient {
   createdAt: string;
 }
 
-export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint";
+export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint" | "pet";
 
 // ── Denuncias de irregularidades ────────────────────────────────────────────
 /** Categoría de una denuncia ciudadana de irregularidad. */
@@ -362,6 +362,99 @@ export interface Complaint {
   authorName: string;
   /** Apoyos de la comunidad ("Apoyar"), uno por dispositivo. */
   supports: number;
+  createdAt: string;
+}
+
+// ── Mascotas ────────────────────────────────────────────────────────────────
+export type PetStatus = "perdida" | "encontrada" | "refugio" | "veterinario";
+
+export const PET_STATUS_LABEL: Record<PetStatus, string> = {
+  perdida: "Perdida",
+  encontrada: "Encontrada",
+  refugio: "En refugio",
+  veterinario: "En veterinario",
+};
+
+export const PET_STATUS_EMOJI: Record<PetStatus, string> = {
+  perdida: "😿",
+  encontrada: "✅",
+  refugio: "🏠",
+  veterinario: "🏥",
+};
+
+export type PetSpecies = "perro" | "gato" | "otro";
+
+export const PET_SPECIES_LABEL: Record<PetSpecies, string> = {
+  perro: "Perro",
+  gato: "Gato",
+  otro: "Otro",
+};
+
+/** Mascota perdida/encontrada/en refugio/en veterinario. Igual que una persona:
+ *  foto, descripción, ubicación y comentarios. */
+export interface Pet {
+  id: string;
+  status: PetStatus;
+  species: PetSpecies;
+  /** Nombre de la mascota, si se conoce (puede ir vacío). */
+  name: string;
+  description: string;
+  photoUrl: string | null;
+  estado: Estado | null;
+  locationText: string;
+  contactPhone: string | null;
+  createdAt: string;
+}
+
+// ── Voluntarios ("Puedo ayudar") ────────────────────────────────────────────
+export type VolunteerType =
+  | "medico"
+  | "enfermero"
+  | "psicologo"
+  | "rescatista"
+  | "conductor"
+  | "cocinero"
+  | "traductor"
+  | "electricista"
+  | "otra";
+
+export const VOLUNTEER_TYPE_LABEL: Record<VolunteerType, string> = {
+  medico: "Médico",
+  enfermero: "Enfermero/a",
+  psicologo: "Psicólogo/a",
+  rescatista: "Rescatista",
+  conductor: "Conductor/a",
+  cocinero: "Cocinero/a",
+  traductor: "Traductor/a",
+  electricista: "Electricista",
+  otra: "Otra ayuda",
+};
+
+export const VOLUNTEER_TYPE_EMOJI: Record<VolunteerType, string> = {
+  medico: "🩺",
+  enfermero: "💉",
+  psicologo: "🧠",
+  rescatista: "⛑️",
+  conductor: "🚗",
+  cocinero: "🍲",
+  traductor: "🗣️",
+  electricista: "🔌",
+  otra: "🤝",
+};
+
+/** Persona que se ofrece como voluntaria, con su disponibilidad y ciudad. */
+export interface Volunteer {
+  id: string;
+  type: VolunteerType;
+  name: string;
+  /** Disponibilidad (horarios, "24/7", "tardes"...). */
+  availabilityText: string;
+  /** Qué puede aportar / habilidades (idiomas, oficio...). */
+  skillsText: string;
+  estado: Estado | null;
+  locationText: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
   createdAt: string;
 }
 
