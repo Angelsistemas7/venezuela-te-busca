@@ -8,8 +8,10 @@ import {
   type HospitalStatus,
 } from "@/lib/types";
 import { EPICENTER, ESTADO_COORDS, QUAKE_INFO, geocode } from "@/lib/geo";
+import { getRecentQuakes } from "@/lib/usgs";
 import { formatDateTime, timeAgo } from "@/lib/utils";
 import { CrisisMap } from "@/components/map/CrisisMap";
+import { RecentQuakes } from "@/components/RecentQuakes";
 import type {
   AidMarker,
   HospitalMarker,
@@ -38,12 +40,13 @@ const HOSPITAL_COLOR: Record<HospitalStatus, string> = {
 };
 
 export default async function MapaPage() {
-  const [breakdown, aid, marches, hospitals, rescuePosts] = await Promise.all([
+  const [breakdown, aid, marches, hospitals, rescuePosts, quakes] = await Promise.all([
     getEstadoBreakdown(),
     getAidPoints(),
     getMarches(),
     getHospitals(),
     getPosts({ type: "rescate" }),
+    getRecentQuakes(),
   ]);
 
   const zones: Zone[] = Object.entries(breakdown)
@@ -231,6 +234,10 @@ export default async function MapaPage() {
         center={[10.52, -67.7]}
         zoom={8}
       />
+
+      <div className="mt-6">
+        <RecentQuakes quakes={quakes} />
+      </div>
     </div>
   );
 }

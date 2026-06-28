@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShareWhatsApp } from "./ShareWhatsApp";
 
 export function SiteFooter() {
   return (
@@ -33,6 +34,19 @@ export function SiteFooter() {
               las 24 horas.
             </span>
           </a>
+          <Link
+            href="/emergencias"
+            className="mt-2 inline-block text-sm font-medium text-brand-700 hover:underline"
+          >
+            Más teléfonos y guía de seguridad →
+          </Link>
+
+          <p className="mt-4 text-sm font-medium text-zinc-700">
+            Ayúdanos a difundir: entre más personas vean esta página, más personas pueden estar a salvo.
+          </p>
+          <div className="mt-2">
+            <ShareWhatsApp variant="subtle" />
+          </div>
         </div>
       </div>
 

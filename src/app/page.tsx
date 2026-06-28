@@ -1,6 +1,16 @@
-import { getPersonGroups, getPersons, getStats, type GroupBy, type PersonSort } from "@/lib/data";
+import {
+  getDashboardStats,
+  getPersonGroups,
+  getPersons,
+  getRecentlyLocated,
+  type GroupBy,
+  type PersonSort,
+} from "@/lib/data";
+import { getRecentQuakes } from "@/lib/usgs";
 import type { PersonStatus } from "@/lib/types";
-import { StatsBar } from "@/components/StatsBar";
+import { DashboardStats } from "@/components/DashboardStats";
+import { RecentlyLocated } from "@/components/RecentlyLocated";
+import { RecentQuakes } from "@/components/RecentQuakes";
 import { SearchAndFilters } from "@/components/SearchAndFilters";
 import { PersonGrid } from "@/components/PersonGrid";
 import { PersonGroups } from "@/components/PersonGroups";
@@ -56,10 +66,12 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
     sort: (str(sp.sort) as PersonSort) ?? "recent",
   };
 
-  const [stats, result, groups] = await Promise.all([
-    getStats(),
+  const [stats, result, groups, recentlyLocated, quakes] = await Promise.all([
+    getDashboardStats(),
     groupBy ? Promise.resolve(null) : getPersons({ ...baseQuery, page: num(sp.page) ?? 1, pageSize: 24 }),
     groupBy ? getPersonGroups(baseQuery, groupBy) : Promise.resolve(null),
+    hasActiveQuery ? Promise.resolve([]) : getRecentlyLocated(12),
+    hasActiveQuery ? Promise.resolve([]) : getRecentQuakes(),
   ]);
 
   const total = groupBy
@@ -85,7 +97,15 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         </p>
       </div>
 
-      <StatsBar stats={stats} />
+      <DashboardStats stats={stats} />
+
+      {!hasActiveQuery && (
+        <p className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-sky-800">
+          🔎 <strong>Asistente:</strong> escribe el nombre de quien buscas en el buscador y te decimos
+          si aparece <strong>desaparecido</strong>, <strong>en un hospital</strong> o{" "}
+          <strong>a salvo</strong>.
+        </p>
+      )}
 
       <div className="mt-8 flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -99,7 +119,13 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
         {!hasActiveQuery && (
           <div className="space-y-8 border-t border-zinc-100 pt-6">
-            <EstadoChips />
+            <RecentlyLocated persons={recentlyLocated} />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <RecentQuakes quakes={quakes} />
+              <div className="space-y-8">
+                <EstadoChips />
+              </div>
+            </div>
             <FeaturedSections />
           </div>
         )}

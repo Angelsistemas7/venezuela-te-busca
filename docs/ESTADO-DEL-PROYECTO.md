@@ -147,6 +147,24 @@ probada con prueba de humo (curl).
 
 ---
 
+### Inicio (dashboard) y recursos de emergencia
+- **Panel de cifras** en el inicio: Desaparecidos, En hospitales, A salvo, Niños,
+  Fallecidos, Denuncias, Necesidades, Ofrecimientos (de la base real) + cifras del
+  sismo (heridos/fallecidos, fuentes públicas). `getDashboardStats`.
+- **Localizados recientemente**: personas que estaban desaparecidas y ya fueron
+  ubicadas (`getRecentlyLocated`). Da esperanza e incentiva el uso.
+- **Asistente**: nota que orienta a buscar por nombre en el buscador (el
+  reconocimiento facial por foto no es viable gratis, se omitió a propósito).
+- **Réplicas y sismos recientes**: widget con datos REALES del **USGS** (API
+  gratuita, `lib/usgs.ts`), en inicio y en `/mapa`. Si la API falla, aviso suave.
+- **Emergencia y seguridad** (`/emergencias`): línea 911, directorio de ambulancias
+  y bomberos por municipio (referencia, a confirmar), **guía rápida** de 9 pasos y
+  **Compartir por WhatsApp**.
+- **Compartir por WhatsApp** (`ShareWhatsApp`) en el pie y en `/emergencias`, con el
+  mensaje "entre más personas vean la página, más personas pueden estar a salvo".
+- **Más hospitales**: añadidos varios de Caracas (José Gregorio Hernández, Militar,
+  Periférico de Catia/Coche) con teléfono, y de Zulia/Táchira.
+
 ## 🚧 Pendiente
 
 **La cola aprobada (#1–#4) está completa.** Lo único que falta para que esté en

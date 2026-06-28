@@ -294,6 +294,77 @@ export async function getStats(): Promise<Stats> {
   };
 }
 
+// ── Panel de cifras (dashboard de inicio) ───────────────────────────────────
+export interface DashboardStats {
+  registered: number;
+  desaparecidos: number; // por_localizar
+  enHospitales: number; // hospitalizado
+  aSalvo: number; // localizado
+  fallecidos: number;
+  ninos: number; // age < 18
+  denuncias: number;
+  necesidades: number; // posts tipo "necesito"
+  voluntarios: number; // posts tipo "ofrezco" (ofrecimientos de ayuda)
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const sb = getSupabase();
+  if (!sb) {
+    const p = mem.persons;
+    return {
+      registered: p.length,
+      desaparecidos: p.filter((x) => x.status === "por_localizar").length,
+      enHospitales: p.filter((x) => x.status === "hospitalizado").length,
+      aSalvo: p.filter((x) => x.status === "localizado").length,
+      fallecidos: p.filter((x) => x.status === "fallecido").length,
+      ninos: p.filter((x) => x.age != null && x.age < 18).length,
+      denuncias: mem.complaints.length,
+      necesidades: mem.posts.filter((x) => x.type === "necesito").length,
+      voluntarios: mem.posts.filter((x) => x.type === "ofrezco").length,
+    };
+  }
+  const { data: persons } = await sb.from("persons").select("status,age");
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const rows = (persons ?? []) as any[];
+  const tally = (s: string) => rows.filter((r) => r.status === s).length;
+  const [{ count: denuncias }, { count: necesidades }, { count: voluntarios }] = await Promise.all([
+    sb.from("complaints").select("*", { count: "exact", head: true }),
+    sb.from("posts").select("*", { count: "exact", head: true }).eq("type", "necesito"),
+    sb.from("posts").select("*", { count: "exact", head: true }).eq("type", "ofrezco"),
+  ]);
+  return {
+    registered: rows.length,
+    desaparecidos: tally("por_localizar"),
+    enHospitales: tally("hospitalizado"),
+    aSalvo: tally("localizado"),
+    fallecidos: tally("fallecido"),
+    ninos: rows.filter((r) => r.age != null && r.age < 18).length,
+    denuncias: denuncias ?? 0,
+    necesidades: necesidades ?? 0,
+    voluntarios: voluntarios ?? 0,
+  };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+/** Personas que estaban desaparecidas y ya fueron ubicadas (con vida u hospital). */
+export async function getRecentlyLocated(limit = 12): Promise<Person[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    return mem.persons
+      .filter((p) => p.status === "localizado" || p.status === "hospitalizado")
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, limit);
+  }
+  const { data, error } = await sb
+    .from("persons")
+    .select("*")
+    .in("status", ["localizado", "hospitalizado"])
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map(rowToPerson);
+}
+
 export interface CreatePersonResult {
   person: Person;
   ownerToken: string;
