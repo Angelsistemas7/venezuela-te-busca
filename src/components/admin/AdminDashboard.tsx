@@ -16,12 +16,15 @@ import {
   Pin,
   PinOff,
   ShieldCheck,
+  Star,
+  Trash2,
   UserCheck,
   UserPlus,
   X,
 } from "lucide-react";
 import type {
   AidPoint,
+  Hero,
   Hospital,
   ManagedEntity,
   Person,
@@ -30,7 +33,14 @@ import type {
   ResourceManager,
   StatusReport,
 } from "@/lib/types";
-import { MANAGED_ENTITY_LABEL, PERSON_STATUS_LABEL, POST_TYPE_EMOJI, POST_TYPE_LABEL } from "@/lib/types";
+import {
+  HERO_CATEGORY_EMOJI,
+  HERO_CATEGORY_LABEL,
+  MANAGED_ENTITY_LABEL,
+  PERSON_STATUS_LABEL,
+  POST_TYPE_EMOJI,
+  POST_TYPE_LABEL,
+} from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import {
   approveReportAction,
@@ -39,6 +49,8 @@ import {
   logoutAdminAction,
   removeManagerAction,
   toggleAidPointVerifiedAction,
+  toggleHeroVerifiedAction,
+  deleteHeroAction,
   toggleHospitalVerifiedAction,
   togglePersonVerifiedAction,
   togglePostPinnedAction,
@@ -53,6 +65,7 @@ export function AdminDashboard({
   hospitals,
   managers,
   posts,
+  heroes,
   demoOpen,
 }: {
   reports: ReportWithName[];
@@ -61,6 +74,7 @@ export function AdminDashboard({
   hospitals: Hospital[];
   managers: ResourceManager[];
   posts: Post[];
+  heroes: Hero[];
   demoOpen: boolean;
 }) {
   const router = useRouter();
@@ -355,6 +369,79 @@ export function AdminDashboard({
                   {p.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                   {p.pinned ? "Desfijar" : "Fijar"}
                 </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Héroes: dar visto bueno o eliminar propuestas falsas */}
+      <section className="mt-10">
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-zinc-900">
+          <Star className="h-4.5 w-4.5 text-amber-500" />
+          Héroes
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-600">
+            {heroes.length}
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Da el <strong>visto bueno</strong> a los que sean ciertos (pasan a «Verificado») y{" "}
+          <strong>elimina</strong> los falsos o inapropiados. Los propuestos por la comunidad nacen
+          «sin verificar».
+        </p>
+        {heroes.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-zinc-300 bg-white py-8 text-center text-sm text-zinc-500">
+            Aún no hay héroes propuestos.
+          </p>
+        ) : (
+          <ul className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+            {heroes.map((h) => (
+              <li key={h.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      {HERO_CATEGORY_EMOJI[h.category]} {HERO_CATEGORY_LABEL[h.category]}
+                    </span>
+                    {h.verified ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        <BadgeCheck className="h-3 w-3" /> Verificado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-500">
+                        <Clock className="h-3 w-3" /> Sin verificar
+                      </span>
+                    )}
+                    <span className="text-xs text-zinc-400">{timeAgo(h.createdAt)}</span>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-zinc-800">{h.title}</p>
+                  <p className="line-clamp-2 text-sm text-zinc-600">{h.body}</p>
+                  <p className="mt-0.5 text-xs text-zinc-400">
+                    Propuesto por {h.authorName}
+                    {h.sourceName ? ` · Fuente: ${h.sourceName}` : " · sin fuente"}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col gap-2">
+                  <button
+                    onClick={() => run(h.id, () => toggleHeroVerifiedAction(h.id, !h.verified))}
+                    disabled={pending && busy === h.id}
+                    className={
+                      h.verified
+                        ? "flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                        : "flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                    }
+                  >
+                    {h.verified ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                    {h.verified ? "Quitar" : "Verificar"}
+                  </button>
+                  <button
+                    onClick={() => run(h.id, () => deleteHeroAction(h.id))}
+                    disabled={pending && busy === h.id}
+                    className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Eliminar
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

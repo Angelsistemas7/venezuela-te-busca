@@ -17,6 +17,26 @@ export function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString("es-VE");
 }
 
+/**
+ * Construye un enlace de WhatsApp (`wa.me`) a partir de un teléfono libre.
+ * Normaliza a solo dígitos con código de país: un número local venezolano que
+ * empieza por "0" (p. ej. "0412-1234567") se reescribe a "58…". Devuelve null
+ * si no hay suficientes dígitos para un número válido.
+ */
+export function whatsappLink(phone: string | null | undefined, text?: string): string | null {
+  if (!phone) return null;
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = `58${digits.slice(1)}`;
+  if (digits.length < 9) return null;
+  const base = `https://wa.me/${digits}`;
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base;
+}
+
+/** Enlace a indicaciones de cómo llegar en Google Maps hacia una coordenada. */
+export function directionsLink(lat: number, lng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("es-VE", {
     day: "2-digit",

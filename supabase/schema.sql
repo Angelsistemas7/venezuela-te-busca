@@ -269,10 +269,30 @@ create table if not exists volunteers (
 create index if not exists volunteers_type_idx    on volunteers (type);
 create index if not exists volunteers_created_idx  on volunteers (created_at desc);
 
+-- ── Héroes (sección curada de Noticias) ─────────────────────────────────────
+-- Cualquiera puede proponer un héroe; nace verified=false ("sin verificar") y
+-- el moderador le da el visto bueno o lo elimina. Tiene "me gusta" y comentarios.
+create table if not exists heroes (
+  id uuid primary key default uuid_generate_v4(),
+  category      text not null check (category in ('bombero','rescatista','perro','medico','voluntario','donante','fuerza','otro')),
+  title         text not null,
+  body          text not null,
+  estado        text,
+  location_text text default '',
+  photo_url     text,
+  source_name   text,
+  source_url    text,
+  author_name   text not null default 'Comunidad',
+  verified      boolean not null default false,
+  likes         int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists heroes_verified_idx on heroes (verified, created_at desc);
+
 -- ── Comentarios (foro de comunidad) ─────────────────────────────────────────
 create table if not exists comments (
   id uuid primary key default uuid_generate_v4(),
-  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet')),
+  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero')),
   entity_id   uuid not null,
   -- Respuesta en hilo (un nivel): apunta al comentario raíz; null si es de primer nivel.
   parent_id   uuid references comments(id) on delete cascade,
@@ -307,6 +327,7 @@ alter table posts            enable row level security;
 alter table complaints       enable row level security;
 alter table pets             enable row level security;
 alter table volunteers       enable row level security;
+alter table heroes           enable row level security;
 alter table hospitals        enable row level security;
 alter table hospital_patients enable row level security;
 alter table person_owners    enable row level security;
@@ -327,6 +348,7 @@ create policy "public_read_posts"     on posts            for select using (true
 create policy "public_read_complaints" on complaints      for select using (true);
 create policy "public_read_pets"      on pets             for select using (true);
 create policy "public_read_volunteers" on volunteers      for select using (true);
+create policy "public_read_heroes"    on heroes           for select using (true);
 create policy "public_read_hospitals" on hospitals        for select using (true);
 create policy "public_read_patients"  on hospital_patients for select using (true);
 
@@ -397,8 +419,8 @@ alter table hospitals  add column if not exists verified boolean not null defaul
 -- Migración para bases ya creadas: publicaciones fijadas (destacadas) en el muro.
 alter table posts      add column if not exists pinned boolean not null default false;
 
--- Migración para bases ya creadas: permitir comentarios en denuncias y mascotas.
--- (Recrea el check de comments.entity_type para incluir 'complaint' y 'pet'.)
+-- Migración para bases ya creadas: permitir comentarios en denuncias, mascotas
+-- y héroes. (Recrea el check de comments.entity_type para incluirlos.)
 alter table comments drop constraint if exists comments_entity_type_check;
 alter table comments add constraint comments_entity_type_check
-  check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet'));
+  check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero'));

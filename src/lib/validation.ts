@@ -247,3 +247,24 @@ export const volunteerSchema = z.object({
 });
 
 export type VolunteerInput = z.infer<typeof volunteerSchema>;
+
+export const heroSchema = z.object({
+  category: z.enum([
+    "bombero",
+    "rescatista",
+    "perro",
+    "medico",
+    "voluntario",
+    "donante",
+    "fuerza",
+    "otro",
+  ]),
+  title: z.string().trim().min(2, "Indica el nombre o el grupo").max(120),
+  body: z.string().trim().min(10, "Cuenta brevemente qué hizo").max(800),
+  estado: estadoEnum.optional(),
+  locationText: z.string().trim().max(160).optional().or(z.literal("")),
+  sourceName: z.string().trim().max(120).optional().or(z.literal("")),
+  sourceUrl: httpUrl("Enlace de la fuente no válido"),
+});
+
+export type HeroInput = z.infer<typeof heroSchema>;

@@ -316,7 +316,7 @@ export interface HospitalPatient {
   createdAt: string;
 }
 
-export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint" | "pet";
+export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint" | "pet" | "hero";
 
 // ── Denuncias de irregularidades ────────────────────────────────────────────
 /** Categoría de una denuncia ciudadana de irregularidad. */
@@ -455,6 +455,67 @@ export interface Volunteer {
   locationText: string;
   contactPhone: string | null;
   contactEmail: string | null;
+  createdAt: string;
+}
+
+// ── Héroes (sección curada de "Noticias") ───────────────────────────────────
+/** Categoría de un héroe de la emergencia. */
+export type HeroCategory =
+  | "bombero"
+  | "rescatista"
+  | "perro" // perros de búsqueda y rescate
+  | "medico"
+  | "voluntario"
+  | "donante"
+  | "fuerza" // policía, GNB, Protección Civil
+  | "otro";
+
+export const HERO_CATEGORY_LABEL: Record<HeroCategory, string> = {
+  bombero: "Bomberos",
+  rescatista: "Rescatistas",
+  perro: "Perros rescatistas",
+  medico: "Personal médico",
+  voluntario: "Voluntarios",
+  donante: "Donantes",
+  fuerza: "Cuerpos de seguridad",
+  otro: "Otro",
+};
+
+export const HERO_CATEGORY_EMOJI: Record<HeroCategory, string> = {
+  bombero: "🚒",
+  rescatista: "⛑️",
+  perro: "🐕",
+  medico: "🩺",
+  voluntario: "🤝",
+  donante: "🎁",
+  fuerza: "🛡️",
+  otro: "⭐",
+};
+
+/**
+ * Reconocimiento a quien ayudó en la emergencia. Contenido curado de la sección
+ * de Noticias: lo puede proponer cualquiera (Turnstile), pero aparece como
+ * "sin verificar" hasta que un moderador le da el visto bueno; el admin también
+ * puede eliminarlo. Cita su fuente cuando la hay. Tiene "me gusta" y comentarios.
+ */
+export interface Hero {
+  id: string;
+  category: HeroCategory;
+  /** Nombre o grupo (p. ej. "Bomberos de La Guaira"). */
+  title: string;
+  /** Qué hizo. */
+  body: string;
+  estado: Estado | null;
+  locationText: string;
+  photoUrl: string | null;
+  /** Fuente que respalda el reconocimiento (medio, organización). */
+  sourceName: string | null;
+  sourceUrl: string | null;
+  /** Quién lo propone (cuenta o "Equipo" para los curados). */
+  authorName: string;
+  /** Visto bueno del moderador. Los propuestos por la comunidad nacen en false. */
+  verified: boolean;
+  likes: number;
   createdAt: string;
 }
 

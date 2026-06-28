@@ -160,4 +160,19 @@ values
   ('b2000000-0000-4000-8000-000000000010', 'otra', 'Apoyo remoto', 'Todo el día', 'Transcripción y verificación de datos desde el exterior para apoyar la plataforma.', null, 'Fuera del país', null, null, now() - interval '210 minutes')
 on conflict (id) do nothing;
 
+-- ── Héroes (sección curada de Noticias) ─────────────────────────────────────
+-- Reconocimientos POR CATEGORÍA (no señalan a personas concretas) para no
+-- atribuir nada falso; por eso van sin fuente y verificados. La comunidad puede
+-- proponer héroes con nombre y fuente: esos nacen verified=false hasta el visto
+-- bueno del moderador.
+insert into heroes
+  (id, category, title, body, estado, location_text, photo_url, source_name, source_url, author_name, verified, likes, created_at)
+values
+  ('b3000000-0000-4000-8000-000000000001', 'bombero', 'Bomberos de La Guaira y Distrito Capital', 'Trabajan sin descanso entre los escombros para sacar con vida a vecinos atrapados. Gracias por arriesgarlo todo por los demás.', 'La Guaira', 'La Guaira', null, null, null, 'Equipo', true, 64, now() - interval '10 minutes'),
+  ('b3000000-0000-4000-8000-000000000002', 'perro', 'Perros de búsqueda y rescate', 'Caninos entrenados y sus guías rastrean entre las ruinas para ubicar personas bajo las estructuras colapsadas. Héroes de cuatro patas.', 'La Guaira', 'Caraballeda', null, null, null, 'Equipo', true, 91, now() - interval '41 minutes'),
+  ('b3000000-0000-4000-8000-000000000003', 'voluntario', 'Brigadas vecinales', 'Vecinos que, sin esperar a nadie, organizaron cadenas humanas para remover escombros, repartir agua y cuidar a los niños mientras llegaba la ayuda.', 'La Guaira', 'Catia La Mar', null, null, null, 'Equipo', true, 53, now() - interval '72 minutes'),
+  ('b3000000-0000-4000-8000-000000000004', 'medico', 'Personal de salud de la zona', 'Médicos, enfermeras y camilleros que atienden a los heridos en condiciones extremas, muchos sin haber dormido desde el primer temblor.', 'Distrito Capital', 'Caracas', null, null, null, 'Equipo', true, 47, now() - interval '103 minutes'),
+  ('b3000000-0000-4000-8000-000000000005', 'donante', 'Quienes donan sangre y enseres', 'Largas filas frente a los bancos de sangre y casas que abrieron sus puertas. La generosidad de la gente común también salva vidas.', null, 'Venezuela y la diáspora', null, null, null, 'Equipo', true, 38, now() - interval '134 minutes')
+on conflict (id) do nothing;
+
 commit;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, HandHeart, HeartHandshake, LifeBuoy, Map, MapPinned, Megaphone, PawPrint, Search, Users, Users2 } from "lucide-react";
+import { Building2, HandHeart, HeartHandshake, LifeBuoy, Map, MapPinned, Megaphone, Newspaper, PawPrint, Search, Users, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "./NotificationBell";
 import { AuthMenu } from "./AuthMenu";
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/", label: "Se busca", icon: Search },
   { href: "/sin-identificar", label: "¿La reconoces?", icon: Users },
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
+  { href: "/noticias", label: "Noticias", icon: Newspaper },
   { href: "/hospitales", label: "Hospitales", icon: Building2 },
   { href: "/ayuda", label: "Puntos de ayuda", icon: HeartHandshake },
   { href: "/voluntarios", label: "Voluntarios", icon: HandHeart },

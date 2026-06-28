@@ -134,6 +134,14 @@ probada con prueba de humo (curl).
   del sismo" (de fuentes públicas, en `lib/geo.ts`).
 - **Popups con enlace** a la ficha completa: puntos→`/ayuda/[id]`,
   hospitales→`/hospitales/[id]`, caravanas→`/caravanas/[id]`, rescates→`/comunidad`.
+- **Capas activables/desactivables** (`LayersControl` de react-leaflet, arriba a la
+  derecha): 🆘 **Necesito ayuda** (posts tipo `necesito` anclados a su ubicación) y
+  🤲 **Puedo ayudar** (voluntarios + posts `ofrezco`), además de rescates, puntos,
+  hospitales, caravanas y zonas. Los popups de las dos capas nuevas traen
+  **"Escribir por WhatsApp"** (link `wa.me` con mensaje prellenado desde el teléfono
+  del registro; helper `whatsappLink` en `lib/utils.ts`) y **"Cómo llegar"**
+  (indicaciones en Google Maps; helper `directionsLink`). Sin BD nueva: reusa
+  `getPosts`/`getVolunteers` + `geocode` de `lib/geo.ts`.
 
 ### Verificación por el admin + gestores delegados
 - **Visto bueno con evidencia**: cualquiera publica un punto de ayuda u hospital y
@@ -170,6 +178,30 @@ probada con prueba de humo (curl).
   reconocimiento facial por foto no es viable gratis, se omitió a propósito).
 - **Réplicas y sismos recientes**: widget con datos REALES del **USGS** (API
   gratuita, `lib/usgs.ts`), en inicio y en `/mapa`. Si la API falla, aviso suave.
+
+### Noticias y ayuda humanitaria (`/noticias`) — feed en vivo
+- Sección **de solo lectura** que cita su fuente, con datos en vivo de dos APIs
+  públicas y **gratuitas sin clave** (`lib/news.ts`, patrón USGS con `try/catch` +
+  aviso suave si fallan):
+  - **Ayuda humanitaria internacional** — reportes oficiales de **ReliefWeb (ONU/
+    OCHA)** filtrados por país Venezuela (ayuda que llegó / va en camino / anunciada).
+  - **Últimas noticias** — titulares de prensa mundial vía **GDELT 2.0 Doc API**.
+- **Filtro Venezuela** (`isVenezuela` en `lib/news.ts`): se descarta lo que no
+  mencione Venezuela/zona del sismo. Cada artículo enlaza a su fuente original y
+  muestra medio + hora. Cacheado 30 min (`revalidate`). Componente `NewsList`.
+- **Héroes** (subsección curada, en BD `heroes`): reconocimiento a bomberos,
+  rescatistas, perros de búsqueda, personal de salud y donantes. Con **like +
+  comentarios** (`entity_type='hero'`) y **fuente** cuando la hay. Sembrados por
+  CATEGORÍA (sin señalar a personas concretas, sin atribución falsa).
+  - **Publicación abierta con control**: cualquiera puede **proponer** un héroe
+    (Turnstile, `ProposeHeroButton` → `registerHeroAction`); aparece como
+    **"sin verificar"** hasta que el moderador le da el **visto bueno** en `/admin`
+    (`toggleHeroVerifiedAction`) o lo **elimina** (`deleteHeroAction`). Mismo modelo
+    que puntos/hospitales. `getHeroes()` solo trae verificados al público;
+    `includeUnverified` para el panel. Componentes `HeroCard`, sección en
+    `AdminDashboard`.
+- Enlazada en el menú superior (`SiteHeader`). Vive en `seed.ts` (demo) y
+  `supabase/seed-contenido.sql` (prod, idempotente).
 - **Emergencia y seguridad** (`/emergencias`): línea 911, directorio de ambulancias
   y bomberos por municipio (referencia, a confirmar), **guía rápida** de 9 pasos y
   **Compartir por WhatsApp**.

@@ -1,6 +1,14 @@
 "use client";
 
-import { MapContainer, Marker, Popup, TileLayer, Tooltip } from "react-leaflet";
+import {
+  LayerGroup,
+  LayersControl,
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  Tooltip,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -43,6 +51,31 @@ export type RescueMarker = {
   when: string;
   href: string;
 };
+/** Alguien que pide ayuda (post tipo "necesito"), anclado a su ubicación. */
+export type NeedMarker = {
+  id: string;
+  body: string;
+  locationText: string;
+  lat: number;
+  lng: number;
+  when: string;
+  whatsappHref: string | null;
+  directionsHref: string;
+  href: string;
+};
+/** Alguien que ofrece ayuda (voluntario o post "ofrezco"), anclado a su ubicación. */
+export type HelpMarker = {
+  id: string;
+  title: string;
+  subtitle: string;
+  emoji: string;
+  locationText: string;
+  lat: number;
+  lng: number;
+  whatsappHref: string | null;
+  directionsHref: string;
+  href: string;
+};
 
 function zoneIcon(count: number) {
   const size = Math.max(28, Math.min(72, 24 + Math.sqrt(count) * 6));
@@ -55,7 +88,7 @@ function zoneIcon(count: number) {
   });
 }
 
-function pinIcon(kind: "aid" | "march", emoji: string) {
+function pinIcon(kind: "aid" | "march" | "need" | "help", emoji: string) {
   return L.divIcon({
     className: "",
     html: `<div class="pin-marker pin-${kind}"><span>${emoji}</span></div>`,
@@ -96,6 +129,7 @@ function epicenterIcon() {
 }
 
 const popupLink = { color: "#0369a1", fontWeight: 600, display: "inline-block", marginTop: 4 } as const;
+const waLink = { color: "#059669", fontWeight: 600, display: "inline-block", marginTop: 4 } as const;
 
 export default function MapView({
   zones,
@@ -103,6 +137,8 @@ export default function MapView({
   marches,
   hospitals,
   rescues,
+  needs,
+  helps,
   epicenter,
   center,
   zoom = 9,
@@ -112,6 +148,8 @@ export default function MapView({
   marches: MarchMarker[];
   hospitals: HospitalMarker[];
   rescues: RescueMarker[];
+  needs: NeedMarker[];
+  helps: HelpMarker[];
   epicenter?: [number, number] | null;
   center: [number, number];
   zoom?: number;
@@ -128,70 +166,6 @@ export default function MapView({
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
       />
 
-      {zones.map((z) => (
-        <Marker key={z.key} position={[z.lat, z.lng]} icon={zoneIcon(z.count)}>
-          <Tooltip direction="top" offset={[0, -8]} opacity={1}>
-            <div style={{ textAlign: "center", lineHeight: 1.5 }}>
-              <strong>{z.name}</strong>
-              <br />
-              <span style={{ color: "#e11d48" }}>{z.toLocate.toLocaleString("es-VE")} por localizar</span>
-              <br />
-              <span style={{ color: "#059669" }}>{z.located.toLocaleString("es-VE")} localizados</span>
-              {z.deceased > 0 && (
-                <>
-                  <br />
-                  <span style={{ color: "#71717a" }}>{z.deceased.toLocaleString("es-VE")} sin vida</span>
-                </>
-              )}
-            </div>
-          </Tooltip>
-          <Popup>
-            <strong>{z.name}</strong>
-            <br />
-            {z.count.toLocaleString("es-VE")} personas registradas · {z.toLocate} por localizar ·{" "}
-            {z.located} localizados
-            {z.deceased > 0 ? ` · ${z.deceased} sin vida` : ""}.
-          </Popup>
-        </Marker>
-      ))}
-
-      {aidPoints.map((a) => (
-        <Marker key={a.id} position={[a.lat, a.lng]} icon={pinIcon("aid", a.emoji)}>
-          <Popup>
-            <strong>{a.name}</strong>
-            <br />
-            {a.typeLabel}
-            {a.verified ? " · ✔ verificado" : " · por verificar"}
-            <br />
-            <a href={a.href} style={popupLink}>Ver punto →</a>
-          </Popup>
-        </Marker>
-      ))}
-
-      {marches.map((m) => (
-        <Marker key={m.id} position={[m.lat, m.lng]} icon={pinIcon("march", "🚐")}>
-          <Popup>
-            <strong>{m.title}</strong>
-            <br />
-            Salida: {m.when}
-            <br />
-            <a href={m.href} style={popupLink}>Ver caravana →</a>
-          </Popup>
-        </Marker>
-      ))}
-
-      {hospitals.map((h) => (
-        <Marker key={h.id} position={[h.lat, h.lng]} icon={hospitalIcon(h.color)}>
-          <Popup>
-            <strong>{h.name}</strong>
-            <br />
-            Capacidad: {h.statusLabel}
-            <br />
-            <a href={h.href} style={popupLink}>Ver hospital →</a>
-          </Popup>
-        </Marker>
-      ))}
-
       {epicenter && (
         <Marker position={epicenter} icon={epicenterIcon()}>
           <Tooltip direction="top" offset={[0, -10]} opacity={1}>
@@ -205,25 +179,181 @@ export default function MapView({
         </Marker>
       )}
 
-      {rescues.map((r) => (
-        <Marker key={r.id} position={[r.lat, r.lng]} icon={rescueIcon()} zIndexOffset={1000}>
-          <Popup>
-            <strong>🚨 Rescate urgente</strong>
-            {r.locationText && (
-              <>
-                <br />
-                {r.locationText}
-              </>
-            )}
-            <br />
-            <span style={{ display: "inline-block", marginTop: 4 }}>{r.body}</span>
-            <br />
-            <span style={{ color: "#71717a", fontSize: 11 }}>{r.when}</span>
-            <br />
-            <a href={r.href} style={popupLink}>Ver en comunidad →</a>
-          </Popup>
-        </Marker>
-      ))}
+      <LayersControl position="topright" collapsed={false}>
+        <LayersControl.Overlay checked name="🆘 Necesito ayuda">
+          <LayerGroup>
+            {needs.map((n) => (
+              <Marker key={n.id} position={[n.lat, n.lng]} icon={pinIcon("need", "🆘")} zIndexOffset={600}>
+                <Popup>
+                  <strong>🆘 Necesito ayuda</strong>
+                  {n.locationText && (
+                    <>
+                      <br />
+                      📍 {n.locationText}
+                    </>
+                  )}
+                  <br />
+                  <span style={{ display: "inline-block", marginTop: 4 }}>{n.body}</span>
+                  <br />
+                  <span style={{ color: "#71717a", fontSize: 11 }}>{n.when}</span>
+                  {n.whatsappHref && (
+                    <>
+                      <br />
+                      <a href={n.whatsappHref} target="_blank" rel="noreferrer" style={waLink}>
+                        Escribir por WhatsApp →
+                      </a>
+                    </>
+                  )}
+                  <br />
+                  <a href={n.directionsHref} target="_blank" rel="noreferrer" style={popupLink}>
+                    Cómo llegar →
+                  </a>
+                  <br />
+                  <a href={n.href} style={popupLink}>Ver en comunidad →</a>
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="🤲 Puedo ayudar">
+          <LayerGroup>
+            {helps.map((h) => (
+              <Marker key={h.id} position={[h.lat, h.lng]} icon={pinIcon("help", h.emoji)} zIndexOffset={500}>
+                <Popup>
+                  <strong>{h.emoji} {h.title}</strong>
+                  <br />
+                  {h.subtitle}
+                  {h.locationText && (
+                    <>
+                      <br />
+                      📍 {h.locationText}
+                    </>
+                  )}
+                  {h.whatsappHref && (
+                    <>
+                      <br />
+                      <a href={h.whatsappHref} target="_blank" rel="noreferrer" style={waLink}>
+                        Escribir por WhatsApp →
+                      </a>
+                    </>
+                  )}
+                  <br />
+                  <a href={h.directionsHref} target="_blank" rel="noreferrer" style={popupLink}>
+                    Cómo llegar →
+                  </a>
+                  <br />
+                  <a href={h.href} style={popupLink}>Ver más →</a>
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="🚨 Rescates urgentes">
+          <LayerGroup>
+            {rescues.map((r) => (
+              <Marker key={r.id} position={[r.lat, r.lng]} icon={rescueIcon()} zIndexOffset={1000}>
+                <Popup>
+                  <strong>🚨 Rescate urgente</strong>
+                  {r.locationText && (
+                    <>
+                      <br />
+                      {r.locationText}
+                    </>
+                  )}
+                  <br />
+                  <span style={{ display: "inline-block", marginTop: 4 }}>{r.body}</span>
+                  <br />
+                  <span style={{ color: "#71717a", fontSize: 11 }}>{r.when}</span>
+                  <br />
+                  <a href={r.href} style={popupLink}>Ver en comunidad →</a>
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="📦 Puntos de ayuda">
+          <LayerGroup>
+            {aidPoints.map((a) => (
+              <Marker key={a.id} position={[a.lat, a.lng]} icon={pinIcon("aid", a.emoji)}>
+                <Popup>
+                  <strong>{a.name}</strong>
+                  <br />
+                  {a.typeLabel}
+                  {a.verified ? " · ✔ verificado" : " · por verificar"}
+                  <br />
+                  <a href={a.href} style={popupLink}>Ver punto →</a>
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="🏥 Hospitales">
+          <LayerGroup>
+            {hospitals.map((h) => (
+              <Marker key={h.id} position={[h.lat, h.lng]} icon={hospitalIcon(h.color)}>
+                <Popup>
+                  <strong>{h.name}</strong>
+                  <br />
+                  Capacidad: {h.statusLabel}
+                  <br />
+                  <a href={h.href} style={popupLink}>Ver hospital →</a>
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="🚐 Caravanas">
+          <LayerGroup>
+            {marches.map((m) => (
+              <Marker key={m.id} position={[m.lat, m.lng]} icon={pinIcon("march", "🚐")}>
+                <Popup>
+                  <strong>{m.title}</strong>
+                  <br />
+                  Salida: {m.when}
+                  <br />
+                  <a href={m.href} style={popupLink}>Ver caravana →</a>
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="🔴 Zonas afectadas">
+          <LayerGroup>
+            {zones.map((z) => (
+              <Marker key={z.key} position={[z.lat, z.lng]} icon={zoneIcon(z.count)}>
+                <Tooltip direction="top" offset={[0, -8]} opacity={1}>
+                  <div style={{ textAlign: "center", lineHeight: 1.5 }}>
+                    <strong>{z.name}</strong>
+                    <br />
+                    <span style={{ color: "#e11d48" }}>{z.toLocate.toLocaleString("es-VE")} por localizar</span>
+                    <br />
+                    <span style={{ color: "#059669" }}>{z.located.toLocaleString("es-VE")} localizados</span>
+                    {z.deceased > 0 && (
+                      <>
+                        <br />
+                        <span style={{ color: "#71717a" }}>{z.deceased.toLocaleString("es-VE")} sin vida</span>
+                      </>
+                    )}
+                  </div>
+                </Tooltip>
+                <Popup>
+                  <strong>{z.name}</strong>
+                  <br />
+                  {z.count.toLocaleString("es-VE")} personas registradas · {z.toLocate} por localizar ·{" "}
+                  {z.located} localizados
+                  {z.deceased > 0 ? ` · ${z.deceased} sin vida` : ""}.
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+      </LayersControl>
     </MapContainer>
   );
 }

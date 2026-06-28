@@ -1,21 +1,32 @@
 import Link from "next/link";
 import { Map as MapIcon, Siren } from "lucide-react";
-import { getAidPoints, getEstadoBreakdown, getHospitals, getMarches, getPosts } from "@/lib/data";
+import {
+  getAidPoints,
+  getEstadoBreakdown,
+  getHospitals,
+  getMarches,
+  getPosts,
+  getVolunteers,
+} from "@/lib/data";
 import {
   AID_POINT_TYPE_LABEL,
   HOSPITAL_STATUS_LABEL,
+  VOLUNTEER_TYPE_EMOJI,
+  VOLUNTEER_TYPE_LABEL,
   type AidPointType,
   type HospitalStatus,
 } from "@/lib/types";
 import { EPICENTER, ESTADO_COORDS, QUAKE_INFO, geocode } from "@/lib/geo";
 import { getRecentQuakes } from "@/lib/usgs";
-import { formatDateTime, timeAgo } from "@/lib/utils";
+import { directionsLink, formatDateTime, timeAgo, whatsappLink } from "@/lib/utils";
 import { CrisisMap } from "@/components/map/CrisisMap";
 import { RecentQuakes } from "@/components/RecentQuakes";
 import type {
   AidMarker,
+  HelpMarker,
   HospitalMarker,
   MarchMarker,
+  NeedMarker,
   RescueMarker,
   Zone,
 } from "@/components/map/MapView";
@@ -40,14 +51,18 @@ const HOSPITAL_COLOR: Record<HospitalStatus, string> = {
 };
 
 export default async function MapaPage() {
-  const [breakdown, aid, marches, hospitals, rescuePosts, quakes] = await Promise.all([
-    getEstadoBreakdown(),
-    getAidPoints(),
-    getMarches(),
-    getHospitals(),
-    getPosts({ type: "rescate" }),
-    getRecentQuakes(),
-  ]);
+  const [breakdown, aid, marches, hospitals, rescuePosts, needPosts, offerPosts, volunteers, quakes] =
+    await Promise.all([
+      getEstadoBreakdown(),
+      getAidPoints(),
+      getMarches(),
+      getHospitals(),
+      getPosts({ type: "rescate" }),
+      getPosts({ type: "necesito" }),
+      getPosts({ type: "ofrezco" }),
+      getVolunteers(),
+      getRecentQuakes(),
+    ]);
 
   const zones: Zone[] = Object.entries(breakdown)
     .filter(([estado]) => ESTADO_COORDS[estado])
@@ -130,6 +145,71 @@ export default async function MapaPage() {
     })
     .filter((x): x is RescueMarker => x !== null);
 
+  // Capa "Necesito ayuda": publicaciones tipo `necesito` con ubicación.
+  const needs: NeedMarker[] = needPosts
+    .map((p) => {
+      const coord = geocode(p.locationText, p.estado, p.id);
+      if (!coord) return null;
+      return {
+        id: p.id,
+        body: p.body,
+        locationText: p.locationText,
+        lat: coord[0],
+        lng: coord[1],
+        when: formatDateTime(p.createdAt),
+        whatsappHref: whatsappLink(
+          p.contactPhone,
+          `Hola, vi tu publicación en Venezuela te busca sobre "${p.body.slice(0, 60)}". ¿Cómo puedo ayudar?`,
+        ),
+        directionsHref: directionsLink(coord[0], coord[1]),
+        href: "/comunidad?type=necesito",
+      } satisfies NeedMarker;
+    })
+    .filter((x): x is NeedMarker => x !== null);
+
+  // Capa "Puedo ayudar": voluntarios + publicaciones tipo `ofrezco`, con ubicación.
+  const helps: HelpMarker[] = [
+    ...volunteers.map((v) => {
+      const coord = geocode(v.locationText, v.estado, v.id);
+      if (!coord) return null;
+      const detail = [v.skillsText, v.availabilityText].filter(Boolean).join(" · ");
+      return {
+        id: `vol-${v.id}`,
+        title: v.name,
+        subtitle: `${VOLUNTEER_TYPE_LABEL[v.type]}${detail ? ` · ${detail}` : ""}`,
+        emoji: VOLUNTEER_TYPE_EMOJI[v.type],
+        locationText: v.locationText,
+        lat: coord[0],
+        lng: coord[1],
+        whatsappHref: whatsappLink(
+          v.contactPhone,
+          `Hola ${v.name}, te vi en Venezuela te busca (voluntarios). ¿Sigues disponible para ayudar?`,
+        ),
+        directionsHref: directionsLink(coord[0], coord[1]),
+        href: "/voluntarios",
+      } satisfies HelpMarker;
+    }),
+    ...offerPosts.map((p) => {
+      const coord = geocode(p.locationText, p.estado, p.id);
+      if (!coord) return null;
+      return {
+        id: `post-${p.id}`,
+        title: p.authorName,
+        subtitle: p.body,
+        emoji: "🤲",
+        locationText: p.locationText,
+        lat: coord[0],
+        lng: coord[1],
+        whatsappHref: whatsappLink(
+          p.contactPhone,
+          `Hola, vi tu ofrecimiento de ayuda en Venezuela te busca. ¿Sigue disponible?`,
+        ),
+        directionsHref: directionsLink(coord[0], coord[1]),
+        href: "/comunidad?type=ofrezco",
+      } satisfies HelpMarker;
+    }),
+  ].filter((x): x is HelpMarker => x !== null);
+
   const totalInZones = zones.reduce((s, z) => s + z.count, 0);
 
   return (
@@ -143,23 +223,32 @@ export default async function MapaPage() {
             Mapa de la emergencia
           </h1>
           <p className="mt-1 max-w-2xl text-zinc-500">
-            Zonas afectadas, puntos de ayuda y salidas de caravanas benéficas en un solo lugar. Pasa
-            el cursor (o toca) una zona para ver cuántas personas hay registradas allí.
+            Quién <strong>necesita ayuda</strong> y quién <strong>puede ayudar</strong>, zonas
+            afectadas, puntos de ayuda, hospitales y caravanas en un solo lugar. Activa o desactiva
+            cada capa con el panel de arriba a la derecha del mapa.
           </p>
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-center">
-          <div className="text-xl font-bold text-rose-700">{totalInZones.toLocaleString("es-VE")}</div>
+          <div className="text-xl font-bold text-rose-700">{needs.length}</div>
+          <div className="text-xs text-zinc-600">🆘 Necesito ayuda</div>
+        </div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
+          <div className="text-xl font-bold text-emerald-700">{helps.length}</div>
+          <div className="text-xs text-zinc-600">🤲 Puedo ayudar</div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-center">
+          <div className="text-xl font-bold text-zinc-700">{totalInZones.toLocaleString("es-VE")}</div>
           <div className="text-xs text-zinc-600">En zonas con registro</div>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center">
           <div className="text-xl font-bold text-amber-700">{aidPoints.length}</div>
           <div className="text-xs text-zinc-600">Puntos de ayuda</div>
         </div>
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
-          <div className="text-xl font-bold text-emerald-700">{hospitalMarkers.length}</div>
+        <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-center">
+          <div className="text-xl font-bold text-teal-700">{hospitalMarkers.length}</div>
           <div className="text-xs text-zinc-600">Hospitales</div>
         </div>
         <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-center">
@@ -230,6 +319,8 @@ export default async function MapaPage() {
         marches={marchMarkers}
         hospitals={hospitalMarkers}
         rescues={rescues}
+        needs={needs}
+        helps={helps}
         epicenter={EPICENTER}
         center={[10.52, -67.7]}
         zoom={8}

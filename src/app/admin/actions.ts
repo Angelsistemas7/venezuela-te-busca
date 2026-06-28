@@ -5,9 +5,11 @@ import { isAdmin, signInAdmin, signOutAdmin } from "@/lib/admin";
 import { findUserByUsername } from "@/lib/auth";
 import {
   addResourceManager,
+  deleteHero,
   dismissReport,
   removeResourceManager,
   setAidPointVerified,
+  setHeroVerified,
   setHospitalVerified,
   setPersonVerified,
   setPostPinned,
@@ -79,6 +81,26 @@ export async function toggleHospitalVerifiedAction(
   revalidatePath("/hospitales");
   revalidatePath(`/hospitales/${id}`);
   revalidatePath("/mapa");
+  return { ok: true };
+}
+
+// ── Héroes: visto bueno y eliminación de propuestas falsas ───────────────────
+export async function toggleHeroVerifiedAction(
+  id: string,
+  value: boolean,
+): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await setHeroVerified(id, value);
+  revalidatePath("/admin");
+  revalidatePath("/noticias");
+  return { ok: true };
+}
+
+export async function deleteHeroAction(id: string): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await deleteHero(id);
+  revalidatePath("/admin");
+  revalidatePath("/noticias");
   return { ok: true };
 }
 

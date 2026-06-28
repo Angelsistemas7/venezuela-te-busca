@@ -14,6 +14,8 @@ import {
   createPost,
   createStatusReport,
   createVolunteer,
+  createHero,
+  likeHero,
   supportComplaint,
   getCommentsForEntities,
   getMyPublications,
@@ -64,6 +66,7 @@ import {
   signupSchema,
   statusReportSchema,
   volunteerSchema,
+  heroSchema,
 } from "@/lib/validation";
 
 export type ActionResult =
@@ -577,6 +580,56 @@ export async function registerVolunteerAction(form: FormData): Promise<ActionRes
     return { ok: true, id: volunteer.id, message: "¡Gracias por ofrecerte! Tu disponibilidad ya es visible." };
   } catch {
     return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
+  }
+}
+
+// ── Héroes ───────────────────────────────────────────────────────────────────
+// Cualquiera puede PROPONER un héroe (Turnstile). Aparece como "sin verificar"
+// hasta que un moderador le da el visto bueno; el admin puede eliminar lo falso.
+// Quien tenga sesión queda como autor; si no, "Comunidad".
+export async function registerHeroAction(form: FormData): Promise<ActionResult> {
+  const token = getField(form, "cf-turnstile-response") || null;
+  if (!(await verifyTurnstile(token))) {
+    return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };
+  }
+
+  const parsed = heroSchema.safeParse({
+    category: getField(form, "category"),
+    title: getField(form, "title"),
+    body: getField(form, "body"),
+    estado: getField(form, "estado") || undefined,
+    locationText: getField(form, "locationText"),
+    sourceName: getField(form, "sourceName"),
+    sourceUrl: getField(form, "sourceUrl"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+
+  const photoUrl = getField(form, "photoUrl") || null;
+  const authorName = (await getCurrentUser())?.username ?? "Comunidad";
+
+  try {
+    const hero = await createHero(parsed.data, photoUrl, authorName);
+    revalidatePath("/noticias");
+    return {
+      ok: true,
+      id: hero.id,
+      message:
+        "¡Gracias! Tu propuesta ya aparece como «sin verificar». Un moderador la revisará para darle el visto bueno.",
+    };
+  } catch {
+    return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
+  }
+}
+
+export async function likeHeroAction(id: string): Promise<{ ok: boolean }> {
+  try {
+    await likeHero(id);
+    revalidatePath("/noticias");
+    return { ok: true };
+  } catch {
+    return { ok: false };
   }
 }
 

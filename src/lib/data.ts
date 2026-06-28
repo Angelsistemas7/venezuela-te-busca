@@ -4,6 +4,7 @@ import {
   seedAidPoints,
   seedComments,
   seedComplaints,
+  seedHeroes,
   seedHospitalPatients,
   seedHospitals,
   seedMarches,
@@ -18,6 +19,7 @@ import type {
   Comment,
   Complaint,
   ComplaintCategory,
+  Hero,
   Hospital,
   HospitalPatient,
   HospitalStatus,
@@ -41,6 +43,7 @@ import type {
 import type {
   AidPointInput,
   ComplaintInput,
+  HeroInput,
   HospitalInput,
   HospitalPatientInput,
   MarchInput,
@@ -92,6 +95,7 @@ const mem = {
   complaints: [...seedComplaints],
   pets: [...seedPets],
   volunteers: [...seedVolunteers],
+  heroes: [...seedHeroes],
   hospitals: [...seedHospitals],
   patients: [...seedHospitalPatients],
   // Token privado de gestión por persona (solo lo conoce quien publicó).
@@ -2021,6 +2025,128 @@ export async function createVolunteer(input: VolunteerInput): Promise<Volunteer>
     .single();
   if (error) throw error;
   return rowToVolunteer(data);
+}
+
+// ── Héroes (sección curada de Noticias) ─────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToHero(r: any): Hero {
+  return {
+    id: r.id,
+    category: r.category,
+    title: r.title,
+    body: r.body ?? "",
+    estado: r.estado,
+    locationText: r.location_text ?? "",
+    photoUrl: r.photo_url ?? null,
+    sourceName: r.source_name ?? null,
+    sourceUrl: r.source_url ?? null,
+    authorName: r.author_name ?? "Comunidad",
+    verified: r.verified ?? false,
+    likes: r.likes ?? 0,
+    createdAt: r.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Lista de héroes. Por defecto solo los verificados (visto bueno del moderador);
+ * con `includeUnverified` trae también los propuestos por la comunidad (para el
+ * panel de admin). Ordena: verificados primero, luego por fecha.
+ */
+export async function getHeroes(opts: { includeUnverified?: boolean } = {}): Promise<Hero[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.heroes.slice();
+    if (!opts.includeUnverified) items = items.filter((h) => h.verified);
+    return items.sort(
+      (a, b) => Number(b.verified) - Number(a.verified) || b.createdAt.localeCompare(a.createdAt),
+    );
+  }
+  let query = sb.from("heroes").select("*").limit(300);
+  if (!opts.includeUnverified) query = query.eq("verified", true);
+  const { data, error } = await query
+    .order("verified", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToHero);
+}
+
+export async function createHero(input: HeroInput, photoUrl: string | null, authorName: string): Promise<Hero> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hero: Hero = {
+      id: uid("hero"),
+      category: input.category,
+      title: input.title,
+      body: input.body,
+      estado: input.estado ?? null,
+      locationText: input.locationText || "",
+      photoUrl: photoUrl || null,
+      sourceName: input.sourceName || null,
+      sourceUrl: input.sourceUrl || null,
+      authorName,
+      verified: false, // propuesto por la comunidad: nace sin verificar
+      likes: 0,
+      createdAt: now,
+    };
+    mem.heroes.unshift(hero);
+    return hero;
+  }
+  const { data, error } = await sb
+    .from("heroes")
+    .insert({
+      category: input.category,
+      title: input.title,
+      body: input.body,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      photo_url: photoUrl || null,
+      source_name: input.sourceName || null,
+      source_url: input.sourceUrl || null,
+      author_name: authorName,
+      verified: false,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToHero(data);
+}
+
+/** "Me gusta" a un héroe (comunidad). */
+export async function likeHero(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hero = mem.heroes.find((h) => h.id === id);
+    if (hero) hero.likes++;
+    return;
+  }
+  const { data, error } = await sb.from("heroes").select("likes").eq("id", id).single();
+  if (error) throw error;
+  await sb.from("heroes").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+}
+
+/** Da/quita el visto bueno del moderador a un héroe. */
+export async function setHeroVerified(id: string, value: boolean): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const hero = mem.heroes.find((h) => h.id === id);
+    if (hero) hero.verified = value;
+    return;
+  }
+  const { error } = await sb.from("heroes").update({ verified: value }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Elimina un héroe (moderación de contenido falso o inapropiado). */
+export async function deleteHero(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.heroes = mem.heroes.filter((h) => h.id !== id);
+    return;
+  }
+  const { error } = await sb.from("heroes").delete().eq("id", id);
+  if (error) throw error;
 }
 
 // ── Hospitales ──────────────────────────────────────────────────────────────

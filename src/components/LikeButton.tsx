@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
-import { likeAidPointAction, likeHospitalAction, likeMarchAction } from "@/app/actions";
+import { likeAidPointAction, likeHeroAction, likeHospitalAction, likeMarchAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
 
-type Kind = "aid" | "march" | "hospital";
+type Kind = "aid" | "march" | "hospital" | "hero";
 
 const ACTION: Record<Kind, (id: string) => Promise<{ ok: boolean }>> = {
   aid: likeAidPointAction,
   march: likeMarchAction,
   hospital: likeHospitalAction,
+  hero: likeHeroAction,
 };
 
 // "Me gusta" de la comunidad a una publicación de recurso. Uno por dispositivo.

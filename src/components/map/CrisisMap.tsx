@@ -2,7 +2,15 @@
 
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
-import type { AidMarker, HospitalMarker, MarchMarker, RescueMarker, Zone } from "./MapView";
+import type {
+  AidMarker,
+  HelpMarker,
+  HospitalMarker,
+  MarchMarker,
+  NeedMarker,
+  RescueMarker,
+  Zone,
+} from "./MapView";
 
 // Leaflet usa `window`, por eso el mapa se carga solo en el cliente.
 const MapView = dynamic(() => import("./MapView"), {
@@ -20,6 +28,8 @@ export function CrisisMap({
   marches,
   hospitals,
   rescues,
+  needs,
+  helps,
   epicenter,
   center,
   zoom,
@@ -29,6 +39,8 @@ export function CrisisMap({
   marches: MarchMarker[];
   hospitals: HospitalMarker[];
   rescues: RescueMarker[];
+  needs: NeedMarker[];
+  helps: HelpMarker[];
   epicenter?: [number, number] | null;
   center: [number, number];
   zoom?: number;
@@ -42,16 +54,31 @@ export function CrisisMap({
           marches={marches}
           hospitals={hospitals}
           rescues={rescues}
+          needs={needs}
+          helps={helps}
           epicenter={epicenter}
           center={center}
           zoom={zoom}
         />
       </div>
 
+      <p className="text-xs text-zinc-500">
+        Usa el panel de capas (arriba a la derecha del mapa) para mostrar u ocultar
+        cada tipo: 🆘 Necesito ayuda, 🤲 Puedo ayudar, rescates, puntos, hospitales y más.
+      </p>
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600">
         <span className="flex items-center gap-1.5">
           <span className="flex h-4 w-4 items-center justify-center text-[12px] text-amber-900">⊕</span>
           Epicentro
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-rose-600 shadow" />
+          🆘 Necesito ayuda
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-emerald-600 shadow" />
+          🤲 Puedo ayudar
         </span>
         <span className="flex items-center gap-1.5">
           <span className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-red-600 text-[9px] shadow">
