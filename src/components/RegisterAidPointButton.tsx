@@ -11,6 +11,7 @@ import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
 import { ManageLinkBox } from "./ManageLinkBox";
+import { LocationPicker } from "./map/LocationPicker";
 
 export function RegisterAidPointButton() {
   const router = useRouter();
@@ -153,6 +154,10 @@ export function RegisterAidPointButton() {
 
             <Field label="Ubicación exacta" htmlFor="locationText" required error={fieldErrors?.locationText}>
               <Input id="locationText" name="locationText" placeholder="Plaza de Macuto, frente a la iglesia" />
+            </Field>
+
+            <Field label="Señala el lugar en el mapa" hint="Toca el mapa o usa tu GPS para que quede en el punto exacto y no aproximado.">
+              <LocationPicker />
             </Field>
 
             <Field label="Horario de atención" htmlFor="scheduleText">

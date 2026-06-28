@@ -443,6 +443,11 @@ create index if not exists idx_aid_points_user_id on aid_points(user_id);
 create index if not exists idx_marches_user_id    on marches(user_id);
 create index if not exists idx_hospitals_user_id  on hospitals(user_id);
 
+-- Migración para bases ya creadas: coordenada exacta del punto de ayuda
+-- (marcada en el mapa o por GPS). null si solo se dio la ubicación en texto.
+alter table aid_points add column if not exists lat double precision;
+alter table aid_points add column if not exists lng double precision;
+
 -- Migración para bases ya creadas: el "visto bueno" del admin a hospitales.
 -- (En instalaciones nuevas ya viene en el create table de hospitals.)
 alter table hospitals  add column if not exists verified boolean not null default false;

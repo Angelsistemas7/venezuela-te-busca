@@ -141,6 +141,9 @@ export interface AidPoint {
   types: AidPointType[];
   estado: Estado | null;
   locationText: string;
+  /** Coordenada exacta marcada en el mapa (o por GPS). Ausente/null si solo hay texto. */
+  lat?: number | null;
+  lng?: number | null;
   scheduleText: string; // horario de atención
   description: string;
   photoUrl: string | null;

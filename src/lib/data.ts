@@ -809,6 +809,8 @@ export async function getAidPoints(): Promise<AidPoint[]> {
     types: r.types ?? (r.type ? [r.type] : []),
     estado: r.estado,
     locationText: r.location_text,
+    lat: r.lat ?? null,
+    lng: r.lng ?? null,
     scheduleText: r.schedule_text ?? "",
     description: r.description ?? "",
     photoUrl: r.photo_url,
@@ -833,6 +835,8 @@ function rowToAidPoint(r: any): AidPoint {
     types: r.types ?? (r.type ? [r.type] : []),
     estado: r.estado,
     locationText: r.location_text,
+    lat: r.lat ?? null,
+    lng: r.lng ?? null,
     scheduleText: r.schedule_text ?? "",
     description: r.description ?? "",
     photoUrl: r.photo_url,
@@ -877,6 +881,8 @@ export async function createAidPoint(
       types: input.types,
       estado: input.estado ?? null,
       locationText: input.locationText,
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       scheduleText: input.scheduleText || "",
       description: input.description || "",
       photoUrl,
@@ -901,6 +907,8 @@ export async function createAidPoint(
       types: input.types,
       estado: input.estado ?? null,
       location_text: input.locationText,
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       schedule_text: input.scheduleText || "",
       description: input.description || "",
       photo_url: photoUrl,
@@ -927,6 +935,8 @@ export async function updateAidPointFields(id: string, input: AidPointInput): Pr
       point.types = input.types;
       point.estado = input.estado ?? null;
       point.locationText = input.locationText;
+      if (input.lat !== undefined) point.lat = input.lat;
+      if (input.lng !== undefined) point.lng = input.lng;
       point.scheduleText = input.scheduleText || "";
       point.description = input.description || "";
       point.contactName = input.contactName || null;
@@ -942,6 +952,8 @@ export async function updateAidPointFields(id: string, input: AidPointInput): Pr
       types: input.types,
       estado: input.estado ?? null,
       location_text: input.locationText,
+      ...(input.lat !== undefined ? { lat: input.lat } : {}),
+      ...(input.lng !== undefined ? { lng: input.lng } : {}),
       schedule_text: input.scheduleText || "",
       description: input.description || "",
       contact_name: input.contactName || null,

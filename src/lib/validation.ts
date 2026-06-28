@@ -86,6 +86,8 @@ export const aidPointSchema = z.object({
     .min(1, "Selecciona al menos un recurso"),
   estado: estadoEnum.optional(),
   locationText: z.string().trim().min(2, "Indica la ubicación").max(160),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
   scheduleText: z.string().trim().max(120).optional().or(z.literal("")),
   description: z.string().trim().max(800).optional().or(z.literal("")),
   contactName: z.string().trim().max(80).optional().or(z.literal("")),

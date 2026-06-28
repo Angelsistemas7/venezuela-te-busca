@@ -83,7 +83,9 @@ export default async function MapaPage() {
   const aidPoints: AidMarker[] = aid
     .filter((p) => p.available) // no enviar gente a puntos agotados
     .map((p) => {
-      const coord = geocode(p.locationText, p.estado, p.id);
+      // Coordenada exacta marcada por quien publicó; si no, aproximación por texto.
+      const coord: [number, number] | null =
+        p.lat != null && p.lng != null ? [p.lat, p.lng] : geocode(p.locationText, p.estado, p.id);
       if (!coord) return null;
       return {
         id: p.id,
