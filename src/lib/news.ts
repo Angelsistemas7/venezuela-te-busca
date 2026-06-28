@@ -47,12 +47,15 @@ export async function getLatestNews(limit = 12): Promise<NewsArticle[]> {
       format: "json",
       maxrecords: String(Math.min(limit * 3, 75)),
       sort: "DateDesc",
-      timespan: "3m", // últimos ~3 meses
+      timespan: "1w", // última semana (unidades GDELT: min/H/d/w)
     });
     const res = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {
       next: { revalidate: 1800 }, // refresca cada 30 min
+      signal: AbortSignal.timeout(8000), // no colgar la página si la API tarda
     });
-    if (!res.ok) return [];
+    // GDELT a veces responde texto plano (límite de tasa) en vez de JSON.
+    const ct = res.headers.get("content-type") ?? "";
+    if (!res.ok || !ct.includes("json")) return [];
     const json = (await res.json()) as {
       articles?: { url: string; title: string; seendate: string; domain: string; socialimage?: string }[];
     };
@@ -101,6 +104,7 @@ export async function getHumanitarianUpdates(limit = 10): Promise<NewsArticle[]>
 
     const res = await fetch(`https://api.reliefweb.int/v1/reports?${params}`, {
       next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as {

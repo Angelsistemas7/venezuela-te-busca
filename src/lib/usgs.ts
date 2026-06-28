@@ -32,6 +32,7 @@ export async function getRecentQuakes(limit = 12, minMagnitude = 3.5): Promise<Q
     const res = await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?${params}`, {
       // Revalida cada 30 min: datos frescos sin golpear la API en cada visita.
       next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as {
