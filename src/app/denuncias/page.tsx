@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { DenunciaButton } from "@/components/DenunciaButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -113,9 +114,11 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
       </div>
 
       {complaints.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          No hay denuncias de este tipo. Si detectas una irregularidad real, repórtala con responsabilidad.
-        </div>
+        <EmptyState
+          icon={ShieldAlert}
+          title="No hay denuncias de este tipo"
+          description="Si detectas una irregularidad real (desvío de ayuda, riesgo a la niñez…), repórtala con responsabilidad."
+        />
       ) : (
         <div className="space-y-4">
           {complaints.map((c) => (

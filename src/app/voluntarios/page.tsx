@@ -5,6 +5,7 @@ import { VOLUNTEER_TYPE_EMOJI, VOLUNTEER_TYPE_LABEL, type VolunteerType } from "
 import { cn, timeAgo } from "@/lib/utils";
 import { RegisterVolunteerButton } from "@/components/RegisterVolunteerButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -89,9 +90,11 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
       </div>
 
       {volunteers.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          Aún no hay voluntarios de este tipo. Sé el primero en ofrecerte.
-        </div>
+        <EmptyState
+          icon={HandHeart}
+          title="Aún no hay voluntarios aquí"
+          description="¿Puedes ayudar con tu tiempo o tu oficio? Sé el primero en ofrecerte."
+        />
       ) : (
         <ul className="space-y-3">
           {volunteers.map((v) => (

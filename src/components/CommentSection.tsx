@@ -8,6 +8,7 @@ import { uploadPhoto } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
 import { cn, timeAgo } from "@/lib/utils";
 import { Turnstile } from "./Turnstile";
+import { PhotoView } from "./PhotoView";
 
 export function CommentSection({
   entityType,
@@ -143,13 +144,7 @@ export function CommentSection({
         </div>
         {c.body && <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">{c.body}</p>}
         {c.photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={c.photoUrl}
-            alt="Evidencia"
-            loading="lazy"
-            className="mt-2 max-h-72 rounded-lg object-cover"
-          />
+          <PhotoView src={c.photoUrl} alt="Evidencia" className="mt-2 max-h-72 rounded-lg object-cover" />
         )}
         <div className="mt-1.5 flex items-center gap-4">
           <CommentLike id={c.id} likes={c.likes} />

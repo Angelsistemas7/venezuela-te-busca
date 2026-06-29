@@ -451,6 +451,8 @@ alter table hospitals  add column if not exists lat double precision;
 alter table hospitals  add column if not exists lng double precision;
 alter table persons    add column if not exists lat double precision;
 alter table persons    add column if not exists lng double precision;
+alter table volunteers add column if not exists lat double precision;
+alter table volunteers add column if not exists lng double precision;
 
 -- Migración para bases ya creadas: el "visto bueno" del admin a hospitales.
 -- (En instalaciones nuevas ya viene en el create table de hospitals.)

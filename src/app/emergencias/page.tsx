@@ -1,4 +1,5 @@
-import { LifeBuoy, Phone, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, LayoutGrid, LifeBuoy, Phone, ShieldCheck } from "lucide-react";
 import { COMMUNITY_GUIDE, NATIONAL_LINE, PHONE_GROUPS } from "@/lib/emergency";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 
@@ -49,6 +50,23 @@ export default function EmergenciasPage() {
           <ShareWhatsApp />
         </div>
       </div>
+
+      {/* Directorio de plataformas externas */}
+      <Link
+        href="/recursos"
+        className="tap-card mt-5 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 py-4"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
+          <LayoutGrid className="h-5 w-5" />
+        </span>
+        <span className="flex-1">
+          <span className="block font-semibold text-zinc-900">Plataformas y recursos verificados</span>
+          <span className="block text-sm text-zinc-500">
+            Otras iniciativas: búsqueda de personas, donaciones, apoyo psicosocial y más.
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-zinc-400" />
+      </Link>
 
       {/* Directorios de teléfonos */}
       {PHONE_GROUPS.map((group) => (

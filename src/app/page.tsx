@@ -16,6 +16,7 @@ import { PersonGroups } from "@/components/PersonGroups";
 import { Pagination } from "@/components/Pagination";
 import { RegisterPersonButton } from "@/components/RegisterPersonButton";
 import { DevModeNotice } from "@/components/DevModeNotice";
+import { FieldVolunteerBar } from "@/components/FieldVolunteerBar";
 import { FeaturedSections } from "@/components/FeaturedSections";
 import { EstadoChips } from "@/components/EstadoChips";
 
@@ -89,6 +90,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <DevModeNotice />
+      <FieldVolunteerBar />
 
       <div className="mb-5 flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">

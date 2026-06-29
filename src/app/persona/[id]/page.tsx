@@ -54,6 +54,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
               lastName={person.lastName}
               isUnidentified={person.isUnidentified}
               fallbackTextClass="text-6xl"
+              zoomable
             />
             <span
               className={cn(

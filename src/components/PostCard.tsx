@@ -7,6 +7,7 @@ import { POST_TYPE_EMOJI, POST_TYPE_LABEL, REACTION_EMOJI } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { reactToPostAction } from "@/app/actions";
 import { CommentSection } from "./CommentSection";
+import { PhotoView } from "./PhotoView";
 
 const TYPE_STYLE: Record<Post["type"], string> = {
   necesito: "bg-rose-50 text-rose-700 border-rose-200",
@@ -73,13 +74,7 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
       <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-zinc-800">{post.body}</p>
 
       {post.photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={post.photoUrl}
-          alt=""
-          loading="lazy"
-          className="mt-3 max-h-96 w-full rounded-xl object-cover"
-        />
+        <PhotoView src={post.photoUrl} className="mt-3 max-h-96 w-full rounded-xl object-cover" />
       )}
 
       {post.linkUrl && (
@@ -133,7 +128,7 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
       </div>
 
       {showComments && (
-        <div className="mt-3">
+        <div className="mt-3 animate-fade-in">
           <CommentSection
             entityType="post"
             entityId={post.id}

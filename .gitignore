@@ -10,3 +10,11 @@ npm-debug.log*
 .vercel
 next-env.d.ts
 *.tsbuildinfo
+
+# Fotos de personas reales (para importar a Supabase Storage): NUNCA al repo.
+# Son datos personales, a veces de menores. Se suben a Storage, no a git.
+fotos-personas/
+/*.webp
+/*.jpg
+/*.jpeg
+/*.png

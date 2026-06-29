@@ -8,6 +8,7 @@ import { timeAgo } from "@/lib/utils";
 import { deleteNewsItemAction } from "@/app/admin/actions";
 import { LikeButton } from "./LikeButton";
 import { CommentSection } from "./CommentSection";
+import { PhotoView } from "./PhotoView";
 
 export function NewsItemCard({
   item,
@@ -26,8 +27,7 @@ export function NewsItemCard({
     <article className="tap-card rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex items-start gap-3">
         {item.photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.photoUrl} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+          <PhotoView src={item.photoUrl} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
         )}
         <div className="min-w-0 flex-1">
           <h3 className="font-bold text-zinc-900">{item.title}</h3>
@@ -80,7 +80,7 @@ export function NewsItemCard({
       </div>
 
       {showComments && (
-        <div className="mt-3">
+        <div className="mt-3 animate-fade-in">
           <CommentSection
             entityType="news_item"
             entityId={item.id}

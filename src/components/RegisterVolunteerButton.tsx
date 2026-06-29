@@ -8,6 +8,7 @@ import { registerVolunteerAction, type ActionResult } from "@/app/actions";
 import { uploadPhoto } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
 import { Modal } from "./Modal";
+import { LocationPicker } from "./map/LocationPicker";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
 
@@ -147,6 +148,13 @@ export function RegisterVolunteerButton() {
                 <Input id="locationText" name="locationText" placeholder="Caracas, La Guaira, fuera del país..." />
               </Field>
             </div>
+
+            <Field
+              label="¿Estás en la zona? Marca tu ubicación (opcional)"
+              hint="Si estás en el terreno, toca el mapa o usa tu GPS para que el equipo te ubique."
+            >
+              <LocationPicker />
+            </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Teléfono (opcional)" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>

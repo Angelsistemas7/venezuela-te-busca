@@ -7,6 +7,7 @@ import { HERO_CATEGORY_EMOJI, HERO_CATEGORY_LABEL } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { LikeButton } from "./LikeButton";
 import { CommentSection } from "./CommentSection";
+import { PhotoView } from "./PhotoView";
 
 export function HeroCard({ hero, comments }: { hero: Hero; comments: Comment[] }) {
   const [showComments, setShowComments] = useState(false);
@@ -41,13 +42,7 @@ export function HeroCard({ hero, comments }: { hero: Hero; comments: Comment[] }
       <p className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed text-zinc-700">{hero.body}</p>
 
       {hero.photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={hero.photoUrl}
-          alt=""
-          loading="lazy"
-          className="mt-3 max-h-96 w-full rounded-xl object-cover"
-        />
+        <PhotoView src={hero.photoUrl} className="mt-3 max-h-96 w-full rounded-xl object-cover" />
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
@@ -86,7 +81,7 @@ export function HeroCard({ hero, comments }: { hero: Hero; comments: Comment[] }
       </div>
 
       {showComments && (
-        <div className="mt-3">
+        <div className="mt-3 animate-fade-in">
           <CommentSection
             entityType="hero"
             entityId={hero.id}

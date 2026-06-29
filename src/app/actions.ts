@@ -572,6 +572,8 @@ export async function registerVolunteerAction(form: FormData): Promise<ActionRes
     skillsText: getField(form, "skillsText"),
     estado: getField(form, "estado") || undefined,
     locationText: getField(form, "locationText"),
+    lat: getField(form, "lat") || undefined,
+    lng: getField(form, "lng") || undefined,
     contactPhone: getField(form, "contactPhone"),
     contactEmail: getField(form, "contactEmail"),
   });

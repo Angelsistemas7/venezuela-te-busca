@@ -5,6 +5,7 @@ import { PET_STATUS_EMOJI, PET_STATUS_LABEL, type PetStatus } from "@/lib/types"
 import { cn } from "@/lib/utils";
 import { PetCard } from "@/components/PetCard";
 import { RegisterPetButton } from "@/components/RegisterPetButton";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -89,9 +90,11 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
       </div>
 
       {pets.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          No hay mascotas de este tipo todavía. Sé el primero en reportar.
-        </div>
+        <EmptyState
+          icon={PawPrint}
+          title="No hay mascotas reportadas aquí"
+          description="¿Perdiste o encontraste una mascota tras el sismo? Repórtala para reunirla con su familia."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pets.map((p) => (

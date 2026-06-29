@@ -145,4 +145,13 @@ values
   ('b3000000-0000-4000-8000-000000000005', 'donante', 'Quienes donan sangre y enseres', 'Largas filas frente a los bancos de sangre y casas que abrieron sus puertas. La generosidad de la gente común también salva vidas.', null, 'Venezuela y la diáspora', null, null, null, 'Equipo', true, 38, now() - interval '134 minutes')
 on conflict (id) do nothing;
 
+-- ── Noticias curadas (con su fuente real) ───────────────────────────────────
+insert into news_items
+  (id, kind, title, body, source_name, source_url, created_at)
+values
+  ('d1000000-0000-4000-8000-000000000001', 'noticia', 'Héroes de cuatro patas: Furbo y Hades, los canes rescatistas de Quito enviados a Venezuela', 'Furbo (pastor belga malinois) y Hades (golden retriever), del equipo USAR ECU-01 del Cuerpo de Bomberos de Quito, trabajan junto a sus guías localizando personas atrapadas bajo estructuras colapsadas en La Guaira y otras zonas afectadas. Cuentan con certificación nacional e internacional (IRO) y acompañamiento veterinario permanente.', 'Vistazo', null, now() - interval '20 minutes'),
+  ('d1000000-0000-4000-8000-000000000002', 'noticia', 'El milagro entre las ruinas: los rescates que emocionan tras el terremoto en Venezuela', 'Entre la devastación han surgido rescates que dan esperanza, como el de un bebé hallado con vida entre los escombros. La Guaira, declarada zona cero, concentra la mayor destrucción.', 'Video en X (Twitter)', 'https://twitter.com/i/status/2070241095036850450', now() - interval '50 minutes'),
+  ('d1000000-0000-4000-8000-000000000003', 'noticia', 'Vecinos se convierten en héroes mientras buscan sobrevivientes tras el terremoto en Venezuela', 'Cientos de vecinos y voluntarios lideran labores de rescate, comparten alimentos y abren sus hogares a las familias afectadas. En La Guaira, muchos comenzaron a remover escombros con sus propias manos antes de la llegada de maquinaria, logrando rescatar personas con vida. La solidaridad también salva vidas.', 'EFE', null, now() - interval '90 minutes')
+on conflict (id) do nothing;
+
 commit;

@@ -248,6 +248,8 @@ export const volunteerSchema = z.object({
   skillsText: z.string().trim().max(400).optional().or(z.literal("")),
   estado: estadoEnum.optional(),
   locationText: z.string().trim().max(160).optional().or(z.literal("")),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
   contactPhone: phone,
   contactEmail: z.string().trim().email("Correo no válido").optional().or(z.literal("")),
 });

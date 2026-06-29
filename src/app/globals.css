@@ -121,6 +121,55 @@ body {
   transform: scale(0.99);
 }
 
+/* Entrada de modales: la hoja sube desde abajo (móvil) y el fondo se atenúa. */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-sheet {
+  animation: slide-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-backdrop {
+  animation: backdrop-in 0.2s ease-out;
+}
+
+/* Visor de fotos a pantalla completa: la imagen aparece con un leve "zoom". */
+@keyframes zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-zoom {
+  animation: zoom-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Botones: leve "presión" táctil. Aplica a los que lleven la clase .press. */
+.press {
+  transition: transform 0.12s ease;
+}
+.press:active {
+  transform: scale(0.96);
+}
+
 /* ── Mapa de crisis (Leaflet) ─────────────────────────────────────────── */
 .leaflet-container {
   font-family: var(--font-sans);

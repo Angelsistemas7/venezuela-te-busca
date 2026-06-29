@@ -29,7 +29,7 @@ export function CommunityTabs() {
             className={cn(
               "flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition",
               active
-                ? "border-brand-500 bg-brand-500 text-white shadow-sm"
+                ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50",
             )}
           >

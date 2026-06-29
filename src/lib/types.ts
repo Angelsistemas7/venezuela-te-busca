@@ -462,6 +462,9 @@ export interface Volunteer {
   skillsText: string;
   estado: Estado | null;
   locationText: string;
+  /** Ubicación exacta (GPS o mapa) del voluntario en la zona. Ausente/null si solo texto. */
+  lat?: number | null;
+  lng?: number | null;
   contactPhone: string | null;
   contactEmail: string | null;
   /** Foto opcional de quien se ofrece (rostro o equipo). */

@@ -842,7 +842,8 @@ export async function removeResourceManager(
 }
 
 // ── Puntos de ayuda ─────────────────────────────────────────────────────────
-export async function getAidPoints(): Promise<AidPoint[]> {
+export const getAidPoints = unstable_cache(getAidPointsImpl, ["aid-points"], { revalidate: 60 });
+async function getAidPointsImpl(): Promise<AidPoint[]> {
   const sb = getSupabase();
   if (!sb) return mem.aidPoints.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const { data, error } = await sb.from("aid_points").select("*").order("created_at", { ascending: false });
@@ -1083,7 +1084,8 @@ export async function setAidAvailability(id: string, available: boolean): Promis
 }
 
 // ── Marchas ──────────────────────────────────────────────────────────────────
-export async function getMarches(): Promise<March[]> {
+export const getMarches = unstable_cache(getMarchesImpl, ["marches"], { revalidate: 60 });
+async function getMarchesImpl(): Promise<March[]> {
   const sb = getSupabase();
   if (!sb) return mem.marches.slice().sort((a, b) => a.departAt.localeCompare(b.departAt));
   const { data, error } = await sb.from("marches").select("*").order("depart_at", { ascending: true });
@@ -2019,6 +2021,8 @@ function rowToVolunteer(r: any): Volunteer {
     skillsText: r.skills_text ?? "",
     estado: r.estado,
     locationText: r.location_text ?? "",
+    lat: r.lat ?? null,
+    lng: r.lng ?? null,
     contactPhone: r.contact_phone,
     contactEmail: r.contact_email,
     photoUrl: r.photo_url ?? null,
@@ -2027,7 +2031,8 @@ function rowToVolunteer(r: any): Volunteer {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export async function getVolunteers(
+export const getVolunteers = unstable_cache(getVolunteersImpl, ["volunteers"], { revalidate: 60 });
+async function getVolunteersImpl(
   filter: { type?: VolunteerType | "all"; search?: string } = {},
 ): Promise<Volunteer[]> {
   const sb = getSupabase();
@@ -2072,6 +2077,8 @@ export async function createVolunteer(
       skillsText: input.skillsText || "",
       estado: input.estado ?? null,
       locationText: input.locationText || "",
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       contactPhone: input.contactPhone || null,
       contactEmail: input.contactEmail || null,
       photoUrl: photoUrl || null,
@@ -2089,6 +2096,8 @@ export async function createVolunteer(
       skills_text: input.skillsText || "",
       estado: input.estado ?? null,
       location_text: input.locationText || "",
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       contact_phone: input.contactPhone || null,
       contact_email: input.contactEmail || null,
       photo_url: photoUrl || null,
@@ -2125,7 +2134,8 @@ function rowToHero(r: any): Hero {
  * con `includeUnverified` trae también los propuestos por la comunidad (para el
  * panel de admin). Ordena: verificados primero, luego por fecha.
  */
-export async function getHeroes(opts: { includeUnverified?: boolean } = {}): Promise<Hero[]> {
+export const getHeroes = unstable_cache(getHeroesImpl, ["heroes"], { revalidate: 60 });
+async function getHeroesImpl(opts: { includeUnverified?: boolean } = {}): Promise<Hero[]> {
   const sb = getSupabase();
   if (!sb) {
     let items = mem.heroes.slice();
@@ -2239,7 +2249,8 @@ function rowToNewsItem(r: any): NewsItem {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Noticias curadas; con `kind` se filtra por ayuda humanitaria o titulares. */
-export async function getNewsItems(kind?: NewsItem["kind"]): Promise<NewsItem[]> {
+export const getNewsItems = unstable_cache(getNewsItemsImpl, ["news-items"], { revalidate: 60 });
+async function getNewsItemsImpl(kind?: NewsItem["kind"]): Promise<NewsItem[]> {
   const sb = getSupabase();
   if (!sb) {
     let items = mem.newsItems.slice();
@@ -2355,7 +2366,8 @@ function splitSpecialties(s: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export async function getHospitals(): Promise<Hospital[]> {
+export const getHospitals = unstable_cache(getHospitalsImpl, ["hospitals"], { revalidate: 60 });
+async function getHospitalsImpl(): Promise<Hospital[]> {
   const sb = getSupabase();
   if (!sb) return mem.hospitals.slice().sort((a, b) => a.name.localeCompare(b.name));
   const { data, error } = await sb.from("hospitals").select("*").order("name");

@@ -69,6 +69,7 @@ export function NoticiasTabs({
         })}
       </div>
 
+      <div key={tab} className="animate-fade-in">
       {tab === "heroes" && (
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -167,6 +168,7 @@ export function NoticiasTabs({
           <RecentQuakes quakes={quakes} />
         </section>
       )}
+      </div>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { COMPLAINT_CATEGORY_EMOJI, COMPLAINT_CATEGORY_LABEL } from "@/lib/types"
 import { cn, timeAgo } from "@/lib/utils";
 import { SupportButton } from "./SupportButton";
 import { CommentSection } from "./CommentSection";
+import { PhotoView } from "./PhotoView";
 
 const CATEGORY_STYLE: Record<ComplaintCategory, string> = {
   riesgo_ninos: "bg-rose-50 text-rose-700 border-rose-200",
@@ -50,13 +51,7 @@ export function ComplaintCard({ complaint, comments }: { complaint: Complaint; c
       <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-zinc-800">{complaint.body}</p>
 
       {complaint.photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={complaint.photoUrl}
-          alt=""
-          loading="lazy"
-          className="mt-3 max-h-96 w-full rounded-xl object-cover"
-        />
+        <PhotoView src={complaint.photoUrl} className="mt-3 max-h-96 w-full rounded-xl object-cover" />
       )}
 
       <div className="mt-2 text-xs text-zinc-500">
@@ -75,7 +70,7 @@ export function ComplaintCard({ complaint, comments }: { complaint: Complaint; c
       </div>
 
       {showComments && (
-        <div className="mt-3">
+        <div className="mt-3 animate-fade-in">
           <CommentSection
             entityType="complaint"
             entityId={complaint.id}

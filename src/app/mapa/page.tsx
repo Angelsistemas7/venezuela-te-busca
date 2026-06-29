@@ -178,7 +178,8 @@ export default async function MapaPage() {
   // Capa "Puedo ayudar": voluntarios + publicaciones tipo `ofrezco`, con ubicación.
   const helps: HelpMarker[] = [
     ...volunteers.map((v) => {
-      const coord = geocode(v.locationText, v.estado, v.id);
+      const coord: [number, number] | null =
+        v.lat != null && v.lng != null ? [v.lat, v.lng] : geocode(v.locationText, v.estado, v.id);
       if (!coord) return null;
       const detail = [v.skillsText, v.availabilityText].filter(Boolean).join(" · ");
       return {
@@ -251,7 +252,7 @@ export default async function MapaPage() {
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="stagger mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-center">
           <div className="text-xl font-bold text-rose-700">{needs.length}</div>
           <div className="text-xs text-zinc-600">🆘 Necesito ayuda</div>

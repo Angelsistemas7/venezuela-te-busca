@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { MarchCard } from "@/components/MarchCard";
 import { RegisterMarchButton } from "@/components/RegisterMarchButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -55,9 +56,11 @@ export default async function CaravanasPage({ searchParams }: { searchParams: Se
       </div>
 
       {marches.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          Aún no hay convocatorias. Sé el primero en organizar una caravana benéfica.
-        </div>
+        <EmptyState
+          icon={MapPinned}
+          title="Aún no hay caravanas"
+          description="Organiza una ida en grupo a la zona afectada: publica el punto de salida y la hora."
+        />
       ) : (
         <>
           <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">

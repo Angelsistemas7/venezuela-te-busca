@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { PostCard } from "@/components/PostCard";
 import { CreatePostButton } from "@/components/CreatePostButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -122,9 +123,11 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
       </div>
 
       {withComments.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          Aún no hay publicaciones de este tipo. Sé el primero en publicar.
-        </div>
+        <EmptyState
+          icon={Users2}
+          title="Aún no hay publicaciones aquí"
+          description="Pide o ofrece ayuda, reporta un rescate o comparte información. Sé el primero."
+        />
       ) : (
         <>
           {featured.length > 0 && (
