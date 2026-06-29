@@ -8,7 +8,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { AccountBanner } from "@/components/AccountBanner";
 import { SafetyBanner } from "@/components/SafetyBanner";
 
-// En producción, define NEXT_PUBLIC_SITE_URL (p. ej. https://venezuelatebusca.org)
+// En producción, define NEXT_PUBLIC_SITE_URL (p. ej. https://elmundotebusca.com)
 // para que la imagen Open Graph y los enlaces sociales sean absolutos. En Vercel
 // se detecta solo; si no, Next usa una URL relativa.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -16,26 +16,26 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 export const metadata: Metadata = {
   metadataBase: siteUrl ? new URL(siteUrl) : undefined,
   title: {
-    default: "Venezuela te busca — Personas desaparecidas tras el terremoto 2026",
-    template: "%s · Venezuela te busca",
+    default: "El Mundo Te Busca — Personas desaparecidas tras el terremoto de Venezuela 2026",
+    template: "%s · El Mundo Te Busca",
   },
-  applicationName: "Venezuela te busca",
+  applicationName: "El Mundo Te Busca",
   description:
     "Iniciativa ciudadana, voluntaria y sin fines de lucro para localizar personas desaparecidas y coordinar ayuda tras el terremoto de Venezuela 2026.",
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Venezuela te busca",
+    title: "El Mundo Te Busca — Respuesta al terremoto de Venezuela 2026",
     description:
-      "Plataforma ciudadana para localizar personas desaparecidas y coordinar ayuda tras el terremoto 2026.",
+      "Plataforma ciudadana para localizar personas desaparecidas y coordinar ayuda tras el terremoto de Venezuela 2026.",
     type: "website",
     locale: "es_VE",
-    siteName: "Venezuela te busca",
+    siteName: "El Mundo Te Busca",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Venezuela te busca",
+    title: "El Mundo Te Busca — Respuesta al terremoto de Venezuela 2026",
     description:
-      "Plataforma ciudadana para localizar personas desaparecidas y coordinar ayuda tras el terremoto 2026.",
+      "Plataforma ciudadana para localizar personas desaparecidas y coordinar ayuda tras el terremoto de Venezuela 2026.",
   },
 };
 

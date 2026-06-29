@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 // Tarjeta que se ve al compartir el enlace (WhatsApp, redes). Sin acentos a
 // propósito: la fuente por defecto de ImageResponse no incluye glifos
 // acentuados y saldrían cuadros. Next la cablea como og:image y twitter:image.
-export const alt = "Venezuela te busca";
+export const alt = "El Mundo Te Busca";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -37,10 +37,10 @@ export default function OpengraphImage() {
               fontWeight: 800,
             }}
           >
-            VE
+            EM
           </div>
-          <div style={{ display: "flex", fontSize: "76px", fontWeight: 800, color: "#18181b" }}>
-            Venezuela te busca
+          <div style={{ display: "flex", fontSize: "72px", fontWeight: 800, color: "#18181b" }}>
+            El Mundo Te Busca
           </div>
         </div>
         <div
@@ -54,7 +54,7 @@ export default function OpengraphImage() {
             lineHeight: 1.3,
           }}
         >
-          Localizar personas desaparecidas y coordinar ayuda tras el terremoto 2026
+          Localizar personas desaparecidas y coordinar ayuda tras el terremoto de Venezuela 2026
         </div>
         <div style={{ display: "flex", marginTop: "44px", fontSize: "26px", color: "#a16207" }}>
           Iniciativa ciudadana, voluntaria y sin fines de lucro

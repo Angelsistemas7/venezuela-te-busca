@@ -1,21 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { HandHeart, X } from "lucide-react";
 
-// Barra de reclutamiento de voluntarios en el terreno. Cerrable por dispositivo
-// (localStorage). Anima su entrada; cero costo de servidor.
+// Barra de reclutamiento de voluntarios en el terreno. Cerrable; al cerrarla
+// queda oculta solo durante la vista y reaparece al recargar o re-entrar (no se
+// persiste el cierre). Anima su entrada; cero costo de servidor.
 export function FieldVolunteerBar() {
-  // Empieza oculta para no parpadear antes de leer localStorage.
-  const [hidden, setHidden] = useState(true);
-
-  useEffect(() => {
-    // Se oculta solo 60 s tras cerrarla; luego vuelve a aparecer (al recargar
-    // o re-entrar). No es un cierre permanente.
-    const ts = Number(localStorage.getItem("vtb_hide_fieldvol") || 0);
-    setHidden(Date.now() - ts < 60_000);
-  }, []);
+  const [hidden, setHidden] = useState(false);
 
   if (hidden) return null;
 
@@ -35,10 +28,7 @@ export function FieldVolunteerBar() {
         Quiero ayudar
       </Link>
       <button
-        onClick={() => {
-          localStorage.setItem("vtb_hide_fieldvol", String(Date.now()));
-          setHidden(true);
-        }}
+        onClick={() => setHidden(true)}
         aria-label="Cerrar aviso"
         className="press shrink-0 rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
       >

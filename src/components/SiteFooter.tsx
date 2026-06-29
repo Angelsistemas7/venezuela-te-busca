@@ -7,8 +7,9 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-2">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🇻🇪</span>
-            <span className="text-lg font-bold text-zinc-900">Venezuela te busca</span>
+            <span className="text-2xl">🌍</span>
+            <span className="text-lg font-bold text-zinc-900">El Mundo Te Busca</span>
+            <span className="text-xl">🇻🇪</span>
           </div>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-600">
             Iniciativa ciudadana, voluntaria y sin fines de lucro para ayudar a localizar a las
@@ -51,8 +52,45 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-zinc-100">
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          <p className="text-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Con el apoyo de
+          </p>
+          <div className="mt-5 flex flex-col items-center justify-center gap-8 sm:flex-row sm:items-start sm:gap-14">
+            {/* Sentra Labs (patrocinador tecnológico) — enlaza a su sitio. */}
+            <a
+              href="https://sentralabs.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 transition hover:opacity-80"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-light.webp"
+                alt="Sentra Labs"
+                className="h-12 w-auto object-contain"
+              />
+            </a>
+            {/* INN Clusion — sin enlace (no tiene sitio), con su descripción. */}
+            <div className="flex max-w-xs flex-col items-center gap-2 text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/INNClusion.jpeg"
+                alt="INN Clusion"
+                className="h-12 w-auto object-contain"
+              />
+              <p className="text-xs leading-relaxed text-zinc-500">
+                INN Clusion trabaja desde 2010, creada por Fundación Conceptos. Voluntarios digitales
+                con más de 15 años apoyando causas sociales.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-zinc-100">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 text-xs text-zinc-400">
-          <span>© 2026 Venezuela te busca · Iniciativa sin fines de lucro</span>
+          <span>© 2026 El Mundo Te Busca · Iniciativa sin fines de lucro</span>
           <Link href="/admin" className="hover:text-zinc-700">
             Panel de moderación
           </Link>

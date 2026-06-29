@@ -8,7 +8,7 @@ import { NoticiasTabs } from "@/components/NoticiasTabs";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Noticias y ayuda humanitaria — Venezuela te busca",
+  title: "Noticias y ayuda humanitaria — El Mundo Te Busca",
   description:
     "Héroes de la emergencia, ayuda humanitaria internacional, últimas noticias y sismos recientes del terremoto de Venezuela, con su fuente.",
 };

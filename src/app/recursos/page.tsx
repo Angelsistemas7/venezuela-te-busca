@@ -2,7 +2,7 @@ import { ExternalLink, Info, LayoutGrid } from "lucide-react";
 import { RECURSOS } from "@/lib/recursos";
 
 export const metadata = {
-  title: "Otras plataformas y recursos — Venezuela te busca",
+  title: "Otras plataformas y recursos — El Mundo Te Busca",
   description:
     "Directorio de plataformas e iniciativas de terceros en la respuesta al terremoto: búsqueda de personas, donaciones, apoyo psicosocial, mapas y organismos oficiales.",
 };

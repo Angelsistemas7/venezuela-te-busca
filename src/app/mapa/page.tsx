@@ -167,7 +167,7 @@ export default async function MapaPage() {
         when: formatDateTime(p.createdAt),
         whatsappHref: whatsappLink(
           p.contactPhone,
-          `Hola, vi tu publicación en Venezuela te busca sobre "${p.body.slice(0, 60)}". ¿Cómo puedo ayudar?`,
+          `Hola, vi tu publicación en El Mundo Te Busca sobre "${p.body.slice(0, 60)}". ¿Cómo puedo ayudar?`,
         ),
         directionsHref: directionsLink(coord[0], coord[1]),
         href: "/comunidad?type=necesito",
@@ -192,7 +192,7 @@ export default async function MapaPage() {
         lng: coord[1],
         whatsappHref: whatsappLink(
           v.contactPhone,
-          `Hola ${v.name}, te vi en Venezuela te busca (voluntarios). ¿Sigues disponible para ayudar?`,
+          `Hola ${v.name}, te vi en El Mundo Te Busca (voluntarios). ¿Sigues disponible para ayudar?`,
         ),
         directionsHref: directionsLink(coord[0], coord[1]),
         href: "/voluntarios",
@@ -211,7 +211,7 @@ export default async function MapaPage() {
         lng: coord[1],
         whatsappHref: whatsappLink(
           p.contactPhone,
-          `Hola, vi tu ofrecimiento de ayuda en Venezuela te busca. ¿Sigue disponible?`,
+          `Hola, vi tu ofrecimiento de ayuda en El Mundo Te Busca. ¿Sigue disponible?`,
         ),
         directionsHref: directionsLink(coord[0], coord[1]),
         href: "/comunidad?type=ofrezco",

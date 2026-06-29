@@ -41,9 +41,9 @@ export function PersonReactions({
     // "Difundir" además comparte el enlace; se puede repetir.
     if (kind === "difundir") {
       const url = typeof window !== "undefined" ? window.location.href : "";
-      const text = `Ayúdanos a localizar a ${name}. Venezuela te busca.`;
+      const text = `Ayúdanos a localizar a ${name}. El Mundo Te Busca.`;
       try {
-        if (navigator.share) await navigator.share({ title: "Venezuela te busca", text, url });
+        if (navigator.share) await navigator.share({ title: "El Mundo Te Busca", text, url });
         else {
           await navigator.clipboard.writeText(url);
           flash("Enlace copiado para compartir");

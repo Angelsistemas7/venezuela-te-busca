@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Modelo de datos central de "Venezuela te busca".
+// Modelo de datos central de "El Mundo Te Busca".
 // Estos tipos son la fuente de verdad: la base de datos (Supabase),
 // los formularios y la UI se ajustan a ellos.
 // ─────────────────────────────────────────────────────────────

@@ -29,10 +29,15 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-400 text-lg font-bold text-zinc-900">
-            VE
+            🌍
           </span>
-          <span className="text-base font-bold tracking-tight text-zinc-900 sm:text-lg">
-            Venezuela te busca
+          <span className="flex flex-col leading-none">
+            <span className="text-base font-bold tracking-tight text-zinc-900 sm:text-lg">
+              El Mundo Te Busca
+            </span>
+            <span className="hidden text-[11px] font-medium text-zinc-500 sm:block">
+              Terremoto de Venezuela 2026
+            </span>
           </span>
         </Link>
 

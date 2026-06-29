@@ -1,24 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ShieldAlert, X } from "lucide-react";
 
 // Barra fija de seguridad para toda la página: protección de la niñez.
-// Mensaje siempre visible (se puede ocultar por dispositivo). Es lo más
-// importante de recordar en la emergencia, por eso va sobre todo el contenido.
-const KEY = "vtb_safety_kids_hidden";
+// Mensaje siempre visible (se puede ocultar). Es lo más importante de recordar
+// en la emergencia, por eso va sobre todo el contenido.
 
 export function SafetyBanner() {
-  // Visible por defecto (se renderiza en el servidor); solo se oculta si el
-  // usuario ya lo cerró en este dispositivo. Es un mensaje crítico de seguridad.
+  // Visible por defecto. Al cerrarla queda oculta solo mientras dura la vista;
+  // reaparece al recargar o al volver a entrar (el cierre no se persiste). Es un
+  // mensaje crítico de seguridad: no debe quedar oculto para siempre.
   const [hidden, setHidden] = useState(false);
-
-  useEffect(() => {
-    // Se oculta solo 60 s al cerrarla; reaparece al recargar o re-entrar. Es un
-    // mensaje crítico de seguridad: no debe quedar oculto para siempre.
-    const ts = Number(localStorage.getItem(KEY) || 0);
-    setHidden(Date.now() - ts < 60_000);
-  }, []);
 
   if (hidden) return null;
 
@@ -36,10 +29,7 @@ export function SafetyBanner() {
           .
         </p>
         <button
-          onClick={() => {
-            localStorage.setItem(KEY, String(Date.now()));
-            setHidden(true);
-          }}
+          onClick={() => setHidden(true)}
           aria-label="Ocultar aviso"
           className="-mr-1 rounded p-1 text-amber-700 hover:bg-amber-200 hover:text-amber-900"
         >
