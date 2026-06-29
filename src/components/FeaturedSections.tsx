@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Baby, Clock, HeartPulse, PersonStanding, Sparkles } from "lucide-react";
+import { ArrowRight, Baby, Clock, GraduationCap, PersonStanding, Sparkles, User, Users } from "lucide-react";
 import { getPersons } from "@/lib/data";
 import { PersonCard } from "./PersonCard";
 
-// Secciones curadas del inicio: agrupan a las personas por categorías de alta
-// prioridad para que ninguna quede enterrada bajo miles de registros.
+// Secciones curadas del inicio: agrupan a las personas por grupo de edad para
+// que ninguna quede enterrada bajo miles de registros. Cada sección muestra
+// una vista previa y un enlace "Ver todos".
 
 type SectionDef = {
   key: string;
@@ -19,34 +20,50 @@ const SECTIONS: SectionDef[] = [
   {
     key: "recientes",
     title: "Registrados recientemente",
-    subtitle: "Los últimos casos publicados por la comunidad",
+    subtitle: "Los últimos casos publicados — ver todos los registros",
     icon: Clock,
     href: "/?sort=recent",
     query: { sort: "recent", pageSize: 6 },
   },
   {
     key: "ninos",
-    title: "Niñas, niños y adolescentes",
-    subtitle: "Menores de 18 años por localizar — máxima prioridad",
+    title: "Niñas y niños",
+    subtitle: "De 0 a 11 años",
     icon: Baby,
-    href: "/?status=por_localizar&maxAge=17",
-    query: { status: "por_localizar", maxAge: 17, sort: "recent", pageSize: 6 },
+    href: "/?maxAge=11",
+    query: { maxAge: 11, sort: "recent", pageSize: 6 },
+  },
+  {
+    key: "adolescentes",
+    title: "Adolescentes",
+    subtitle: "De 12 a 17 años",
+    icon: GraduationCap,
+    href: "/?minAge=12&maxAge=17",
+    query: { minAge: 12, maxAge: 17, sort: "recent", pageSize: 6 },
+  },
+  {
+    key: "jovenes",
+    title: "Jóvenes",
+    subtitle: "De 18 a 29 años",
+    icon: User,
+    href: "/?minAge=18&maxAge=29",
+    query: { minAge: 18, maxAge: 29, sort: "recent", pageSize: 6 },
+  },
+  {
+    key: "adultos",
+    title: "Adultos",
+    subtitle: "De 30 a 59 años",
+    icon: Users,
+    href: "/?minAge=30&maxAge=59",
+    query: { minAge: 30, maxAge: 59, sort: "recent", pageSize: 6 },
   },
   {
     key: "mayores",
     title: "Adultos mayores",
-    subtitle: "60 años o más por localizar",
+    subtitle: "60 años o más",
     icon: PersonStanding,
-    href: "/?status=por_localizar&minAge=60",
-    query: { status: "por_localizar", minAge: 60, sort: "recent", pageSize: 6 },
-  },
-  {
-    key: "localizados",
-    title: "Recién localizados",
-    subtitle: "Buenas noticias: personas que ya aparecieron",
-    icon: HeartPulse,
-    href: "/?status=localizado",
-    query: { status: "localizado", sort: "recent", pageSize: 6 },
+    href: "/?minAge=60",
+    query: { minAge: 60, sort: "recent", pageSize: 6 },
   },
 ];
 

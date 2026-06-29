@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { DashboardStats as Stats } from "@/lib/data";
 import { QUAKE_INFO } from "@/lib/geo";
 import { AnimatedNumber } from "./AnimatedNumber";
@@ -13,14 +14,15 @@ const TONES: Record<Tone, string> = {
   zinc: "from-zinc-50 to-white border-zinc-200 text-zinc-700",
 };
 
-function Card({ value, label, tone }: { value: number; label: string; tone: Tone }) {
+// Cada cifra es un enlace a su filtro o sección correspondiente.
+function Card({ value, label, tone, href }: { value: number; label: string; tone: Tone; href: string }) {
   return (
-    <div className={`tap-card rounded-2xl border bg-gradient-to-b p-3 text-center ${TONES[tone]}`}>
+    <Link href={href} className={`tap-card block rounded-2xl border bg-gradient-to-b p-3 text-center ${TONES[tone]}`}>
       <div className="text-2xl font-bold tabular-nums sm:text-3xl">
         <AnimatedNumber value={value} />
       </div>
       <div className="mt-0.5 text-[11px] font-medium leading-tight text-zinc-600 sm:text-xs">{label}</div>
-    </div>
+    </Link>
   );
 }
 
@@ -28,14 +30,14 @@ export function DashboardStats({ stats }: { stats: Stats }) {
   return (
     <section>
       <div className="stagger grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8 sm:gap-3">
-        <Card value={stats.desaparecidos} label="Desaparecidos" tone="rose" />
-        <Card value={stats.enHospitales} label="En hospitales" tone="amber" />
-        <Card value={stats.aSalvo} label="A salvo" tone="emerald" />
-        <Card value={stats.ninos} label="Niños" tone="sky" />
-        <Card value={stats.fallecidos} label="Fallecidos" tone="zinc" />
-        <Card value={stats.denuncias} label="Denuncias" tone="violet" />
-        <Card value={stats.necesidades} label="Necesidades" tone="amber" />
-        <Card value={stats.voluntarios} label="Ofrecen ayuda" tone="emerald" />
+        <Card value={stats.desaparecidos} label="Desaparecidos" tone="rose" href="/?status=por_localizar" />
+        <Card value={stats.enHospitales} label="En hospitales" tone="amber" href="/?status=hospitalizado" />
+        <Card value={stats.aSalvo} label="A salvo" tone="emerald" href="/?status=localizado" />
+        <Card value={stats.ninos} label="Niños" tone="sky" href="/?maxAge=11" />
+        <Card value={stats.fallecidos} label="Fallecidos" tone="zinc" href="/?status=fallecido" />
+        <Card value={stats.denuncias} label="Denuncias" tone="violet" href="/denuncias" />
+        <Card value={stats.necesidades} label="Necesidades" tone="amber" href="/comunidad?type=necesito" />
+        <Card value={stats.voluntarios} label="Ofrecen ayuda" tone="emerald" href="/voluntarios" />
       </div>
 
       {/* Cifras del sismo (fuentes públicas, preliminar) */}

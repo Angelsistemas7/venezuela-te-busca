@@ -144,6 +144,9 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           </div>
         )}
 
+        {/* Vista plana: solo con búsqueda/filtro activo o en "¿La reconoces?".
+            En "Se busca" limpio, las secciones por edad (arriba) hacen de listado. */}
+        {!(showExtras) && (
         <div className="border-t border-zinc-100 pt-6">
           <h2 className="mb-3 font-bold text-zinc-900">
             {hasActiveQuery
@@ -183,6 +186,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
             </>
           )}
         </div>
+        )}
       </div>
     </div>
   );
