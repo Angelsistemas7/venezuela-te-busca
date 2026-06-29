@@ -11,6 +11,7 @@ import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
 import { ManageLinkBox } from "./ManageLinkBox";
+import { LocationPicker } from "./map/LocationPicker";
 
 // Intención de la publicación: define dónde aparece y cómo se pide la info.
 //  • "search"   → Busco a esta persona (tengo sus datos, no sé dónde está).
@@ -269,6 +270,13 @@ export function RegisterPersonButton() {
                 name="locationText"
                 placeholder={isSighting ? "Hospital Vargas, sala de emergencias" : "Macuto, edificio Caribe, sector..."}
               />
+            </Field>
+
+            <Field
+              label={isSighting ? "Señala en el mapa dónde la viste" : "Señala el lugar en el mapa (opcional)"}
+              hint="Toca el mapa o usa tu GPS. Ayuda a ubicarla con precisión."
+            >
+              <LocationPicker />
             </Field>
 
             {isSighting && (

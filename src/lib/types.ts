@@ -75,6 +75,9 @@ export interface Person {
   estado: Estado | null;
   /** Texto libre de ubicación: municipio, sector, edificio, referencia. */
   locationText: string;
+  /** Coordenada exacta donde fue vista/encontrada (mapa o GPS). Ausente/null si solo texto. */
+  lat?: number | null;
+  lng?: number | null;
   /** Ropa que vestía, señas particulares, contexto de la desaparición. */
   description: string;
   photoUrl: string | null;
@@ -255,6 +258,9 @@ export interface Hospital {
   name: string;
   estado: Estado | null;
   locationText: string;
+  /** Coordenada exacta marcada en el mapa (o por GPS). Ausente/null si solo texto. */
+  lat?: number | null;
+  lng?: number | null;
   status: HospitalStatus;
   /** Especialidades que puede atender (trauma, cirugía, pediatría...). */
   specialties: string[];

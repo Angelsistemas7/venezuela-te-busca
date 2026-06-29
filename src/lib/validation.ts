@@ -40,6 +40,8 @@ export const personSchema = z
     gender: z.enum(["masculino", "femenino", "otro"]).optional(),
     estado: estadoEnum.optional(),
     locationText: z.string().trim().max(160).optional().or(z.literal("")),
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
     description: z.string().trim().max(800).optional().or(z.literal("")),
     isUnidentified: z.boolean().default(false),
     // Solo aplica a avistamientos ("¿La reconoces?"): la persona ya está ubicada.
@@ -131,6 +133,8 @@ export const hospitalSchema = z.object({
   name: z.string().trim().min(2, "Nombre del hospital obligatorio").max(140),
   estado: estadoEnum.optional(),
   locationText: z.string().trim().max(160).optional().or(z.literal("")),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
   status: z.enum(["operativo", "saturado", "lleno", "cerrado"]),
   specialties: z.string().trim().max(300).optional().or(z.literal("")), // separadas por coma
   needsText: z.string().trim().max(600).optional().or(z.literal("")),

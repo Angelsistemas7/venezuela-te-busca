@@ -8,6 +8,7 @@ import { registerHospitalAction, type ActionResult } from "@/app/actions";
 import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
+import { LocationPicker } from "./map/LocationPicker";
 
 const STATUSES = Object.keys(HOSPITAL_STATUS_LABEL) as HospitalStatus[];
 
@@ -99,6 +100,10 @@ export function RegisterHospitalButton() {
 
             <Field label="Ubicación / sector" htmlFor="locationText">
               <Input id="locationText" name="locationText" placeholder="Catia la Mar, La Guaira" />
+            </Field>
+
+            <Field label="Señala el hospital en el mapa" hint="Toca el mapa o usa tu GPS para ubicarlo exacto.">
+              <LocationPicker />
             </Field>
 
             <Field

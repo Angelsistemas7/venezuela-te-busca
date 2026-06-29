@@ -63,6 +63,16 @@ export type NeedMarker = {
   directionsHref: string;
   href: string;
 };
+/** Persona con coordenada exacta (vista/encontrada), para pinearla en el mapa. */
+export type PersonMarker = {
+  id: string;
+  name: string;
+  statusLabel: string;
+  unidentified: boolean;
+  lat: number;
+  lng: number;
+  href: string;
+};
 /** Alguien que ofrece ayuda (voluntario o post "ofrezco"), anclado a su ubicación. */
 export type HelpMarker = {
   id: string;
@@ -88,7 +98,7 @@ function zoneIcon(count: number) {
   });
 }
 
-function pinIcon(kind: "aid" | "march" | "need" | "help", emoji: string) {
+function pinIcon(kind: "aid" | "march" | "need" | "help" | "person", emoji: string) {
   return L.divIcon({
     className: "",
     html: `<div class="pin-marker pin-${kind}"><span>${emoji}</span></div>`,
@@ -139,6 +149,7 @@ export default function MapView({
   rescues,
   needs,
   helps,
+  persons,
   epicenter,
   center,
   zoom = 9,
@@ -150,6 +161,7 @@ export default function MapView({
   rescues: RescueMarker[];
   needs: NeedMarker[];
   helps: HelpMarker[];
+  persons: PersonMarker[];
   epicenter?: [number, number] | null;
   center: [number, number];
   zoom?: number;
@@ -244,6 +256,22 @@ export default function MapView({
                   </a>
                   <br />
                   <a href={h.href} style={popupLink}>Ver más →</a>
+                </Popup>
+              </Marker>
+            ))}
+          </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="👤 Personas vistas">
+          <LayerGroup>
+            {persons.map((p) => (
+              <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon("person", "👤")} zIndexOffset={400}>
+                <Popup>
+                  <strong>{p.unidentified ? "👤 Sin identificar" : p.name}</strong>
+                  <br />
+                  {p.statusLabel}
+                  <br />
+                  <a href={p.href} style={popupLink}>Ver ficha →</a>
                 </Popup>
               </Marker>
             ))}

@@ -447,6 +447,10 @@ create index if not exists idx_hospitals_user_id  on hospitals(user_id);
 -- (marcada en el mapa o por GPS). null si solo se dio la ubicación en texto.
 alter table aid_points add column if not exists lat double precision;
 alter table aid_points add column if not exists lng double precision;
+alter table hospitals  add column if not exists lat double precision;
+alter table hospitals  add column if not exists lng double precision;
+alter table persons    add column if not exists lat double precision;
+alter table persons    add column if not exists lng double precision;
 
 -- Migración para bases ya creadas: el "visto bueno" del admin a hospitales.
 -- (En instalaciones nuevas ya viene en el create table de hospitals.)

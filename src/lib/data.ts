@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getSupabase, getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { getCurrentUser } from "./auth";
 import {
@@ -133,6 +134,8 @@ function rowToPerson(r: any): Person {
     gender: r.gender,
     estado: r.estado,
     locationText: r.location_text ?? "",
+    lat: r.lat ?? null,
+    lng: r.lng ?? null,
     description: r.description ?? "",
     photoUrl: r.photo_url,
     status: r.status,
@@ -325,7 +328,14 @@ export interface DashboardStats {
   voluntarios: number; // posts tipo "ofrezco" (ofrecimientos de ayuda)
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+// Cifras del panel: consulta agregada pesada que se ve en CADA visita al inicio.
+// Cacheada 60s (igual para todos) para no golpear Supabase en cada carga: con
+// mucha gente a la vez, esto reduce drásticamente la carga. 60s de retraso en un
+// contador es aceptable.
+export const getDashboardStats = unstable_cache(getDashboardStatsImpl, ["dashboard-stats"], {
+  revalidate: 60,
+});
+async function getDashboardStatsImpl(): Promise<DashboardStats> {
   const sb = getSupabase();
   if (!sb) {
     const p = mem.persons;
@@ -365,7 +375,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 /** Personas que estaban desaparecidas y ya fueron ubicadas (con vida u hospital). */
-export async function getRecentlyLocated(limit = 12): Promise<Person[]> {
+// "Localizados recientemente" (inicio): cacheado 60s, es público e igual para
+// todos. 60s de retraso en este listado de esperanza es imperceptible.
+export const getRecentlyLocated = unstable_cache(getRecentlyLocatedImpl, ["recently-located"], {
+  revalidate: 60,
+});
+async function getRecentlyLocatedImpl(limit = 12): Promise<Person[]> {
   const sb = getSupabase();
   if (!sb) {
     return mem.persons
@@ -378,6 +393,28 @@ export async function getRecentlyLocated(limit = 12): Promise<Person[]> {
     .select("*")
     .in("status", ["localizado", "hospitalizado"])
     .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map(rowToPerson);
+}
+
+/**
+ * Personas con coordenada exacta marcada (para pinearlas en el mapa). Sobre todo
+ * avistamientos de "¿La reconoces?" donde alguien señaló dónde la vio.
+ */
+export async function getPersonsWithLocation(limit = 200): Promise<Person[]> {
+  const sb = getSupabase();
+  if (!sb) {
+    return mem.persons
+      .filter((p) => p.lat != null && p.lng != null)
+      .slice(0, limit);
+  }
+  const { data, error } = await sb
+    .from("persons")
+    .select("*")
+    .not("lat", "is", null)
+    .not("lng", "is", null)
+    .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
   return (data ?? []).map(rowToPerson);
@@ -419,6 +456,8 @@ export async function createPerson(
       gender: input.gender ?? null,
       estado: input.estado ?? null,
       locationText: input.locationText || "",
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       description: input.description || "",
       photoUrl,
       status,
@@ -447,6 +486,8 @@ export async function createPerson(
       gender: input.gender ?? null,
       estado: input.estado ?? null,
       location_text: input.locationText || "",
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       description: input.description || "",
       photo_url: photoUrl,
       status,
@@ -566,6 +607,8 @@ export async function updatePersonFields(id: string, input: PersonInput): Promis
       person.gender = input.gender ?? null;
       person.estado = input.estado ?? null;
       person.locationText = input.locationText || "";
+      if (input.lat !== undefined) person.lat = input.lat;
+      if (input.lng !== undefined) person.lng = input.lng;
       person.description = input.description || "";
       person.contactName = input.contactName || null;
       person.contactPhone = input.contactPhone || null;
@@ -583,6 +626,8 @@ export async function updatePersonFields(id: string, input: PersonInput): Promis
       gender: input.gender ?? null,
       estado: input.estado ?? null,
       location_text: input.locationText || "",
+      ...(input.lat !== undefined ? { lat: input.lat } : {}),
+      ...(input.lng !== undefined ? { lng: input.lng } : {}),
       description: input.description || "",
       contact_name: input.contactName || null,
       contact_phone: input.contactPhone || null,
@@ -1484,7 +1529,12 @@ export interface EstadoBreakdown {
 }
 
 /** Desglose por estado y por estado de localización (para el mapa). */
-export async function getEstadoBreakdown(): Promise<Record<string, EstadoBreakdown>> {
+// Desglose por estado para el mapa (cuenta todas las personas por región).
+// También cacheado 60s: es público e igual para todos.
+export const getEstadoBreakdown = unstable_cache(getEstadoBreakdownImpl, ["estado-breakdown"], {
+  revalidate: 60,
+});
+async function getEstadoBreakdownImpl(): Promise<Record<string, EstadoBreakdown>> {
   const tally = (rows: { estado: string | null; status: PersonStatus }[]) => {
     const out: Record<string, EstadoBreakdown> = {};
     for (const r of rows) {
@@ -2269,6 +2319,8 @@ function rowToHospital(r: any): Hospital {
     name: r.name,
     estado: r.estado,
     locationText: r.location_text ?? "",
+    lat: r.lat ?? null,
+    lng: r.lng ?? null,
     status: r.status,
     specialties: r.specialties ?? [],
     needsText: r.needs_text ?? "",
@@ -2332,6 +2384,8 @@ export async function createHospital(
       name: input.name,
       estado: input.estado ?? null,
       locationText: input.locationText || "",
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       status: input.status,
       specialties,
       needsText: input.needsText || "",
@@ -2353,6 +2407,8 @@ export async function createHospital(
       name: input.name,
       estado: input.estado ?? null,
       location_text: input.locationText || "",
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       status: input.status,
       specialties,
       needs_text: input.needsText || "",

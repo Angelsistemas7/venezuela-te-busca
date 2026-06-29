@@ -8,6 +8,7 @@ import type {
   HospitalMarker,
   MarchMarker,
   NeedMarker,
+  PersonMarker,
   RescueMarker,
   Zone,
 } from "./MapView";
@@ -30,6 +31,7 @@ export function CrisisMap({
   rescues,
   needs,
   helps,
+  persons,
   epicenter,
   center,
   zoom,
@@ -41,6 +43,7 @@ export function CrisisMap({
   rescues: RescueMarker[];
   needs: NeedMarker[];
   helps: HelpMarker[];
+  persons: PersonMarker[];
   epicenter?: [number, number] | null;
   center: [number, number];
   zoom?: number;
@@ -56,6 +59,7 @@ export function CrisisMap({
           rescues={rescues}
           needs={needs}
           helps={helps}
+          persons={persons}
           epicenter={epicenter}
           center={center}
           zoom={zoom}
@@ -79,6 +83,10 @@ export function CrisisMap({
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-emerald-600 shadow" />
           🤲 Puedo ayudar
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-violet-500 shadow" />
+          👤 Persona vista
         </span>
         <span className="flex items-center gap-1.5">
           <span className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-red-600 text-[9px] shadow">

@@ -5,12 +5,14 @@ import {
   getEstadoBreakdown,
   getHospitals,
   getMarches,
+  getPersonsWithLocation,
   getPosts,
   getVolunteers,
 } from "@/lib/data";
 import {
   AID_POINT_TYPE_LABEL,
   HOSPITAL_STATUS_LABEL,
+  PERSON_STATUS_LABEL,
   VOLUNTEER_TYPE_EMOJI,
   VOLUNTEER_TYPE_LABEL,
   type AidPointType,
@@ -27,6 +29,7 @@ import type {
   HospitalMarker,
   MarchMarker,
   NeedMarker,
+  PersonMarker,
   RescueMarker,
   Zone,
 } from "@/components/map/MapView";
@@ -51,7 +54,7 @@ const HOSPITAL_COLOR: Record<HospitalStatus, string> = {
 };
 
 export default async function MapaPage() {
-  const [breakdown, aid, marches, hospitals, rescuePosts, needPosts, offerPosts, volunteers, quakes] =
+  const [breakdown, aid, marches, hospitals, rescuePosts, needPosts, offerPosts, volunteers, mappablePersons, quakes] =
     await Promise.all([
       getEstadoBreakdown(),
       getAidPoints(),
@@ -61,6 +64,8 @@ export default async function MapaPage() {
       getPosts({ type: "necesito" }),
       getPosts({ type: "ofrezco" }),
       getVolunteers(),
+      // Si la columna lat aún no existe (esquema sin migrar), no rompemos el mapa.
+      getPersonsWithLocation().catch(() => []),
       getRecentQuakes(),
     ]);
 
@@ -117,7 +122,8 @@ export default async function MapaPage() {
 
   const hospitalMarkers: HospitalMarker[] = hospitals
     .map((h) => {
-      const coord = geocode(h.locationText, h.estado, h.id);
+      const coord: [number, number] | null =
+        h.lat != null && h.lng != null ? [h.lat, h.lng] : geocode(h.locationText, h.estado, h.id);
       if (!coord) return null;
       return {
         id: h.id,
@@ -211,6 +217,19 @@ export default async function MapaPage() {
       } satisfies HelpMarker;
     }),
   ].filter((x): x is HelpMarker => x !== null);
+
+  // Capa "Personas vistas": personas con coordenada exacta marcada.
+  const personMarkers: PersonMarker[] = mappablePersons
+    .filter((p) => p.lat != null && p.lng != null)
+    .map((p) => ({
+      id: p.id,
+      name: `${p.firstName} ${p.lastName}`.trim() || "Sin identificar",
+      statusLabel: PERSON_STATUS_LABEL[p.status],
+      unidentified: p.isUnidentified,
+      lat: p.lat as number,
+      lng: p.lng as number,
+      href: `/persona/${p.id}`,
+    }));
 
   const totalInZones = zones.reduce((s, z) => s + z.count, 0);
 
@@ -323,6 +342,7 @@ export default async function MapaPage() {
         rescues={rescues}
         needs={needs}
         helps={helps}
+        persons={personMarkers}
         epicenter={EPICENTER}
         center={[10.52, -67.7]}
         zoom={8}

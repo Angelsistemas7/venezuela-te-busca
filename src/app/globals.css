@@ -153,6 +153,9 @@ body {
 .pin-help {
   background: #059669;
 }
+.pin-person {
+  background: #8b5cf6;
+}
 
 /* Alerta de rescate urgente: pin rojo con doble pulso intenso. */
 .rescue-marker {
