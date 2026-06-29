@@ -54,11 +54,11 @@ export function MobileNav() {
     <>
       {moreOpen && (
         <div
-          className="animate-backdrop fixed inset-0 z-40 bg-zinc-900/40 backdrop-blur-sm md:hidden"
+          className="animate-backdrop fixed inset-0 z-50 bg-zinc-900/40 backdrop-blur-sm md:hidden"
           onClick={() => setMoreOpen(false)}
         >
           <div
-            className="animate-sheet absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-zinc-200 bg-white p-3 pb-6"
+            className="animate-sheet absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-zinc-200 bg-white p-3 pb-24"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between px-2">

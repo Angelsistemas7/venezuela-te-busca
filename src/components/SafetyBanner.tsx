@@ -14,7 +14,10 @@ export function SafetyBanner() {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(KEY) === "1") setHidden(true);
+    // Se oculta solo 60 s al cerrarla; reaparece al recargar o re-entrar. Es un
+    // mensaje crítico de seguridad: no debe quedar oculto para siempre.
+    const ts = Number(localStorage.getItem(KEY) || 0);
+    setHidden(Date.now() - ts < 60_000);
   }, []);
 
   if (hidden) return null;
@@ -34,7 +37,7 @@ export function SafetyBanner() {
         </p>
         <button
           onClick={() => {
-            localStorage.setItem(KEY, "1");
+            localStorage.setItem(KEY, String(Date.now()));
             setHidden(true);
           }}
           aria-label="Ocultar aviso"

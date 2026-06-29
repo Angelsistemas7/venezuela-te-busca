@@ -60,9 +60,9 @@ export default function EmergenciasPage() {
           <LayoutGrid className="h-5 w-5" />
         </span>
         <span className="flex-1">
-          <span className="block font-semibold text-zinc-900">Plataformas y recursos verificados</span>
+          <span className="block font-semibold text-zinc-900">Otras plataformas y recursos</span>
           <span className="block text-sm text-zinc-500">
-            Otras iniciativas: búsqueda de personas, donaciones, apoyo psicosocial y más.
+            Iniciativas de terceros: búsqueda de personas, donaciones, apoyo psicosocial y más.
           </span>
         </span>
         <ChevronRight className="h-5 w-5 shrink-0 text-zinc-400" />

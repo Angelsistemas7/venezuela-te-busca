@@ -2,9 +2,9 @@ import { ExternalLink, Info, LayoutGrid } from "lucide-react";
 import { RECURSOS } from "@/lib/recursos";
 
 export const metadata = {
-  title: "Plataformas y recursos verificados — Venezuela te busca",
+  title: "Otras plataformas y recursos — Venezuela te busca",
   description:
-    "Directorio de plataformas e iniciativas externas de la respuesta al terremoto: búsqueda de personas, donaciones, apoyo psicosocial, mapas y organismos oficiales.",
+    "Directorio de plataformas e iniciativas de terceros en la respuesta al terremoto: búsqueda de personas, donaciones, apoyo psicosocial, mapas y organismos oficiales.",
 };
 
 export default function RecursosPage() {
@@ -16,7 +16,7 @@ export default function RecursosPage() {
         </span>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-            Plataformas y recursos
+            Otras plataformas y recursos
           </h1>
           <p className="mt-1 text-zinc-500">
             Otras iniciativas de la respuesta al terremoto: búsqueda de personas, donaciones, apoyo

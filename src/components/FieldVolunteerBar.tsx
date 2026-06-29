@@ -11,7 +11,10 @@ export function FieldVolunteerBar() {
   const [hidden, setHidden] = useState(true);
 
   useEffect(() => {
-    setHidden(localStorage.getItem("vtb_hide_fieldvol") === "1");
+    // Se oculta solo 60 s tras cerrarla; luego vuelve a aparecer (al recargar
+    // o re-entrar). No es un cierre permanente.
+    const ts = Number(localStorage.getItem("vtb_hide_fieldvol") || 0);
+    setHidden(Date.now() - ts < 60_000);
   }, []);
 
   if (hidden) return null;
@@ -33,7 +36,7 @@ export function FieldVolunteerBar() {
       </Link>
       <button
         onClick={() => {
-          localStorage.setItem("vtb_hide_fieldvol", "1");
+          localStorage.setItem("vtb_hide_fieldvol", String(Date.now()));
           setHidden(true);
         }}
         aria-label="Cerrar aviso"

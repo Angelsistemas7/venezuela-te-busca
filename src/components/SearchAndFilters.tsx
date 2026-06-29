@@ -19,11 +19,11 @@ const STATUS_CHIPS: { value: PersonStatus | "all"; label: string }[] = [
 // niños perdidos primero, que es lo más urgente.
 const AGE_CHIPS: { label: string; min: string; max: string }[] = [
   { label: "Todas las edades", min: "", max: "" },
-  { label: "👶 Niños (0–11)", min: "0", max: "11" },
+  { label: "👶 Niños y niñas (0–11)", min: "0", max: "11" },
   { label: "🧒 Adolescentes (12–17)", min: "12", max: "17" },
   { label: "🧑 Jóvenes (18–29)", min: "18", max: "29" },
   { label: "🧔 Adultos (30–59)", min: "30", max: "59" },
-  { label: "🧓 Mayores (60+)", min: "60", max: "" },
+  { label: "🧓 Adultos mayores (60+)", min: "60", max: "" },
 ];
 
 export function SearchAndFilters({ unidentified = false }: { unidentified?: boolean } = {}) {
