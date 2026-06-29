@@ -118,14 +118,6 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
       <DashboardStats stats={stats} />
 
-      {showExtras && (
-        <p className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-sky-800">
-          🔎 <strong>Asistente:</strong> escribe el nombre de quien buscas en el buscador y te decimos
-          si aparece <strong>desaparecido</strong>, <strong>en un hospital</strong> o{" "}
-          <strong>a salvo</strong>.
-        </p>
-      )}
-
       <div className="mt-8 flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">

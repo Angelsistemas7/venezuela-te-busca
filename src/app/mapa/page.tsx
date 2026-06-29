@@ -286,7 +286,7 @@ export default async function MapaPage() {
             Alertas de rescate activas ({rescuePosts.length})
           </h2>
           <ul className="mt-3 space-y-2">
-            {rescuePosts.slice(0, 4).map((p) => (
+            {rescuePosts.slice(0, 1).map((p) => (
               <li key={p.id} className="rounded-xl border border-red-200 bg-white p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {p.locationText && (

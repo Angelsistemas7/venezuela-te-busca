@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { DashboardStats as Stats } from "@/lib/data";
-import { QUAKE_INFO } from "@/lib/geo";
 import { AnimatedNumber } from "./AnimatedNumber";
 
 type Tone = "rose" | "amber" | "emerald" | "sky" | "violet" | "zinc";
@@ -38,21 +37,6 @@ export function DashboardStats({ stats }: { stats: Stats }) {
         <Card value={stats.denuncias} label="Denuncias" tone="violet" href="/denuncias" />
         <Card value={stats.necesidades} label="Necesidades" tone="amber" href="/comunidad?type=necesito" />
         <Card value={stats.voluntarios} label="Ofrecen ayuda" tone="emerald" href="/voluntarios" />
-      </div>
-
-      {/* Cifras del sismo (fuentes públicas, preliminar) */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-600">
-        <span className="font-semibold text-zinc-700">Cifras del sismo (preliminar):</span>
-        <span>
-          Magnitud <strong>M {QUAKE_INFO.magnitude}</strong>
-        </span>
-        <span>
-          Heridos <strong>+{QUAKE_INFO.injured.toLocaleString("es-VE")}</strong>
-        </span>
-        <span>
-          Fallecidos <strong>{QUAKE_INFO.deaths.toLocaleString("es-VE")}</strong>
-        </span>
-        <span className="text-xs text-zinc-400">Fuentes: {QUAKE_INFO.sourceName}</span>
       </div>
     </section>
   );

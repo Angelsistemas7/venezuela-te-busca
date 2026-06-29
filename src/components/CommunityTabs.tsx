@@ -18,7 +18,7 @@ const TABS = [
 export function CommunityTabs() {
   const pathname = usePathname();
   return (
-    <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto pb-1">
+    <div className="no-scrollbar mb-6 flex gap-1.5 overflow-x-auto pb-1">
       {TABS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
@@ -27,7 +27,7 @@ export function CommunityTabs() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition",
+              "flex items-center gap-1 whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition",
               active
                 ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50",

@@ -23,7 +23,7 @@ const SECTIONS: SectionDef[] = [
     subtitle: "Los últimos casos publicados — ver todos los registros",
     icon: Clock,
     href: "/?sort=recent",
-    query: { sort: "recent", pageSize: 6 },
+    query: { sort: "recent", pageSize: 12 },
   },
   {
     key: "ninos",
@@ -31,7 +31,7 @@ const SECTIONS: SectionDef[] = [
     subtitle: "De 0 a 11 años",
     icon: Baby,
     href: "/?maxAge=11",
-    query: { maxAge: 11, sort: "recent", pageSize: 6 },
+    query: { maxAge: 11, sort: "recent", pageSize: 12 },
   },
   {
     key: "adolescentes",
@@ -39,7 +39,7 @@ const SECTIONS: SectionDef[] = [
     subtitle: "De 12 a 17 años",
     icon: GraduationCap,
     href: "/?minAge=12&maxAge=17",
-    query: { minAge: 12, maxAge: 17, sort: "recent", pageSize: 6 },
+    query: { minAge: 12, maxAge: 17, sort: "recent", pageSize: 12 },
   },
   {
     key: "jovenes",
@@ -47,7 +47,7 @@ const SECTIONS: SectionDef[] = [
     subtitle: "De 18 a 29 años",
     icon: User,
     href: "/?minAge=18&maxAge=29",
-    query: { minAge: 18, maxAge: 29, sort: "recent", pageSize: 6 },
+    query: { minAge: 18, maxAge: 29, sort: "recent", pageSize: 12 },
   },
   {
     key: "adultos",
@@ -55,7 +55,7 @@ const SECTIONS: SectionDef[] = [
     subtitle: "De 30 a 59 años",
     icon: Users,
     href: "/?minAge=30&maxAge=59",
-    query: { minAge: 30, maxAge: 59, sort: "recent", pageSize: 6 },
+    query: { minAge: 30, maxAge: 59, sort: "recent", pageSize: 12 },
   },
   {
     key: "mayores",
@@ -63,7 +63,7 @@ const SECTIONS: SectionDef[] = [
     subtitle: "60 años o más",
     icon: PersonStanding,
     href: "/?minAge=60",
-    query: { minAge: 60, sort: "recent", pageSize: 6 },
+    query: { minAge: 60, sort: "recent", pageSize: 12 },
   },
 ];
 
@@ -92,9 +92,16 @@ async function Section({ def }: { def: SectionDef }) {
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {/* Carrusel horizontal: ~2 tarjetas visibles en móvil; el resto se ve
+          deslizando hacia la derecha. "Ver todos" lleva al listado completo. */}
+      <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
         {items.map((person) => (
-          <PersonCard key={person.id} person={person} />
+          <div
+            key={person.id}
+            className="w-[46%] shrink-0 snap-start sm:w-44"
+          >
+            <PersonCard person={person} />
+          </div>
         ))}
       </div>
     </section>

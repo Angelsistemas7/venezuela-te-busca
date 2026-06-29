@@ -34,7 +34,7 @@ export const ESTADO_COORDS: Record<string, LatLng> = {
 
 // Sectores conocidos (sobre todo de La Guaira, la zona más afectada).
 export const SECTOR_COORDS: Record<string, LatLng> = {
-  macuto: [10.605, -66.89],
+  macuto: [10.601, -66.888],
   "catia la mar": [10.595, -67.025],
   catialamar: [10.595, -67.025],
   maiquetía: [10.598, -66.975],
@@ -105,14 +105,17 @@ export const QUAKE_INFO = {
 
 /**
  * Pequeño desplazamiento determinista para que los puntos no se solapen.
- * Muy reducido (~±0.5 km): en la franja costera de La Guaira un desplazamiento
- * grande tiraba los marcadores al mar. Mejor que se solapen un poco a que floten.
+ * Muy reducido (~0.5 km). En la franja costera de La Guaira el mar está al
+ * NORTE, así que la latitud se desplaza SOLO hacia el sur (tierra adentro):
+ * un desplazamiento al norte tiraba los marcadores al agua (p. ej. Macuto).
  */
 function jitter(coord: LatLng, seed: string): LatLng {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  // Longitud: ±0.005° (~0.5 km) a ambos lados.
   const dx = ((h % 100) / 100 - 0.5) * 0.01;
-  const dy = (((h >> 8) % 100) / 100 - 0.5) * 0.01;
+  // Latitud: solo hacia el sur (nunca sube hacia el mar).
+  const dy = -(((h >> 8) % 100) / 100) * 0.006;
   return [coord[0] + dy, coord[1] + dx];
 }
 
