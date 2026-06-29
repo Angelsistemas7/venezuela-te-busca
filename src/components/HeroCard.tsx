@@ -14,7 +14,7 @@ export function HeroCard({ hero, comments }: { hero: Hero; comments: Comment[] }
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-white p-4 shadow-sm sm:p-5",
+        "tap-card rounded-2xl border bg-white p-4 shadow-sm sm:p-5",
         hero.verified ? "border-zinc-200" : "border-dashed border-amber-300",
       )}
     >

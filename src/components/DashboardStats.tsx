@@ -15,7 +15,7 @@ const TONES: Record<Tone, string> = {
 
 function Card({ value, label, tone }: { value: number; label: string; tone: Tone }) {
   return (
-    <div className={`rounded-2xl border bg-gradient-to-b p-3 text-center ${TONES[tone]}`}>
+    <div className={`tap-card rounded-2xl border bg-gradient-to-b p-3 text-center ${TONES[tone]}`}>
       <div className="text-2xl font-bold tabular-nums sm:text-3xl">
         <AnimatedNumber value={value} />
       </div>
@@ -27,7 +27,7 @@ function Card({ value, label, tone }: { value: number; label: string; tone: Tone
 export function DashboardStats({ stats }: { stats: Stats }) {
   return (
     <section>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8 sm:gap-3">
+      <div className="stagger grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8 sm:gap-3">
         <Card value={stats.desaparecidos} label="Desaparecidos" tone="rose" />
         <Card value={stats.enHospitales} label="En hospitales" tone="amber" />
         <Card value={stats.aSalvo} label="A salvo" tone="emerald" />

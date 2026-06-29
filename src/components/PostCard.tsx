@@ -46,7 +46,7 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-white p-4 shadow-sm sm:p-5",
+        "tap-card rounded-2xl border bg-white p-4 shadow-sm sm:p-5",
         urgent ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200",
       )}
     >

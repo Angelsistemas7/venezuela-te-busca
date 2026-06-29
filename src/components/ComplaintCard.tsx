@@ -24,7 +24,7 @@ export function ComplaintCard({ complaint, comments }: { complaint: Complaint; c
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-white p-4 shadow-sm sm:p-5",
+        "tap-card rounded-2xl border bg-white p-4 shadow-sm sm:p-5",
         sensitive ? "border-rose-200" : "border-zinc-200",
       )}
     >

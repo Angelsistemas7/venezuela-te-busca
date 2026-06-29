@@ -23,7 +23,7 @@ export function NewsItemCard({
   const [pending, startTransition] = useTransition();
 
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+    <article className="tap-card rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex items-start gap-3">
         {item.photoUrl && (
           // eslint-disable-next-line @next/next/no-img-element

@@ -20,7 +20,7 @@ export function AidPointCard({ point }: { point: AidPoint }) {
   return (
     <article
       className={cn(
-        "relative flex flex-col overflow-hidden rounded-2xl border bg-white transition",
+        "tap-card relative flex flex-col overflow-hidden rounded-2xl border bg-white",
         point.available ? "border-zinc-200" : "border-zinc-200 opacity-75",
       )}
     >
