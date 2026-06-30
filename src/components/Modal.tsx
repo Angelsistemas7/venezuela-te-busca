@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export function Modal({
@@ -18,6 +19,13 @@ export function Modal({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  // Montamos en un portal a <body> para que el modal NO herede el "containing
+  // block" de un ancestro con backdrop-blur/transform (p. ej. el header). Si no,
+  // su `position: fixed` se mide contra el header y el modal sale descolocado y
+  // cortado en móvil. El portal lo ancla a la pantalla completa.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -29,9 +37,9 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       className="animate-backdrop fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
@@ -65,6 +73,7 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

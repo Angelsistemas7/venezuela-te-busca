@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import {
   LayerGroup,
-  LayersControl,
   MapContainer,
   Marker,
   Popup,
@@ -11,6 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { cn } from "@/lib/utils";
 
 export type Zone = {
   key: string;
@@ -166,13 +167,59 @@ export default function MapView({
   center: [number, number];
   zoom?: number;
 }) {
+  // Filtros de capas como chips horizontales (igual que en "Se busca"): ocupan
+  // una sola línea y ruedan. Todo se enciende por defecto. Es estado del cliente
+  // y CSS: no consulta al servidor ni "consume" aunque haya muchos usuarios.
+  const [on, setOn] = useState({
+    needs: true,
+    helps: true,
+    persons: true,
+    rescues: true,
+    aid: true,
+    hospitals: true,
+    marches: true,
+    zones: true,
+  });
+  type LayerKey = keyof typeof on;
+  const LAYERS: { key: LayerKey; label: string }[] = [
+    { key: "needs", label: "🆘 Necesito ayuda" },
+    { key: "helps", label: "🤲 Puedo ayudar" },
+    { key: "persons", label: "👤 Personas" },
+    { key: "rescues", label: "🚨 Rescates" },
+    { key: "aid", label: "📦 Puntos" },
+    { key: "hospitals", label: "🏥 Hospitales" },
+    { key: "marches", label: "🚐 Caravanas" },
+    { key: "zones", label: "🔴 Zonas" },
+  ];
+  const toggle = (k: LayerKey) => setOn((s) => ({ ...s, [k]: !s[k] }));
+
   return (
-    <MapContainer
-      center={center}
-      zoom={zoom}
-      scrollWheelZoom
-      className="h-[68vh] min-h-[460px] w-full rounded-2xl"
-    >
+    <div className="flex h-[68vh] min-h-[460px] w-full flex-col">
+      <div className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-b border-zinc-200 bg-white/95 p-2">
+        {LAYERS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => toggle(key)}
+            aria-pressed={on[key]}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition",
+              on[key]
+                ? "border-zinc-900 bg-zinc-900 text-white"
+                : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        scrollWheelZoom
+        className="min-h-0 w-full flex-1"
+      >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -191,9 +238,8 @@ export default function MapView({
         </Marker>
       )}
 
-      <LayersControl position="topright" collapsed={false}>
-        <LayersControl.Overlay checked name="🆘 Necesito ayuda">
-          <LayerGroup>
+      {on.needs && (
+        <LayerGroup>
             {needs.map((n) => (
               <Marker key={n.id} position={[n.lat, n.lng]} icon={pinIcon("need", "🆘")} zIndexOffset={600}>
                 <Popup>
@@ -226,10 +272,10 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
+      )}
 
-        <LayersControl.Overlay checked name="🤲 Puedo ayudar">
-          <LayerGroup>
+      {on.helps && (
+        <LayerGroup>
             {helps.map((h) => (
               <Marker key={h.id} position={[h.lat, h.lng]} icon={pinIcon("help", h.emoji)} zIndexOffset={500}>
                 <Popup>
@@ -260,10 +306,10 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
+      )}
 
-        <LayersControl.Overlay checked name="👤 Personas vistas">
-          <LayerGroup>
+      {on.persons && (
+        <LayerGroup>
             {persons.map((p) => (
               <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon("person", "👤")} zIndexOffset={400}>
                 <Popup>
@@ -276,10 +322,10 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
+      )}
 
-        <LayersControl.Overlay checked name="🚨 Rescates urgentes">
-          <LayerGroup>
+      {on.rescues && (
+        <LayerGroup>
             {rescues.map((r) => (
               <Marker key={r.id} position={[r.lat, r.lng]} icon={rescueIcon()} zIndexOffset={1000}>
                 <Popup>
@@ -300,10 +346,10 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
+      )}
 
-        <LayersControl.Overlay checked name="📦 Puntos de ayuda">
-          <LayerGroup>
+      {on.aid && (
+        <LayerGroup>
             {aidPoints.map((a) => (
               <Marker key={a.id} position={[a.lat, a.lng]} icon={pinIcon("aid", a.emoji)}>
                 <Popup>
@@ -317,10 +363,10 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
+      )}
 
-        <LayersControl.Overlay checked name="🏥 Hospitales">
-          <LayerGroup>
+      {on.hospitals && (
+        <LayerGroup>
             {hospitals.map((h) => (
               <Marker key={h.id} position={[h.lat, h.lng]} icon={hospitalIcon(h.color)}>
                 <Popup>
@@ -333,10 +379,10 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
+      )}
 
-        <LayersControl.Overlay checked name="🚐 Caravanas">
-          <LayerGroup>
+      {on.marches && (
+        <LayerGroup>
             {marches.map((m) => (
               <Marker key={m.id} position={[m.lat, m.lng]} icon={pinIcon("march", "🚐")}>
                 <Popup>
@@ -349,10 +395,10 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
+      )}
 
-        <LayersControl.Overlay checked name="🔴 Zonas afectadas">
-          <LayerGroup>
+      {on.zones && (
+        <LayerGroup>
             {zones.map((z) => (
               <Marker key={z.key} position={[z.lat, z.lng]} icon={zoneIcon(z.count)}>
                 <Tooltip direction="top" offset={[0, -8]} opacity={1}>
@@ -380,8 +426,8 @@ export default function MapView({
               </Marker>
             ))}
           </LayerGroup>
-        </LayersControl.Overlay>
-      </LayersControl>
-    </MapContainer>
+      )}
+      </MapContainer>
+    </div>
   );
 }

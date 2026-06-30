@@ -67,8 +67,8 @@ export function CrisisMap({
       </div>
 
       <p className="text-xs text-zinc-500">
-        Usa el panel de capas (arriba a la derecha del mapa) para mostrar u ocultar
-        cada tipo: 🆘 Necesito ayuda, 🤲 Puedo ayudar, rescates, puntos, hospitales y más.
+        Toca los filtros de arriba del mapa para mostrar u ocultar cada tipo:
+        🆘 Necesito ayuda, 🤲 Puedo ayudar, rescates, puntos, hospitales y más.
       </p>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600">
@@ -98,7 +98,7 @@ export function CrisisMap({
           <span className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-rose-600 text-[8px] font-bold text-white shadow">
             N
           </span>
-          Zona afectada (pasa por encima para ver el conteo)
+          Zona afectada
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-brand-500 shadow" />

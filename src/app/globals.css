@@ -121,6 +121,31 @@ body {
   .animate-marquee { animation: none; }
 }
 
+/* Revelado al hacer scroll: el elemento "sale" suavemente a medida que entra en
+   la pantalla. Usa animaciones guiadas por scroll (animation-timeline: view()),
+   100% CSS y en GPU — no usa JS ni "consume". Solo se activa donde el navegador
+   lo soporta (Chrome/Edge/Android actuales); en el resto el contenido se ve
+   normal desde el inicio. Se apaga con prefers-reduced-motion. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal-up {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 22%;
+    }
+  }
+}
+
 /* Tarjeta interactiva: leve elevación al pasar el cursor (escritorio) y
    "presión" táctil al tocar (móvil). Mejora la sensación sin recargar nada. */
 .tap-card {
