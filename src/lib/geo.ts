@@ -39,7 +39,7 @@ export const SECTOR_COORDS: Record<string, LatLng> = {
   catialamar: [10.595, -67.025],
   maiquetía: [10.598, -66.975],
   maiquetia: [10.598, -66.975],
-  "la guaira": [10.601, -66.931],
+  "la guaira": [10.596, -66.933],
   caraballeda: [10.606, -66.85],
   naiguatá: [10.608, -66.745],
   naiguata: [10.608, -66.745],
@@ -60,7 +60,11 @@ export const SECTOR_COORDS: Record<string, LatLng> = {
   petare: [10.47, -66.8],
   guarenas: [10.47, -66.61],
   guatire: [10.47, -66.54],
-  vargas: [10.6, -66.93],
+  // OJO: NO poner "vargas" aquí. Es nombre de muchas calles (p. ej. la dirección
+  // del Hospital Central de Maracay) y mandaba esos puntos a la costa de La Guaira.
+  maracay: [10.25, -67.6],
+  valencia: [10.17, -68.0],
+  "la floresta": [10.25, -67.59],
   // Puntos de acopio en el exterior (diáspora que reúne y envía ayuda).
   cartagena: [10.4, -75.49],
   medellín: [6.25, -75.57],

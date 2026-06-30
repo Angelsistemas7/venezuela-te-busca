@@ -102,6 +102,25 @@ body {
 .stagger > *:nth-child(7) { animation-delay: 0.26s; }
 .stagger > *:nth-child(8) { animation-delay: 0.3s; }
 
+/* Carrusel que se desliza solo (las cifras del inicio en móvil). Es una
+   animación de transform en GPU: no usa JS ni "consume RAM". El contenido va
+   duplicado, así que al llegar a -50% el bucle es perfecto. Se pausa al tocar
+   o pasar el cursor, y se desactiva si el usuario pidió menos movimiento. */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee-x 26s linear infinite;
+}
+.animate-marquee:hover,
+.animate-marquee:active {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none; }
+}
+
 /* Tarjeta interactiva: leve elevación al pasar el cursor (escritorio) y
    "presión" táctil al tocar (móvil). Mejora la sensación sin recargar nada. */
 .tap-card {

@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 
 const MESSAGE =
-  "🆘 El Mundo Te Busca: ayuda a localizar personas desaparecidas y a coordinar ayuda tras el terremoto de Venezuela 2026. Entre más personas vean esta página, más personas pueden estar a salvo. Compártela:";
+  "🆘 *El Mundo Te Busca* — plataforma ciudadana y sin fines de lucro tras el terremoto de Venezuela 2026.\n\n" +
+  "🔍 Reporta y localiza personas desaparecidas\n" +
+  "🏥 Estado de hospitales y refugios\n" +
+  "🤝 Pide u ofrece ayuda: voluntarios y caravanas\n" +
+  "🗺️ Mapa de la emergencia y noticias verificadas\n\n" +
+  "Entre más personas la vean, más vidas se pueden salvar. Compártela:";
 
 function siteUrl() {
   if (typeof window !== "undefined") return window.location.origin;

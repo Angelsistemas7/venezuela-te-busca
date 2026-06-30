@@ -4,6 +4,7 @@ import { getHumanitarianUpdates, getWorldPress } from "@/lib/news";
 import { getRecentQuakes } from "@/lib/usgs";
 import { isAdmin } from "@/lib/admin";
 import { NoticiasTabs } from "@/components/NoticiasTabs";
+import { FeaturedNews } from "@/components/FeaturedNews";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,8 @@ export default async function NoticiasPage() {
           </p>
         </div>
       </div>
+
+      <FeaturedNews />
 
       <NoticiasTabs
         heroes={heroes}

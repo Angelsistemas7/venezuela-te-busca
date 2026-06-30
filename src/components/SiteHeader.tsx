@@ -30,8 +30,10 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="El Mundo Te Busca" className="h-10 w-10 shrink-0 object-contain" />
-          <span className="text-base font-bold tracking-tight text-zinc-900 sm:text-lg">
-            El Mundo Te Busca
+          {/* "El Mundo" encima de "Te Busca": compacto y no se estira en una línea larga. */}
+          <span className="flex flex-col font-bold leading-[1.05] tracking-tight text-zinc-900">
+            <span className="text-sm sm:text-base">El Mundo</span>
+            <span className="text-sm sm:text-base">Te Busca</span>
           </span>
         </Link>
 

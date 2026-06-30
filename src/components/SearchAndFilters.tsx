@@ -87,7 +87,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             placeholder="Buscar nombre, cédula o ubicación"
-            className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-zinc-300 bg-white py-2 pl-10 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
           {searchValue && (
             <button
@@ -125,7 +125,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
             key={chip.value}
             onClick={() => setParams({ status: chip.value })}
             className={cn(
-              "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+              "whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition sm:px-3.5 sm:py-1.5 sm:text-sm",
               status === chip.value
                 ? "border-brand-400 bg-brand-50 text-brand-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -145,7 +145,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
               key={chip.label}
               onClick={() => setParams({ minAge: chip.min || null, maxAge: chip.max || null })}
               className={cn(
-                "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+                "whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition sm:px-3.5 sm:py-1.5 sm:text-sm",
                 active
                   ? "border-sky-400 bg-sky-50 text-sky-700"
                   : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
