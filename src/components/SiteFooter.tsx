@@ -6,8 +6,9 @@ export function SiteFooter() {
     <footer className="mt-16 border-t border-zinc-200 bg-white">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-2">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🌍</span>
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="El Mundo Te Busca" className="h-14 w-14 shrink-0 object-contain" />
             <span className="text-lg font-bold text-zinc-900">El Mundo Te Busca</span>
             <span className="text-xl">🇻🇪</span>
           </div>
@@ -56,29 +57,28 @@ export function SiteFooter() {
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Con el apoyo de
           </p>
-          <div className="mt-5 flex flex-col items-center justify-center gap-8 sm:flex-row sm:items-start sm:gap-14">
+          {/* Dos aliados lado a lado, separados por una línea divisoria. */}
+          <div className="mx-auto mt-5 flex max-w-xl items-stretch justify-center divide-x divide-zinc-200">
             {/* Sentra Labs (patrocinador tecnológico) — enlaza a su sitio. */}
-            <a
-              href="https://sentralabs.co/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-col items-center gap-2 transition hover:opacity-80"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo-light.webp"
-                alt="Sentra Labs"
-                className="h-12 w-auto object-contain"
-              />
-            </a>
+            <div className="flex flex-1 flex-col items-center gap-2 px-4 text-center sm:px-6">
+              <a
+                href="https://sentralabs.co/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:opacity-80"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-light.webp" alt="Sentra Labs" className="h-9 w-auto object-contain" />
+              </a>
+              <p className="text-xs leading-relaxed text-zinc-500">
+                Estudio de desarrollo de software en Cartagena. Convertimos ideas en productos
+                digitales de alto impacto.
+              </p>
+            </div>
             {/* INN Clusion — sin enlace (no tiene sitio), con su descripción. */}
-            <div className="flex max-w-xs flex-col items-center gap-2 text-center">
+            <div className="flex flex-1 flex-col items-center gap-2 px-4 text-center sm:px-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/INNClusion.jpeg"
-                alt="INN Clusion"
-                className="h-12 w-auto object-contain"
-              />
+              <img src="/INNClusion.jpeg" alt="INN Clusion" className="h-9 w-auto object-contain" />
               <p className="text-xs leading-relaxed text-zinc-500">
                 INN Clusion trabaja desde 2010, creada por Fundación Conceptos. Voluntarios digitales
                 con más de 15 años apoyando causas sociales.

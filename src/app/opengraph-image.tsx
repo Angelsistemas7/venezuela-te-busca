@@ -1,13 +1,19 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 // Tarjeta que se ve al compartir el enlace (WhatsApp, redes). Sin acentos a
 // propósito: la fuente por defecto de ImageResponse no incluye glifos
 // acentuados y saldrían cuadros. Next la cablea como og:image y twitter:image.
-export const alt = "El Mundo Te Busca";
+export const alt = "El Mundo Te Busca — Terremoto de Venezuela 2026";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpengraphImage() {
+export default async function OpengraphImage() {
+  // El logo va incrustado como data URL (Satori no resuelve rutas relativas).
+  const logo = await readFile(join(process.cwd(), "public", "logo.png"));
+  const logoSrc = `data:image/png;base64,${logo.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -15,49 +21,52 @@ export default function OpengraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #fffbeb 0%, #fde68a 100%)",
-          padding: "80px",
+          gap: "56px",
+          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%)",
+          padding: "70px 80px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "120px",
-              height: "120px",
-              borderRadius: "28px",
-              background: "#fbbf24",
-              color: "#18181b",
-              fontSize: "60px",
-              fontWeight: 800,
-            }}
-          >
-            EM
-          </div>
-          <div style={{ display: "flex", fontSize: "72px", fontWeight: 800, color: "#18181b" }}>
-            El Mundo Te Busca
-          </div>
-        </div>
+        {/* Logo dentro de una tarjeta blanca para que destaque sobre el fondo oscuro. */}
         <div
           style={{
             display: "flex",
-            marginTop: "40px",
-            fontSize: "36px",
-            color: "#3f3f46",
-            textAlign: "center",
-            maxWidth: "920px",
-            lineHeight: 1.3,
+            alignItems: "center",
+            justifyContent: "center",
+            width: "300px",
+            height: "300px",
+            borderRadius: "36px",
+            background: "#ffffff",
+            flexShrink: 0,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
           }}
         >
-          Localizar personas desaparecidas y coordinar ayuda tras el terremoto de Venezuela 2026
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoSrc} width={250} height={250} alt="" />
         </div>
-        <div style={{ display: "flex", marginTop: "44px", fontSize: "26px", color: "#a16207" }}>
-          Iniciativa ciudadana, voluntaria y sin fines de lucro
+
+        <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              fontSize: "76px",
+              fontWeight: 800,
+              color: "#ffffff",
+              lineHeight: 1.05,
+            }}
+          >
+            El Mundo Te Busca
+          </div>
+          {/* Acento naranja de marca. */}
+          <div
+            style={{ display: "flex", width: "180px", height: "8px", borderRadius: "4px", background: "#f97316", marginTop: "24px" }}
+          />
+          <div style={{ display: "flex", marginTop: "28px", fontSize: "34px", color: "#cbd5e1", lineHeight: 1.3 }}>
+            Localizar personas desaparecidas y coordinar ayuda tras el terremoto de Venezuela 2026
+          </div>
+          <div style={{ display: "flex", marginTop: "26px", fontSize: "26px", fontWeight: 600, color: "#fbbf24" }}>
+            Iniciativa ciudadana, voluntaria y sin fines de lucro
+          </div>
         </div>
       </div>
     ),

@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#fbbf24" />
-  <text x="16" y="22" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#18181b">VE</text>
+  <rect width="32" height="32" rx="7" fill="#1e293b" />
+  <circle cx="16" cy="15" r="8.5" fill="none" stroke="#94a3b8" stroke-width="1.4" />
+  <path d="M16 8.5c2.5 0 4.3 1.9 4.3 4.3 0 3.2-4.3 7.7-4.3 7.7s-4.3-4.5-4.3-7.7c0-2.4 1.8-4.3 4.3-4.3z" fill="#f97316" />
+  <circle cx="16" cy="12.8" r="1.7" fill="#fff" />
 </svg>
