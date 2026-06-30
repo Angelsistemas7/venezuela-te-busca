@@ -8,6 +8,7 @@ import { cn, timeAgo } from "@/lib/utils";
 import { SupportButton } from "./SupportButton";
 import { CommentSection } from "./CommentSection";
 import { PhotoView } from "./PhotoView";
+import { SaveButton } from "./SaveButton";
 
 const CATEGORY_STYLE: Record<ComplaintCategory, string> = {
   riesgo_ninos: "bg-rose-50 text-rose-700 border-rose-200",
@@ -60,9 +61,10 @@ export function ComplaintCard({ complaint, comments }: { complaint: Complaint; c
 
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
         <SupportButton id={complaint.id} supports={complaint.supports} />
+        <SaveButton type="complaint" id={complaint.id} title={complaint.body} className="ml-auto" showLabel={false} />
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
         >
           <MessageCircle className="h-4 w-4" />
           {comments.length > 0 ? `${comments.length} comentarios` : "Comentar"}

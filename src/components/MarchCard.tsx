@@ -3,6 +3,7 @@ import { CalendarClock, MapPin, MessageCircle, MessageSquare, Navigation, Users 
 import type { March } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { LikeButton } from "./LikeButton";
+import { SaveButton } from "./SaveButton";
 
 export function MarchCard({ march }: { march: March }) {
   const isPast = new Date(march.departAt).getTime() < Date.now();
@@ -57,8 +58,9 @@ export function MarchCard({ march }: { march: March }) {
       )}
 
       <div className="mt-auto flex items-center justify-between border-t border-zinc-100 pt-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <LikeButton kind="march" id={march.id} likes={march.likes} />
+          <SaveButton type="march" id={march.id} title={march.title} showLabel={false} />
           <span className="flex items-center gap-1 text-sm text-zinc-500">
             <Users className="h-4 w-4 text-zinc-400" />
             {march.attendeesCount}

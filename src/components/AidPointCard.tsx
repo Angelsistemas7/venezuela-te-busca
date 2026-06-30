@@ -5,6 +5,7 @@ import { AID_POINT_TYPE_LABEL } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { AidConsensusVote } from "./AidConsensusVote";
 import { LikeButton } from "./LikeButton";
+import { SaveButton } from "./SaveButton";
 
 const TYPE_EMOJI: Record<AidPointType, string> = {
   comida: "🍲",
@@ -110,7 +111,10 @@ export function AidPointCard({ point }: { point: AidPoint }) {
         </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-zinc-100 pt-3">
-          <LikeButton kind="aid" id={point.id} likes={point.likes} />
+          <div className="flex items-center gap-2">
+            <LikeButton kind="aid" id={point.id} likes={point.likes} />
+            <SaveButton type="aid_point" id={point.id} title={point.name} showLabel={false} />
+          </div>
           <Link
             href={`/ayuda/${point.id}`}
             className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900"

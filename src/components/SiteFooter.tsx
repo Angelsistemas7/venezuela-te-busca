@@ -12,13 +12,23 @@ export function SiteFooter() {
             <span className="text-lg font-bold text-zinc-900">El Mundo Te Busca</span>
           </div>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-600">
-            Iniciativa ciudadana, voluntaria y sin fines de lucro para ayudar a localizar a las
-            personas desaparecidas y coordinar ayuda tras el terremoto de 2026.
+            Iniciativa ciudadana, voluntaria y sin fines de lucro para ayudar a localizar personas
+            desaparecidas y coordinar ayuda ante catástrofes en cualquier lugar del mundo. Hoy,
+            nuestra prioridad es la respuesta al terremoto de Venezuela de 2026.
           </p>
           <p className="mt-3 max-w-md text-xs leading-relaxed text-zinc-500">
             No vendemos ni compartimos tu información con terceros y solo la usamos para ayudar a
             localizar personas. Los datos que se publican son responsabilidad de quien los envía;
             verifícalos antes de difundirlos.
+          </p>
+          <p className="mt-3 text-sm text-zinc-600">
+            Contacto:{" "}
+            <a
+              href="mailto:contacto@elmundotebusca.com"
+              className="font-medium text-brand-700 hover:underline"
+            >
+              contacto@elmundotebusca.com
+            </a>
           </p>
         </div>
 

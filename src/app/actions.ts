@@ -21,6 +21,10 @@ import {
   getCommentsForEntities,
   getMyPublications,
   getReportCountsForPersons,
+  getSavedItems,
+  getSavedKeys,
+  saveItem,
+  unsaveItem,
   likeComment,
   deleteAidPoint,
   deleteMarch,
@@ -53,7 +57,7 @@ import {
 } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
-import type { CommentEntity, HospitalStatus, PersonReaction, PersonStatus, ReactionKind } from "@/lib/types";
+import type { CommentEntity, HospitalStatus, PersonReaction, PersonStatus, ReactionKind, SavedEntity, SavedItem } from "@/lib/types";
 import {
   aidPointSchema,
   complaintSchema,
@@ -210,6 +214,57 @@ export async function getActivityForEntities(
   }
 
   return out;
+}
+
+// ── Guardar / seguir publicaciones (solo con cuenta) ─────────────────────────
+const SAVED_TYPES: readonly SavedEntity[] = [
+  "person",
+  "aid_point",
+  "march",
+  "post",
+  "hospital",
+  "complaint",
+  "pet",
+  "hero",
+];
+
+/** Claves `${tipo}:${id}` de lo que guardó la cuenta. [] sin sesión. */
+export async function getSavedKeysAction(): Promise<string[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  return getSavedKeys(user.id);
+}
+
+/** Lista completa de guardados (para la campanita). [] sin sesión. */
+export async function getSavedItemsAction(): Promise<SavedItem[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  return getSavedItems(user.id);
+}
+
+type SaveResult =
+  | { ok: true; saved: boolean }
+  | { ok: false; reason: "auth" | "invalid" };
+
+/** Guarda/quita una publicación. Exige sesión (devuelve reason:'auth' si no). */
+export async function setSavedAction(
+  type: string,
+  id: string,
+  title: string,
+  save: boolean,
+): Promise<SaveResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, reason: "auth" };
+  if (!SAVED_TYPES.includes(type as SavedEntity) || typeof id !== "string" || !id) {
+    return { ok: false, reason: "invalid" };
+  }
+  const entity = type as SavedEntity;
+  if (save) {
+    await saveItem(user.id, entity, id, (title ?? "").trim());
+  } else {
+    await unsaveItem(user.id, entity, id);
+  }
+  return { ok: true, saved: save };
 }
 
 // ── Registrar persona desaparecida ──────────────────────────────────────────

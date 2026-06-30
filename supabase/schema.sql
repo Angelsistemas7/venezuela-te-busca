@@ -469,3 +469,29 @@ alter table volunteers add column if not exists photo_url text;
 alter table comments drop constraint if exists comments_entity_type_check;
 alter table comments add constraint comments_entity_type_check
   check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero','news_item'));
+
+-- ── Guardar / seguir publicaciones (requiere cuenta) ─────────────────────────
+-- Quien inició sesión puede "guardar" una publicación para seguir su actividad
+-- (avisos de comentarios nuevos en la campanita) y volver a ella. Es privado:
+-- cada quien solo ve y gestiona sus propios guardados. `title` se desnormaliza
+-- para mostrar la lista sin leer la tabla origen. Único por (usuario, entidad).
+create table if not exists saved_items (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  entity_type text not null check (entity_type in ('person','aid_point','march','post','hospital','complaint','pet','hero')),
+  entity_id   uuid not null,
+  title       text not null default '',
+  created_at  timestamptz not null default now(),
+  unique (user_id, entity_type, entity_id)
+);
+create index if not exists saved_items_user_idx on saved_items (user_id, created_at desc);
+
+alter table saved_items enable row level security;
+-- Solo el dueño lee/crea/borra sus guardados (defensa en profundidad; el
+-- servidor además filtra por user_id de la sesión).
+drop policy if exists "saved_items_select_own" on saved_items;
+drop policy if exists "saved_items_insert_own" on saved_items;
+drop policy if exists "saved_items_delete_own" on saved_items;
+create policy "saved_items_select_own" on saved_items for select using (auth.uid() = user_id);
+create policy "saved_items_insert_own" on saved_items for insert with check (auth.uid() = user_id);
+create policy "saved_items_delete_own" on saved_items for delete using (auth.uid() = user_id);

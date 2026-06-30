@@ -327,6 +327,12 @@ export interface HospitalPatient {
 
 export type CommentEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint" | "pet" | "hero" | "news_item";
 
+/** Tipos de publicación que un usuario puede "guardar" para seguir su actividad. */
+export type SavedEntity = "person" | "aid_point" | "march" | "post" | "hospital" | "complaint" | "pet" | "hero";
+
+/** Una publicación guardada por una cuenta (privado de cada usuario). */
+export type SavedItem = { type: SavedEntity; id: string; title: string; createdAt: string };
+
 // ── Denuncias de irregularidades ────────────────────────────────────────────
 /** Categoría de una denuncia ciudadana de irregularidad. */
 export type ComplaintCategory =

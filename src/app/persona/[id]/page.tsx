@@ -11,10 +11,12 @@ import {
   Stethoscope,
   ShieldQuestion,
 } from "lucide-react";
-import { getComments, getPersonById, getStatusReports } from "@/lib/data";
+import { getComments, getMyPublications, getPersonById, getStatusReports } from "@/lib/data";
+import { getCurrentUser } from "@/lib/auth";
 import { PERSON_STATUS_LABEL } from "@/lib/types";
 import { cn, formatDateTime, statusStyle, timeAgo } from "@/lib/utils";
 import { ReportStatusButton } from "@/components/ReportStatusButton";
+import { SaveButton } from "@/components/SaveButton";
 import { CommentSection } from "@/components/CommentSection";
 import { PersonPhoto } from "@/components/PersonPhoto";
 import { PersonReactions } from "@/components/PersonReactions";
@@ -30,6 +32,16 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
     getComments("person", id),
     getStatusReports(id),
   ]);
+
+  // El botón "Guardar" es para seguir un caso AJENO. Si eres el autor (por
+  // cuenta) ya lo sigues, así que se oculta. Solo consultamos si hay sesión.
+  const user = await getCurrentUser();
+  let isOwner = false;
+  if (user) {
+    const mine = await getMyPublications(user.id);
+    isOwner = mine.some((p) => p.type === "person" && p.id === person.id);
+  }
+
   const s = statusStyle(person.status);
   const fullName = `${person.firstName} ${person.lastName}`.trim();
   const displayName = person.isUnidentified && !fullName ? "Persona sin identificar" : fullName;
@@ -69,6 +81,10 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           </div>
 
           <ReportStatusButton personId={person.id} personName={displayName} />
+
+          {!isOwner && (
+            <SaveButton type="person" id={person.id} title={displayName} className="w-full justify-center" />
+          )}
 
           {(person.contactName || person.contactPhone || person.contactEmail) && (
             <div className="rounded-2xl border border-zinc-200 bg-white p-4">

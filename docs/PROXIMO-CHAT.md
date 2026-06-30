@@ -31,6 +31,25 @@ coordinar ayuda tras el **terremoto de Venezuela 2026**. Producto y comunicació
   (jitter solo hacia el sur; se quitó "vargas" de `SECTOR_COORDS` —era calle de Maracay— y se
   añadió maracay/valencia).
 
+## Hecho en esta sesión (build verde, sin subir aún)
+- **UI móvil:** `Modal` ahora va en **portal a `<body>`** (ya no sale superpuesto/cortado:
+  lo causaba el `backdrop-blur` del header creando containing block). Avisos (`FieldVolunteerBar`)
+  salen/animan **una sola vez por carga** (variable de módulo), no al navegar. Mapa: filtros de
+  capas como **chips horizontales que ruedan** (`MapView`, ya no el panel vertical de Leaflet);
+  quitado "(pasa por encima…)". Pestañas de Comunidad con `shrink-0`. Destacadas (`FeaturedNews`)
+  compactas en móvil + **revelado al scroll** (CSS `animation-timeline: view()` en `globals.css`).
+- **Pie:** narrativa más **global** ("catástrofes en cualquier lugar del mundo", foco actual VE,
+  sin nombrar guerras/países) + **correo de contacto** `contacto@elmundotebusca.com`.
+- **Guardar / seguir publicaciones (requiere cuenta):** tabla nueva `saved_items` (+RLS),
+  `data.ts` (getSavedItems/saveItem/unsaveItem/getSavedKeys), acciones (getSavedKeysAction,
+  setSavedAction, getSavedItemsAction), `lib/savedStore.ts` (store compartido, 1 sola consulta),
+  `SaveButton` en PostCard/ComplaintCard/PetCard/HeroCard/AidPointCard/MarchCard + fichas de
+  hospital y persona (oculto si eres el dueño). La **campanita** ahora mezcla tus publicaciones
+  con tus guardados y avisa de comentarios nuevos (enlace público; baseline al guardar).
+  - ⚠️ **Al desplegar: re-correr `supabase/schema.sql`** (crea `saved_items`; idempotente) o no
+    funcionará en producción.
+- Visión a futuro (multi-país / multi-catástrofe) registrada; NO se construyó (es el norte).
+
 ## Pendientes
 - **Texto de compartir largo:** el dueño quiere un texto "sección por sección" para pegar junto al
   enlace (ya se le pasó en el chat; valorar dejarlo en un doc o botón "Copiar").

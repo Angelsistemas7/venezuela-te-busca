@@ -8,6 +8,7 @@ import { cn, timeAgo } from "@/lib/utils";
 import { reactToPostAction } from "@/app/actions";
 import { CommentSection } from "./CommentSection";
 import { PhotoView } from "./PhotoView";
+import { SaveButton } from "./SaveButton";
 
 const TYPE_STYLE: Record<Post["type"], string> = {
   necesito: "bg-rose-50 text-rose-700 border-rose-200",
@@ -118,9 +119,10 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
             <span className="tabular-nums">{counts[k] ?? 0}</span>
           </button>
         ))}
+        <SaveButton type="post" id={post.id} title={post.body} className="ml-auto" showLabel={false} />
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
         >
           <MessageCircle className="h-4 w-4" />
           {comments.length > 0 ? `${comments.length} comentarios` : "Comentar"}

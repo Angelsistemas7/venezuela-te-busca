@@ -9,6 +9,7 @@ import { HospitalStatusControl } from "@/components/HospitalStatusControl";
 import { HospitalSuppliesVote } from "@/components/HospitalSuppliesVote";
 import { HospitalPatients } from "@/components/HospitalPatients";
 import { LikeButton } from "@/components/LikeButton";
+import { SaveButton } from "@/components/SaveButton";
 import { CommentSection } from "@/components/CommentSection";
 
 export const dynamic = "force-dynamic";
@@ -100,8 +101,9 @@ export default async function HospitalPage({ params }: { params: Promise<{ id: s
           <HospitalStatusControl id={hospital.id} status={hospital.status} needsText={hospital.needsText} />
         </div>
 
-        <div className="mt-4 border-t border-zinc-100 pt-3">
+        <div className="mt-4 flex items-center gap-2 border-t border-zinc-100 pt-3">
           <LikeButton kind="hospital" id={hospital.id} likes={hospital.likes} />
+          <SaveButton type="hospital" id={hospital.id} title={hospital.name} />
         </div>
       </div>
 

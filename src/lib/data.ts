@@ -38,6 +38,8 @@ import type {
   ReactionKind,
   ResourceManager,
   ResourceOwnerEntity,
+  SavedEntity,
+  SavedItem,
   Stats,
   StatusReport,
   Volunteer,
@@ -1736,6 +1738,61 @@ export async function getMyPublications(userId: string): Promise<MyPublication[]
   /* eslint-enable @typescript-eslint/no-explicit-any */
   out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return out;
+}
+
+// ── Guardar / seguir publicaciones (requiere cuenta) ─────────────────────────
+// Account-only: en modo demostración (sin Supabase) no hay sesión, así que estas
+// funciones devuelven vacío / no hacen nada. Todo se filtra por user_id.
+
+/** Publicaciones que la cuenta guardó, de la más reciente a la más antigua. */
+export async function getSavedItems(userId: string): Promise<SavedItem[]> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("saved_items")
+    .select("entity_type, entity_id, title, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return ((data ?? []) as any[]).map((r) => ({
+    type: r.entity_type as SavedEntity,
+    id: r.entity_id as string,
+    title: (r.title as string) || "",
+    createdAt: r.created_at as string,
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+/** Claves `${tipo}:${id}` de lo guardado (para marcar los botones). */
+export async function getSavedKeys(userId: string): Promise<string[]> {
+  return (await getSavedItems(userId)).map((i) => `${i.type}:${i.id}`);
+}
+
+/** Guarda una publicación (idempotente por el único de la tabla). */
+export async function saveItem(
+  userId: string,
+  type: SavedEntity,
+  id: string,
+  title: string,
+): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return;
+  await sb.from("saved_items").upsert(
+    { user_id: userId, entity_type: type, entity_id: id, title: title.slice(0, 120) },
+    { onConflict: "user_id,entity_type,entity_id", ignoreDuplicates: true },
+  );
+}
+
+/** Quita una publicación de los guardados de la cuenta. */
+export async function unsaveItem(userId: string, type: SavedEntity, id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return;
+  await sb
+    .from("saved_items")
+    .delete()
+    .eq("user_id", userId)
+    .eq("entity_type", type)
+    .eq("entity_id", id);
 }
 
 /** Edita una publicación de la comunidad (autor). No toca reacciones ni foto. */

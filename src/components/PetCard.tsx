@@ -6,6 +6,7 @@ import type { Comment, Pet, PetStatus } from "@/lib/types";
 import { PET_SPECIES_LABEL, PET_STATUS_EMOJI, PET_STATUS_LABEL } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { CommentSection } from "./CommentSection";
+import { SaveButton } from "./SaveButton";
 
 const STATUS_STYLE: Record<PetStatus, string> = {
   perdida: "bg-rose-50 text-rose-700 border-rose-200",
@@ -66,13 +67,22 @@ export function PetCard({ pet, comments }: { pet: Pet; comments: Comment[] }) {
           ) : (
             <span className="text-xs text-zinc-400">Sin teléfono</span>
           )}
-          <button
-            onClick={() => setShowComments((v) => !v)}
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900"
-          >
-            <MessageCircle className="h-4 w-4" />
-            {comments.length > 0 ? `${comments.length}` : "Comentar"}
-          </button>
+          <div className="flex items-center gap-2">
+            <SaveButton
+              type="pet"
+              id={pet.id}
+              title={pet.name || pet.description}
+              showLabel={false}
+              className="border-0 px-1.5 py-1"
+            />
+            <button
+              onClick={() => setShowComments((v) => !v)}
+              className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {comments.length > 0 ? `${comments.length}` : "Comentar"}
+            </button>
+          </div>
         </div>
 
         {showComments && (
