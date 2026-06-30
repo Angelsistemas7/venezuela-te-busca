@@ -14,7 +14,9 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         // El servidor escucha solo en localhost; nginx hace de reverse proxy.
-        PORT: "3000",
+        // OJO: el VPS es compartido. Los puertos 3000/3001/3002/3100/3500/4000/
+        // 4500/8000/8081 ya los usan contenedores Docker del equipo. Usamos 3200.
+        PORT: "3200",
         HOSTNAME: "127.0.0.1",
       },
       max_memory_restart: "450M",
