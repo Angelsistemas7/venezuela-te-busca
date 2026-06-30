@@ -16,8 +16,12 @@ Conexión al VPS:
 - `VPS_HOST` — IP o host del VPS.
 - `VPS_USER` — usuario SSH (p. ej. `deploy` o `ubuntu`).
 - `VPS_PORT` — puerto SSH (si es 22 puedes omitirlo).
-- `VPS_PATH` — carpeta destino, p. ej. `/var/www/elmundotebusca`.
-- `VPS_SSH_KEY` — **clave privada** SSH (contenido completo) con acceso a ese usuario.
+- `VPS_SSH_KEY` — **clave privada** SSH en **base64** (una sola línea) con acceso a ese usuario.
+
+> La carpeta destino NO es un secret: va fija en el workflow como
+> `DEPLOY_PATH: /var/www/elmundotebusca` (cámbiala ahí si usas otra ruta).
+> La llave va en base64 para que no se rompan los saltos de línea al copiarla:
+> genérala con `base64 -w0 ~/.ssh/deploy_elmundotebusca`.
 
 Variables que se hornean en el build (cliente):
 - `NEXT_PUBLIC_SUPABASE_URL`

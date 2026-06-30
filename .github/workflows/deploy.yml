@@ -14,6 +14,9 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    # Ruta de despliegue en el VPS (no es secreta). Cámbiala aquí si usas otra.
+    env:
+      DEPLOY_PATH: /var/www/elmundotebusca
     steps:
       - uses: actions/checkout@v4
 
@@ -60,20 +63,26 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
-          VPS_PATH: ${{ secrets.VPS_PATH }}
         run: |
+          # Red de seguridad: NUNCA sincronizar contra la raíz. Si DEPLOY_PATH
+          # viene vacío o "/", abortamos antes de que --delete toque el sistema.
+          case "$DEPLOY_PATH" in
+            ""|"/"|"/."|"/root"|"/home"|"/usr"|"/etc"|"/var"|"/boot"|"/bin")
+              echo "::error::DEPLOY_PATH inseguro ('$DEPLOY_PATH'). Debe ser algo como /var/www/elmundotebusca."
+              exit 1
+              ;;
+          esac
           # --delete deja la carpeta idéntica al build; --exclude=.env conserva
           # los secretos de runtime que viven en el VPS.
           rsync -az --delete --exclude='.env' \
             -e "ssh -p ${VPS_PORT:-22} -i ~/.ssh/id_deploy" \
-            .next/standalone/ "$VPS_USER@$VPS_HOST:$VPS_PATH/"
+            .next/standalone/ "$VPS_USER@$VPS_HOST:$DEPLOY_PATH/"
 
       - name: Reiniciar con PM2
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
-          VPS_PATH: ${{ secrets.VPS_PATH }}
         run: |
           ssh -p "${VPS_PORT:-22}" -i ~/.ssh/id_deploy "$VPS_USER@$VPS_HOST" \
-            "cd '$VPS_PATH' && pm2 startOrReload ecosystem.config.cjs --update-env && pm2 save"
+            "cd '$DEPLOY_PATH' && pm2 startOrReload ecosystem.config.cjs --update-env && pm2 save"
