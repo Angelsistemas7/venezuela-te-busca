@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { DashboardStats as Stats } from "@/lib/data";
+import { QUAKE_INFO } from "@/lib/geo";
 import { AnimatedNumber } from "./AnimatedNumber";
 
 type Tone = "rose" | "amber" | "emerald" | "sky" | "violet" | "zinc";
@@ -13,14 +14,20 @@ const TONES: Record<Tone, string> = {
   zinc: "from-zinc-50 to-white border-zinc-200 text-zinc-700",
 };
 
-// Cada cifra es un enlace a su filtro o sección correspondiente.
+// Cada cifra es un enlace a su filtro o sección correspondiente. En móvil son
+// tarjetas compactas dentro de un carrusel horizontal (deslizar); en pantallas
+// grandes forman una rejilla de 8. El ancho fijo en móvil deja ver ~3,5 a la
+// vez, lo que insinúa que hay más al deslizar.
 function Card({ value, label, tone, href }: { value: number; label: string; tone: Tone; href: string }) {
   return (
-    <Link href={href} className={`tap-card block rounded-2xl border bg-gradient-to-b p-3 text-center ${TONES[tone]}`}>
-      <div className="text-2xl font-bold tabular-nums sm:text-3xl">
+    <Link
+      href={href}
+      className={`tap-card block w-[27%] shrink-0 snap-start rounded-2xl border bg-gradient-to-b p-2.5 text-center sm:w-auto sm:p-3 ${TONES[tone]}`}
+    >
+      <div className="text-xl font-bold tabular-nums sm:text-3xl">
         <AnimatedNumber value={value} />
       </div>
-      <div className="mt-0.5 text-[11px] font-medium leading-tight text-zinc-600 sm:text-xs">{label}</div>
+      <div className="mt-0.5 text-[10px] font-medium leading-tight text-zinc-600 sm:text-xs">{label}</div>
     </Link>
   );
 }
@@ -28,7 +35,7 @@ function Card({ value, label, tone, href }: { value: number; label: string; tone
 export function DashboardStats({ stats }: { stats: Stats }) {
   return (
     <section>
-      <div className="stagger grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8 sm:gap-3">
+      <div className="stagger no-scrollbar -mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-3 sm:overflow-visible sm:px-0 lg:grid-cols-8">
         <Card value={stats.desaparecidos} label="Desaparecidos" tone="rose" href="/?status=por_localizar" />
         <Card value={stats.enHospitales} label="En hospitales" tone="amber" href="/?status=hospitalizado" />
         <Card value={stats.aSalvo} label="A salvo" tone="emerald" href="/?status=localizado" />
@@ -37,6 +44,21 @@ export function DashboardStats({ stats }: { stats: Stats }) {
         <Card value={stats.denuncias} label="Denuncias" tone="violet" href="/denuncias" />
         <Card value={stats.necesidades} label="Necesidades" tone="amber" href="/comunidad?type=necesito" />
         <Card value={stats.voluntarios} label="Ofrecen ayuda" tone="emerald" href="/voluntarios" />
+      </div>
+
+      {/* Cifras del sismo: caja pequeña debajo (compacta también en móvil). */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600">
+        <span className="font-semibold text-zinc-700">Sismo (preliminar):</span>
+        <span>
+          M <strong>{QUAKE_INFO.magnitude}</strong>
+        </span>
+        <span>
+          Heridos <strong>+{QUAKE_INFO.injured.toLocaleString("es-VE")}</strong>
+        </span>
+        <span>
+          Fallecidos <strong>{QUAKE_INFO.deaths.toLocaleString("es-VE")}</strong>
+        </span>
+        <span className="text-[10px] text-zinc-400">Fuentes: {QUAKE_INFO.sourceName}</span>
       </div>
     </section>
   );

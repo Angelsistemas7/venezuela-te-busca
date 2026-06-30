@@ -35,6 +35,77 @@ function parseGdeltDate(s: string | undefined): string | null {
   return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : null;
 }
 
+/** Decodifica entidades y CDATA básicos de un RSS. */
+function decodeXml(s: string): string {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#34;|&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
+/**
+ * Prensa mundial sobre el sismo de Venezuela vía Google Noticias (RSS público,
+ * gratis, sin clave). Devuelve titulares reales con su medio y ENLACE que abre
+ * la nota completa. Mucho más fiable que GDELT y se actualiza solo.
+ */
+export async function getWorldPress(limit = 14): Promise<NewsArticle[]> {
+  try {
+    const q = encodeURIComponent("Venezuela (terremoto OR sismo OR réplica OR rescate)");
+    const url = `https://news.google.com/rss/search?q=${q}&hl=es-419&gl=VE&ceid=VE:es`;
+    const res = await fetch(url, {
+      next: { revalidate: 1800 }, // refresca cada 30 min
+      signal: AbortSignal.timeout(6000),
+      headers: { "user-agent": "Mozilla/5.0 (compatible; ElMundoTeBusca/1.0)" },
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    // Regex literales por etiqueta (un RegExp dinámico con escapes fallaba).
+    const RE = {
+      title: /<title[^>]*>([\s\S]*?)<\/title>/,
+      link: /<link[^>]*>([\s\S]*?)<\/link>/,
+      source: /<source[^>]*>([\s\S]*?)<\/source>/,
+      pubDate: /<pubDate[^>]*>([\s\S]*?)<\/pubDate>/,
+    } as const;
+    const seen = new Set<string>();
+    const out: NewsArticle[] = [];
+    for (const chunk of xml.split("<item>").slice(1)) {
+      const block = chunk.split("</item>")[0];
+      const pick = (tag: keyof typeof RE) => {
+        const m = RE[tag].exec(block);
+        return m ? decodeXml(m[1]) : "";
+      };
+      const link = pick("link");
+      let title = pick("title");
+      const source = pick("source") || "Prensa";
+      const pub = pick("pubDate");
+      if (!link || !title || seen.has(link)) continue;
+      // Google News trae el titular como "Titular - Fuente"; quita ese sufijo.
+      if (source && title.endsWith(` - ${source}`)) title = title.slice(0, -(source.length + 3));
+      // Solo prensa: descartamos fuentes de redes sociales.
+      if (/facebook|twitter|x\.com|instagram|tiktok|youtube|reddit/i.test(source)) continue;
+      if (!isVenezuela(title, source)) continue;
+      seen.add(link);
+      out.push({
+        id: link,
+        title,
+        source,
+        url: link,
+        publishedAt: pub ? new Date(pub).toISOString() : null,
+        image: null,
+      });
+      if (out.length >= limit) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Últimas noticias de prensa sobre el sismo de Venezuela (GDELT).
  * Titular + medio + fecha + enlace a la fuente original.
@@ -104,7 +175,7 @@ export async function getHumanitarianUpdates(limit = 10): Promise<NewsArticle[]>
 
     const res = await fetch(`https://api.reliefweb.int/v1/reports?${params}`, {
       next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(6000),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as {

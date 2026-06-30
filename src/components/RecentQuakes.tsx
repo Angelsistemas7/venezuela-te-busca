@@ -1,6 +1,5 @@
 import { Activity, ExternalLink } from "lucide-react";
 import type { Quake } from "@/lib/usgs";
-import { QUAKE_INFO } from "@/lib/geo";
 import { timeAgo } from "@/lib/utils";
 
 function magTone(mag: number): string {
@@ -13,22 +12,6 @@ function magTone(mag: number): string {
 // Réplicas y sismos recientes alrededor de Venezuela (datos reales del USGS).
 export function RecentQuakes({ quakes }: { quakes: Quake[] }) {
   return (
-    <div className="space-y-4">
-    {/* Cifras del sismo (fuentes públicas, preliminar) */}
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-      <span className="font-semibold text-zinc-700">Cifras del sismo (preliminar):</span>
-      <span>
-        Magnitud <strong>M {QUAKE_INFO.magnitude}</strong>
-      </span>
-      <span>
-        Heridos <strong>+{QUAKE_INFO.injured.toLocaleString("es-VE")}</strong>
-      </span>
-      <span>
-        Fallecidos <strong>{QUAKE_INFO.deaths.toLocaleString("es-VE")}</strong>
-      </span>
-      <span className="text-xs text-zinc-400">Fuentes: {QUAKE_INFO.sourceName}</span>
-    </div>
-
     <section className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 font-bold text-zinc-900">
@@ -75,6 +58,5 @@ export function RecentQuakes({ quakes }: { quakes: Quake[] }) {
         </ul>
       )}
     </section>
-    </div>
   );
 }

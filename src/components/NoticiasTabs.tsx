@@ -151,7 +151,7 @@ export function NoticiasTabs({
                 <Newspaper className="h-5 w-5 text-rose-500" />
                 En vivo: prensa mundial
               </h2>
-              <span className="text-xs text-zinc-400">Fuente: GDELT</span>
+              <span className="text-xs text-zinc-400">Fuente: Google Noticias</span>
             </div>
             <div className="mt-3">
               <NewsList

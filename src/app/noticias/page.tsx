@@ -1,6 +1,6 @@
 import { Newspaper } from "lucide-react";
 import { getCommentsForEntities, getHeroes, getNewsItems } from "@/lib/data";
-import { getHumanitarianUpdates, getLatestNews } from "@/lib/news";
+import { getHumanitarianUpdates, getWorldPress } from "@/lib/news";
 import { getRecentQuakes } from "@/lib/usgs";
 import { isAdmin } from "@/lib/admin";
 import { NoticiasTabs } from "@/components/NoticiasTabs";
@@ -16,7 +16,7 @@ export const metadata = {
 export default async function NoticiasPage() {
   const [humanitarian, latest, heroes, quakes, curatedAyuda, curatedNoticia, admin] = await Promise.all([
     getHumanitarianUpdates(10),
-    getLatestNews(14),
+    getWorldPress(14),
     getHeroes(),
     getRecentQuakes(),
     // Si la tabla aún no existe (esquema sin migrar), no rompemos la página.
