@@ -58,7 +58,7 @@ export function LocationPicker({
           type="button"
           onClick={useMyLocation}
           disabled={locating}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+          className="press inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-60"
         >
           {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
           Usar mi ubicación
@@ -72,7 +72,7 @@ export function LocationPicker({
         <button
           type="button"
           onClick={() => setPos(null)}
-          className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:underline"
+          className="press inline-flex items-center gap-1 text-xs font-medium text-rose-600 transition hover:underline"
         >
           <X className="h-3 w-3" />
           Quitar marca

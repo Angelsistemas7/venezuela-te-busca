@@ -244,6 +244,26 @@ body {
   background: #eaf0f5;
 }
 
+/* El control de capas (arriba a la derecha) trae por defecto casillas y letra
+   pensadas para mouse (muy pequeñas para tocar con el dedo). Se agranda el
+   área de toque de cada fila y la casilla, sin tocar la posición del panel. */
+.leaflet-control-layers-expanded {
+  padding: 10px 14px;
+  border-radius: 14px !important;
+}
+.leaflet-control-layers-expanded label {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 2px 0;
+  font-size: 14px;
+}
+.leaflet-control-layers-selector {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px !important;
+}
+
 /* Zona afectada: punto pulsante cuyo tamaño refleja la cantidad. */
 .zone-marker {
   position: relative;

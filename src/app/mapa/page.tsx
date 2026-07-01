@@ -327,7 +327,7 @@ export default async function MapaPage() {
           </ul>
           <Link
             href="/comunidad?type=rescate"
-            className="mt-3 inline-block text-sm font-semibold text-red-700 hover:underline"
+            className="press inline-block text-sm font-semibold text-red-700 transition hover:underline"
           >
             Ver todas las alertas de rescate →
           </Link>
