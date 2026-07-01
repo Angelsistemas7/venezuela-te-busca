@@ -8,6 +8,7 @@ import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { FilterModal, type FilterField } from "@/components/FilterModal";
 
 export const dynamic = "force-dynamic";
 
@@ -22,18 +23,31 @@ const num = (v: string | string[] | undefined) => {
 const SHOWS = ["all", "upcoming", "past"] as const;
 type Show = (typeof SHOWS)[number];
 
+const FILTER_FIELDS: FilterField[] = [
+  { kind: "dateRange", fromKey: "dateFrom", toKey: "dateTo", label: "Salida entre" },
+];
+
 export default async function CaravanasPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const raw = str(sp.show);
   const show: Show = SHOWS.includes(raw as Show) ? (raw as Show) : "all";
+  const dateFrom = str(sp.dateFrom);
+  const dateTo = str(sp.dateTo);
   const page = num(sp.page) ?? 1;
   const pageSize = clampPageSize(num(sp.pageSize));
 
-  const { items: marches, total, upcomingCount, pastCount } = await getMarchesPage(show, page, pageSize);
+  const {
+    items: marches,
+    total,
+    upcomingCount,
+    pastCount,
+  } = await getMarchesPage(show, page, pageSize, dateFrom, dateTo);
 
   const showHref = (s: Show) => {
     const params = new URLSearchParams();
     if (s !== "all") params.set("show", s);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/caravanas?${qs}` : "/caravanas";
@@ -44,6 +58,12 @@ export default async function CaravanasPage({ searchParams }: { searchParams: Se
     { value: "upcoming", label: `Próximas (${upcomingCount})` },
     { value: "past", label: `Finalizadas (${pastCount})` },
   ];
+
+  const currentParams: Record<string, string> = {};
+  if (show !== "all") currentParams.show = show;
+  if (dateFrom) currentParams.dateFrom = dateFrom;
+  if (dateTo) currentParams.dateTo = dateTo;
+  if (pageSize !== 10) currentParams.pageSize = String(pageSize);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -85,7 +105,8 @@ export default async function CaravanasPage({ searchParams }: { searchParams: Se
         </div>
       </div>
 
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <FilterModal basePath="/caravanas" currentParams={currentParams} fields={FILTER_FIELDS} />
         <PageSizeSelect value={pageSize} />
       </div>
 

@@ -11,7 +11,7 @@ import { ComplaintCard } from "@/components/ComplaintCard";
 import { DenunciaButton } from "@/components/DenunciaButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
-import { SwipeHintRow } from "@/components/SwipeHint";
+import { SwipeStaticRow } from "@/components/SwipeHint";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 
@@ -108,7 +108,7 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
         </button>
       </form>
 
-      <SwipeHintRow className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1">
+      <SwipeStaticRow wrapperClassName="mb-4" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <Link
             key={f.value}
@@ -123,7 +123,7 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
             {f.label}
           </Link>
         ))}
-      </SwipeHintRow>
+      </SwipeStaticRow>
 
       <div className="mb-4 flex justify-end">
         <PageSizeSelect value={pageSize} />

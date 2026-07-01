@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { HandHeart, Mail, MapPin, Phone, Search } from "lucide-react";
-import { getVolunteersPage } from "@/lib/data";
-import { VOLUNTEER_TYPE_EMOJI, VOLUNTEER_TYPE_LABEL, type VolunteerType } from "@/lib/types";
+import { getVolunteersPage, type VolunteerSort } from "@/lib/data";
+import { ESTADOS, VOLUNTEER_TYPE_EMOJI, VOLUNTEER_TYPE_LABEL, type VolunteerType } from "@/lib/types";
 import { cn, clampPageSize, timeAgo } from "@/lib/utils";
 import { RegisterVolunteerButton } from "@/components/RegisterVolunteerButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
-import { SwipeHintRow } from "@/components/SwipeHint";
+import { SwipeStaticRow } from "@/components/SwipeHint";
+import { FilterModal, type FilterField } from "@/components/FilterModal";
 
 export const dynamic = "force-dynamic";
 
@@ -28,26 +29,70 @@ const FILTERS: { value: VolunteerType | "all"; label: string }[] = [
   })),
 ];
 
+const FILTER_FIELDS: FilterField[] = [
+  {
+    kind: "select",
+    key: "estado",
+    label: "Estado (región)",
+    placeholder: "Todos",
+    options: ESTADOS.map((e) => ({ value: e, label: e })),
+  },
+  {
+    kind: "chips",
+    key: "sort",
+    label: "Ordenar por",
+    defaultValue: "recent",
+    options: [
+      { value: "recent", label: "Más recientes" },
+      { value: "oldest", label: "Más antiguos" },
+      { value: "name", label: "Nombre (A–Z)" },
+    ],
+  },
+  { kind: "dateRange", fromKey: "dateFrom", toKey: "dateTo", label: "Registrado entre" },
+];
+
 export default async function VoluntariosPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const type = (str(sp.type) as VolunteerType | "all") ?? "all";
   const q = str(sp.q);
+  const estado = str(sp.estado) ?? "all";
+  const sort = (str(sp.sort) as VolunteerSort) ?? "recent";
+  const dateFrom = str(sp.dateFrom);
+  const dateTo = str(sp.dateTo);
   const page = num(sp.page) ?? 1;
   const pageSize = clampPageSize(num(sp.pageSize));
 
   // Antes: hasta 300 voluntarios sin límite de página, cacheados 60s (te
   // acababas de ofrecer y podías no verte en la lista por un minuto). Ahora
   // pagina de verdad (10/20/50 a elegir) y consulta en vivo.
-  const { items: volunteers, total } = await getVolunteersPage({ type, search: q }, page, pageSize);
+  const { items: volunteers, total } = await getVolunteersPage(
+    { type, search: q, estado, dateFrom, dateTo },
+    page,
+    pageSize,
+    sort,
+  );
 
   const typeHref = (t: VolunteerType | "all") => {
     const params = new URLSearchParams();
     if (t !== "all") params.set("type", t);
+    if (sort !== "recent") params.set("sort", sort);
+    if (estado !== "all") params.set("estado", estado);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     if (q) params.set("q", q);
     if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/voluntarios?${qs}` : "/voluntarios";
   };
+
+  const currentParams: Record<string, string> = {};
+  if (type !== "all") currentParams.type = type;
+  if (sort !== "recent") currentParams.sort = sort;
+  if (estado !== "all") currentParams.estado = estado;
+  if (dateFrom) currentParams.dateFrom = dateFrom;
+  if (dateTo) currentParams.dateTo = dateTo;
+  if (q) currentParams.q = q;
+  if (pageSize !== 10) currentParams.pageSize = String(pageSize);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
@@ -72,6 +117,10 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
 
       <form action="/voluntarios" className="mb-3 flex gap-2">
         {type !== "all" && <input type="hidden" name="type" value={type} />}
+        {sort !== "recent" && <input type="hidden" name="sort" value={sort} />}
+        {estado !== "all" && <input type="hidden" name="estado" value={estado} />}
+        {dateFrom && <input type="hidden" name="dateFrom" value={dateFrom} />}
+        {dateTo && <input type="hidden" name="dateTo" value={dateTo} />}
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
@@ -87,7 +136,7 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
       </form>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-        <SwipeHintRow className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        <SwipeStaticRow className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
           {FILTERS.map((f) => (
             <Link
               key={f.value}
@@ -102,8 +151,11 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
               {f.label}
             </Link>
           ))}
-        </SwipeHintRow>
-        <PageSizeSelect value={pageSize} />
+        </SwipeStaticRow>
+        <div className="flex shrink-0 items-center gap-2">
+          <FilterModal basePath="/voluntarios" currentParams={currentParams} fields={FILTER_FIELDS} />
+          <PageSizeSelect value={pageSize} />
+        </div>
       </div>
 
       {volunteers.length === 0 ? (

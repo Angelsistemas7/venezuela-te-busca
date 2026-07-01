@@ -10,7 +10,7 @@ import { PinnedPostCard } from "@/components/PinnedPostCard";
 import { PostCard } from "@/components/PostCard";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
-import { SwipeHintRow } from "@/components/SwipeHint";
+import { SwipeStaticRow } from "@/components/SwipeHint";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
 
 export const dynamic = "force-dynamic";
@@ -167,7 +167,7 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
         </p>
       )}
 
-      <SwipeHintRow className="no-scrollbar mb-3 flex gap-2 overflow-x-auto pb-1">
+      <SwipeStaticRow wrapperClassName="mb-3" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <Link
             key={f.value}
@@ -182,7 +182,7 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
             {f.label}
           </Link>
         ))}
-      </SwipeHintRow>
+      </SwipeStaticRow>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <FilterModal basePath="/comunidad" currentParams={currentParams} fields={FILTER_FIELDS} />
@@ -207,14 +207,14 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
                   </span>
                 )}
               </h2>
-              <SwipeHintRow className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+              <SwipeStaticRow className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
                 {withComments(pinned).map((post) => (
                   <PinnedPostCard key={post.id} post={post} comments={post.comments} tone="red" />
                 ))}
                 {withComments(featured).map((post) => (
                   <PinnedPostCard key={post.id} post={post} comments={post.comments} tone="amber" />
                 ))}
-              </SwipeHintRow>
+              </SwipeStaticRow>
             </section>
           )}
 

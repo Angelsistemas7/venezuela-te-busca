@@ -1214,6 +1214,8 @@ export async function getMarchesPage(
   show: MarchShow,
   page = 1,
   pageSize = 10,
+  dateFrom?: string,
+  dateTo?: string,
 ): Promise<MarchResult> {
   const sb = getSupabase();
   const nowIso = new Date().toISOString();
@@ -1229,6 +1231,8 @@ export async function getMarchesPage(
     } else {
       items = all.slice().sort((a, b) => a.departAt.localeCompare(b.departAt));
     }
+    if (dateFrom) items = items.filter((m) => m.departAt >= dateFrom);
+    if (dateTo) items = items.filter((m) => m.departAt <= `${dateTo}T23:59:59.999Z`);
     const total = items.length;
     const start = (page - 1) * pageSize;
     return { items: items.slice(start, start + pageSize), total, page, pageSize, upcomingCount, pastCount };
@@ -1238,6 +1242,8 @@ export async function getMarchesPage(
   if (show === "upcoming") query = query.gte("depart_at", nowIso).order("depart_at", { ascending: true });
   else if (show === "past") query = query.lt("depart_at", nowIso).order("depart_at", { ascending: false });
   else query = query.order("depart_at", { ascending: true });
+  if (dateFrom) query = query.gte("depart_at", dateFrom);
+  if (dateTo) query = query.lte("depart_at", `${dateTo}T23:59:59.999Z`);
 
   const start = (page - 1) * pageSize;
   const [{ data, error, count }, upcomingRes, pastRes] = await Promise.all([
@@ -2531,28 +2537,54 @@ export interface VolunteerResult {
  * 300 no había forma de ver más. Sin caché a propósito: te acabas de ofrecer
  * de voluntario y quieres verte en la lista al instante.
  */
+export type VolunteerSort = "recent" | "oldest" | "name";
+
 export async function getVolunteersPage(
-  filter: { type?: VolunteerType | "all"; search?: string },
+  filter: {
+    type?: VolunteerType | "all";
+    search?: string;
+    estado?: string | "all";
+    dateFrom?: string;
+    dateTo?: string;
+  },
   page = 1,
   pageSize = 10,
+  sort: VolunteerSort = "recent",
 ): Promise<VolunteerResult> {
   const sb = getSupabase();
   if (!sb) {
     let items = mem.volunteers.slice();
     if (filter.type && filter.type !== "all") items = items.filter((v) => v.type === filter.type);
+    if (filter.estado && filter.estado !== "all") items = items.filter((v) => v.estado === filter.estado);
+    if (filter.dateFrom) items = items.filter((v) => v.createdAt >= filter.dateFrom!);
+    if (filter.dateTo) items = items.filter((v) => v.createdAt <= `${filter.dateTo}T23:59:59.999Z`);
     if (filter.search) {
       const s = filter.search.toLowerCase().trim();
       items = items.filter((v) =>
         [v.name, v.skillsText, v.locationText, v.estado].filter(Boolean).join(" ").toLowerCase().includes(s),
       );
     }
-    items = items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    items =
+      sort === "oldest"
+        ? items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        : sort === "name"
+          ? items.sort((a, b) => a.name.localeCompare(b.name))
+          : items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const total = items.length;
     const start = (page - 1) * pageSize;
     return { items: items.slice(start, start + pageSize), total, page, pageSize };
   }
-  let query = sb.from("volunteers").select("*", { count: "exact" }).order("created_at", { ascending: false });
+  let query = sb.from("volunteers").select("*", { count: "exact" });
+  query =
+    sort === "oldest"
+      ? query.order("created_at", { ascending: true })
+      : sort === "name"
+        ? query.order("name", { ascending: true })
+        : query.order("created_at", { ascending: false });
   if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
+  if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.dateFrom) query = query.gte("created_at", filter.dateFrom);
+  if (filter.dateTo) query = query.lte("created_at", `${filter.dateTo}T23:59:59.999Z`);
   if (filter.search) {
     const s = filter.search.replace(/[,()*]/g, " ").trim();
     if (s) query = query.or(`name.ilike.%${s}%,skills_text.ilike.%${s}%,location_text.ilike.%${s}%`);

@@ -100,11 +100,11 @@ export const QUAKE_INFO = {
   depthKm: 10,
   epicenterText: "≈28 km al SE de Yumare (Yaracuy)",
   date: "24–25 de junio de 2026",
-  deaths: 235,
-  injured: 4300,
+  deaths: 1719,
+  injured: 5034,
   mostAffected: "La Guaira (Caraballeda, Catia La Mar)",
   alsoAffected: ["Falcón", "Miranda", "Carabobo (Valencia)", "Aragua (Maracay)", "Distrito Capital (Caracas)"],
-  sourceName: "CNN, Euronews, Wikipedia",
+  sourceName: "Infobae, Telemundo (29 jun. 2026)",
 };
 
 /**

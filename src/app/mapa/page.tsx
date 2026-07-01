@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Map as MapIcon, Siren } from "lucide-react";
+import { Map as MapIcon } from "lucide-react";
 import {
   getAidPoints,
   getEstadoBreakdown,
@@ -21,7 +21,7 @@ import {
 } from "@/lib/types";
 import { EPICENTER, ESTADO_COORDS, QUAKE_INFO, geocode } from "@/lib/geo";
 import { getRecentQuakes } from "@/lib/usgs";
-import { directionsLink, formatDateTime, timeAgo, whatsappLink } from "@/lib/utils";
+import { directionsLink, formatDateTime, whatsappLink } from "@/lib/utils";
 import { CrisisMap } from "@/components/map/CrisisMap";
 import { RecentQuakes } from "@/components/RecentQuakes";
 import { SwipeHintNested } from "@/components/SwipeHint";
@@ -305,36 +305,6 @@ export default async function MapaPage() {
             <div className="text-[11px] text-zinc-600 sm:text-xs">Caravanas</div>
           </Link>
       </SwipeHintNested>
-
-      {rescuePosts.length > 0 && (
-        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 p-4">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-red-800">
-            <Siren className="h-4.5 w-4.5 animate-pulse" />
-            Alertas de rescate activas ({rescuePosts.length})
-          </h2>
-          <ul className="mt-3 space-y-2">
-            {rescuePosts.slice(0, 1).map((p) => (
-              <li key={p.id} className="rounded-xl border border-red-200 bg-white p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {p.locationText && (
-                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                      📍 {p.locationText}
-                    </span>
-                  )}
-                  <span className="text-xs text-zinc-400">{timeAgo(p.createdAt)}</span>
-                </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-zinc-700">{p.body}</p>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/comunidad?type=rescate"
-            className="press inline-block text-sm font-semibold text-red-700 transition hover:underline"
-          >
-            Ver todas las alertas de rescate →
-          </Link>
-        </div>
-      )}
 
       <div className="mb-4 rounded-2xl border border-zinc-200 bg-white p-4">
         <h2 className="text-sm font-bold text-zinc-900">Datos del sismo (fuentes públicas)</h2>

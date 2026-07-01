@@ -252,9 +252,36 @@ no hay cuentas en modo demostración).
   (Se busca vs. ¿La reconoces? viven en la misma ruta `/`) para no devolver
   a "Se busca" al aplicar un filtro estando en "¿La reconoces?".
 
+- **`FilterModal` en Voluntarios** (`src/app/voluntarios/page.tsx`): el tipo
+  (Médico/Rescatista/etc.) se queda como chip suelto; dentro del modal ahora
+  hay Estado/región, Ordenar (recientes/antiguos/nombre) y rango de fechas de
+  registro. Nueva `VolunteerSort` y `estado`/`dateFrom`/`dateTo` agregados a
+  `getVolunteersPage` en `data.ts`.
+
+- **Mapa** — se quitó el recuadro "Alertas de rescate activas" (quedan las
+  alertas de rescate como pines en el mapa mismo; ese recuadro aparte era
+  redundante y ocupaba espacio). **Datos del sismo actualizados** con cifras
+  reales de fuentes públicas al 29 jun. 2026 (Infobae, Telemundo): fallecidos
+  235→**1.719**, heridos 4.300→**5.034** (`src/lib/geo.ts`, `QUAKE_INFO`).
+- **Vaivén automático quitado en Comunidad/Voluntarios/Denuncias**: el dueño
+  sintió que, con tanta información en pantalla, el movimiento constante de
+  las filas (Destacado en Comunidad, y los chips de tipo/categoría en
+  Comunidad/Voluntarios/Denuncias) sobraba. Nuevo componente
+  `SwipeStaticRow` (en `src/components/SwipeHint.tsx`): la fila se sigue
+  deslizando a mano igual, pero sin el vaivén automático; en su lugar, una
+  pista chiquita debajo ("―desliza›", oculta en escritorio) que casi no
+  ocupa espacio. Aplicado en esos 4 lugares puntuales — el resto del sitio
+  (home, mapa, mascotas, ayuda) sigue con el vaivén automático de antes,
+  sin tocar.
+- **`FilterModal` en Caravanas** (`src/app/caravanas/page.tsx`): los chips
+  Todas/Próximas/Finalizadas se quedan igual; el modal ahora tiene un rango
+  de fecha de salida ("Salida entre"). Caravanas no tiene campo de
+  estado/región en el modelo de datos (`March` no lo incluye), así que no se
+  pudo agregar ese filtro aquí como en las demás secciones.
+
 ## Siguiente en la cola
-`FilterModal` en el resto de secciones (Voluntarios, Caravanas, Denuncias,
-Hospitales, Noticias, Ayuda, Mascotas), luego Admin.
+`FilterModal` en el resto de secciones (Hospitales, Noticias, Ayuda,
+Mascotas), luego Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

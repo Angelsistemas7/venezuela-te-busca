@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const RESUME_DELAY_MS = 10_000;
@@ -41,6 +42,33 @@ export function SwipeHintRow({
       onScroll={onInteract}
     >
       {children}
+    </div>
+  );
+}
+
+/**
+ * Fila que se desliza a mano SIN el vaivén automático — en secciones con
+ * mucha información en pantalla (Comunidad, Voluntarios, Denuncias) el
+ * movimiento constante se sentía como demasiado. En vez del vaivén, una
+ * pista chiquita ("―desliza›") que casi no ocupa espacio.
+ */
+export function SwipeStaticRow({
+  className,
+  wrapperClassName,
+  children,
+}: {
+  className: string;
+  wrapperClassName?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("min-w-0", wrapperClassName)}>
+      <div className={className}>{children}</div>
+      <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-zinc-400 sm:hidden">
+        <span className="h-px w-3 bg-zinc-300" aria-hidden />
+        desliza
+        <ChevronRight className="h-2.5 w-2.5" />
+      </div>
     </div>
   );
 }
