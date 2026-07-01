@@ -24,10 +24,10 @@ export function SiteFooter() {
           <p className="mt-3 text-sm text-zinc-600">
             Contacto:{" "}
             <a
-              href="mailto:contacto@elmundotebusca.com"
+              href="mailto:atencionsentralabs@gmail.com"
               className="font-medium text-brand-700 hover:underline"
             >
-              contacto@elmundotebusca.com
+              atencionsentralabs@gmail.com
             </a>
           </p>
         </div>

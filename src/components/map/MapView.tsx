@@ -195,7 +195,7 @@ export default function MapView({
 
   return (
     <div className="flex h-[68vh] min-h-[460px] w-full flex-col">
-      <div className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-b border-zinc-200 bg-white/95 p-2">
+      <div className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-zinc-200 bg-white/95 p-1.5">
         {LAYERS.map(({ key, label }) => (
           <button
             key={key}
@@ -203,7 +203,7 @@ export default function MapView({
             onClick={() => toggle(key)}
             aria-pressed={on[key]}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition",
+              "shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
               on[key]
                 ? "border-zinc-900 bg-zinc-900 text-white"
                 : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300",

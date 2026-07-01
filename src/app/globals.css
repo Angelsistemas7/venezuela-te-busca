@@ -102,23 +102,21 @@ body {
 .stagger > *:nth-child(7) { animation-delay: 0.26s; }
 .stagger > *:nth-child(8) { animation-delay: 0.3s; }
 
-/* Carrusel que se desliza solo (las cifras del inicio en móvil). Es una
-   animación de transform en GPU: no usa JS ni "consume RAM". El contenido va
-   duplicado, así que al llegar a -50% el bucle es perfecto. Se pausa al tocar
-   o pasar el cursor, y se desactiva si el usuario pidió menos movimiento. */
-@keyframes marquee-x {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+/* "Empujoncito" que insinúa que una fila se puede deslizar (chips, cifras).
+   A propósito NO es un carrusel infinito: una animación infinita sobre un
+   contenedor con overflow-x:auto choca con el deslizado manual del usuario
+   (los dos mueven el contenido a la vez) y el resultado era que las tarjetas
+   se iban de la pantalla y no volvían. Esta se mueve un poco, 2 veces, y para
+   sola — nunca pelea con el dedo del usuario ni con las tarjetas duplicadas. */
+@keyframes hint-swipe {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-16px); }
 }
-.animate-marquee {
-  animation: marquee-x 26s linear infinite;
-}
-.animate-marquee:hover,
-.animate-marquee:active {
-  animation-play-state: paused;
+.hint-swipe {
+  animation: hint-swipe 0.9s ease-in-out 2;
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee { animation: none; }
+  .hint-swipe { animation: none; }
 }
 
 /* Revelado al hacer scroll: el elemento "sale" suavemente a medida que entra en

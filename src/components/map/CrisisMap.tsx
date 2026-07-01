@@ -71,44 +71,47 @@ export function CrisisMap({
         🆘 Necesito ayuda, 🤲 Puedo ayudar, rescates, puntos, hospitales y más.
       </p>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600">
-        <span className="flex items-center gap-1.5">
+      {/* Fila horizontal deslizable (igual que "Se busca"): en móvil, apilar estos
+          9 íconos en varias líneas se veía muy saturado. Empujoncito breve para
+          insinuar que se puede deslizar. */}
+      <div className="no-scrollbar hint-swipe flex items-center gap-x-4 overflow-x-auto pb-1 text-sm text-zinc-600">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="flex h-4 w-4 items-center justify-center text-[12px] text-amber-900">⊕</span>
           Epicentro
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-rose-600 shadow" />
           🆘 Necesito ayuda
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-emerald-600 shadow" />
           🤲 Puedo ayudar
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-violet-500 shadow" />
           👤 Persona vista
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-red-600 text-[9px] shadow">
             🚨
           </span>
           Rescate urgente
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-rose-600 text-[8px] font-bold text-white shadow">
             N
           </span>
           Zona afectada
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-brand-500 shadow" />
           Punto de ayuda
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-sky-500 shadow" />
           Salida de caravana
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           <span className="inline-block h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow" />
           Hospital
         </span>

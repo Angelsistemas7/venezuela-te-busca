@@ -27,18 +27,20 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="El Mundo Te Busca" className="h-10 w-10 shrink-0 object-contain" />
-          {/* "El Mundo" encima de "Te Busca": compacto y no se estira en una línea larga. */}
+          {/* "El Mundo" encima de "Te Busca": compacto y no se estira en una línea larga.
+              whitespace-nowrap evita que, si el header se aprieta, cada palabra caiga en su
+              propia línea (pasaba porque el Link podía encogerse por debajo del ancho del texto). */}
           <span className="flex flex-col font-bold leading-[1.05] tracking-tight text-zinc-900">
-            <span className="text-sm sm:text-base">El Mundo</span>
-            <span className="text-sm sm:text-base">Te Busca</span>
+            <span className="whitespace-nowrap text-sm sm:text-base">El Mundo</span>
+            <span className="whitespace-nowrap text-sm sm:text-base">Te Busca</span>
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
-          <nav className="no-scrollbar hidden items-center gap-1 overflow-x-auto md:flex">
+        <div className="flex min-w-0 items-center gap-2">
+          <nav className="no-scrollbar hidden min-w-0 items-center gap-1 overflow-x-auto md:flex">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active =
               href === "/"

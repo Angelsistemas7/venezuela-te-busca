@@ -14,31 +14,17 @@ const TONES: Record<Tone, string> = {
   zinc: "from-zinc-50 to-white border-zinc-200 text-zinc-700",
 };
 
-// Cada cifra es un enlace a su filtro o sección. En móvil van en un carrusel que
-// se desliza solo (ver .animate-marquee); en pantallas grandes forman la rejilla
-// de 8. `dup` marca la copia que solo existe en móvil para que el bucle sea fluido.
-function Card({
-  value,
-  label,
-  tone,
-  href,
-  dup = false,
-}: {
-  value: number;
-  label: string;
-  tone: Tone;
-  href: string;
-  dup?: boolean;
-}) {
+// Cada cifra es un enlace a su filtro o sección. En móvil van en una fila que
+// se desliza a mano (con un pequeño empujoncito al cargar, para insinuar que
+// se puede deslizar); en pantallas grandes forman la rejilla de 8.
+function Card({ value, label, tone, href }: { value: number; label: string; tone: Tone; href: string }) {
   return (
     <Link
       href={href}
-      aria-hidden={dup}
-      tabIndex={dup ? -1 : undefined}
-      className={`tap-card block w-28 shrink-0 rounded-2xl border bg-gradient-to-b p-2.5 text-center sm:w-auto sm:p-3 ${dup ? "sm:hidden" : ""} ${TONES[tone]}`}
+      className={`tap-card block w-28 shrink-0 rounded-2xl border bg-gradient-to-b p-2.5 text-center sm:w-auto sm:p-3 ${TONES[tone]}`}
     >
       <div className="text-xl font-bold tabular-nums sm:text-3xl">
-        {dup ? value.toLocaleString("es-VE") : <AnimatedNumber value={value} />}
+        <AnimatedNumber value={value} />
       </div>
       <div className="mt-0.5 text-[10px] font-medium leading-tight text-zinc-600 sm:text-xs">{label}</div>
     </Link>
@@ -59,16 +45,11 @@ export function DashboardStats({ stats }: { stats: Stats }) {
 
   return (
     <section>
-      {/* Móvil: carrusel auto-deslizante (también se puede deslizar a mano).
-          Escritorio: rejilla de 8. */}
+      {/* Móvil: fila deslizable a mano. Escritorio: rejilla de 8. */}
       <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-        <div className="animate-marquee flex w-max gap-2 sm:w-auto sm:animate-none sm:grid sm:grid-cols-4 sm:gap-3 lg:grid-cols-8">
+        <div className="hint-swipe flex w-max gap-2 sm:w-auto sm:[animation:none] sm:grid sm:grid-cols-4 sm:gap-3 lg:grid-cols-8">
           {cards.map((c) => (
             <Card key={c.label} {...c} />
-          ))}
-          {/* Copia solo-móvil para el bucle continuo. */}
-          {cards.map((c) => (
-            <Card key={`dup-${c.label}`} {...c} dup />
           ))}
         </div>
       </div>

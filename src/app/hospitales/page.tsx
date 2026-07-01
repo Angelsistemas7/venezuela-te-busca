@@ -30,15 +30,20 @@ export default async function HospitalesPage() {
         <RegisterHospitalButton />
       </div>
 
-      {/* Resumen de capacidad */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Resumen de capacidad: fila horizontal (antes iba en rejilla 2x2, se veía
+          apilada y grande en móvil). Sin movimiento: solo se desliza a mano si
+          no entran los 4 en una línea. */}
+      <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4">
         {summary.map((s) => (
-          <div key={s} className="rounded-xl border border-zinc-200 bg-white p-3 text-center">
+          <div
+            key={s}
+            className="w-24 shrink-0 rounded-xl border border-zinc-200 bg-white p-2 text-center sm:w-auto sm:p-3"
+          >
             <div className="flex items-center justify-center gap-1.5">
               <span className={`h-2 w-2 rounded-full ${HOSPITAL_STATUS_STYLE[s].dot}`} />
-              <span className="text-xl font-bold text-zinc-900">{byStatus(s)}</span>
+              <span className="text-base font-bold text-zinc-900 sm:text-xl">{byStatus(s)}</span>
             </div>
-            <div className="mt-0.5 text-xs text-zinc-500">{HOSPITAL_STATUS_LABEL[s]}</div>
+            <div className="mt-0.5 text-[11px] text-zinc-500 sm:text-xs">{HOSPITAL_STATUS_LABEL[s]}</div>
           </div>
         ))}
       </div>
