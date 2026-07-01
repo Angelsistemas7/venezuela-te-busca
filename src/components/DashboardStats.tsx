@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { DashboardStats as Stats } from "@/lib/data";
 import { QUAKE_INFO } from "@/lib/geo";
 import { AnimatedNumber } from "./AnimatedNumber";
+import { SwipeHintNested } from "./SwipeHint";
 
 type Tone = "rose" | "amber" | "emerald" | "sky" | "violet" | "zinc";
 
@@ -46,13 +47,14 @@ export function DashboardStats({ stats }: { stats: Stats }) {
   return (
     <section>
       {/* Móvil: fila deslizable a mano. Escritorio: rejilla de 8. */}
-      <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-        <div className="hint-swipe flex w-max gap-2 sm:w-auto sm:[animation:none] sm:grid sm:grid-cols-4 sm:gap-3 lg:grid-cols-8">
-          {cards.map((c) => (
-            <Card key={c.label} {...c} />
-          ))}
-        </div>
-      </div>
+      <SwipeHintNested
+        outerClassName="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0"
+        innerClassName="flex w-max gap-2 sm:w-auto sm:[animation:none] sm:grid sm:grid-cols-4 sm:gap-3 lg:grid-cols-8"
+      >
+        {cards.map((c) => (
+          <Card key={c.label} {...c} />
+        ))}
+      </SwipeHintNested>
 
       {/* Cifras del sismo: caja pequeña debajo (compacta también en móvil). */}
       <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600">

@@ -18,6 +18,7 @@ import { SaveButton } from "@/components/SaveButton";
 import { CommentSection } from "@/components/CommentSection";
 import { PersonPhoto } from "@/components/PersonPhoto";
 import { PersonReactions } from "@/components/PersonReactions";
+import { PersonShareButton } from "@/components/PersonShareButton";
 import { BackLink } from "@/components/BackLink";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,12 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           {!isOwner && (
             <SaveButton type="person" id={person.id} title={displayName} className="w-full justify-center" />
           )}
+          <PersonShareButton
+            personId={person.id}
+            name={displayName}
+            unidentified={person.isUnidentified}
+            className="w-full"
+          />
 
           {(person.contactName || person.contactPhone || person.contactEmail) && (
             <div className="rounded-2xl border border-zinc-200 bg-white p-4">
@@ -151,11 +158,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             </p>
 
             <div className="mt-4">
-              <PersonReactions
-                personId={person.id}
-                name={displayName}
-                reactions={person.reactions}
-              />
+              <PersonReactions personId={person.id} reactions={person.reactions} />
             </div>
           </div>
 
@@ -168,50 +171,52 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {reports.length > 0 && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-amber-900">
-                <ShieldQuestion className="h-4 w-4" />
-                Reportes recibidos ({reports.length})
-              </h2>
-              <p className="mt-1 text-xs text-amber-700">
-                Información aportada por la comunidad. Se muestra de inmediato; un reporte{" "}
-                <strong>verificado</strong> ha sido confirmado por un moderador.
-              </p>
-              <ul className="mt-3 space-y-2">
-                {reports.map((r) => (
-                  <li key={r.id} className="rounded-xl border border-amber-200 bg-white p-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
-                        {PERSON_STATUS_LABEL[r.reportedStatus]}
-                      </span>
-                      {r.verified ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                          <BadgeCheck className="h-3.5 w-3.5" /> Verificado
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                          <ShieldQuestion className="h-3.5 w-3.5" /> Sin verificar
-                        </span>
-                      )}
-                      <span className="text-xs text-zinc-400">{timeAgo(r.createdAt)}</span>
-                    </div>
-                    <p className="mt-1.5 text-sm text-zinc-700">
-                      <span className="font-medium">{r.reporterRelationship}:</span> {r.locationFound}
-                    </p>
-                    {r.notes && <p className="mt-0.5 text-sm text-zinc-500">“{r.notes}”</p>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           <CommentSection
             entityType="person"
             entityId={person.id}
             initialComments={comments}
             title="Información de la comunidad"
             placeholder="¿La reconoces? ¿Sabes algo? Comparte de forma responsable."
+            prefix={
+              reports.length > 0 ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                    <ShieldQuestion className="h-4 w-4" />
+                    Reportes de estado ({reports.length})
+                  </h3>
+                  <p className="mt-1 text-xs text-amber-700">
+                    Se muestran de inmediato; un reporte <strong>verificado</strong> ha sido
+                    confirmado por un moderador.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {reports.map((r) => (
+                      <li key={r.id} className="rounded-xl border border-amber-200 bg-white p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
+                            {PERSON_STATUS_LABEL[r.reportedStatus]}
+                          </span>
+                          {r.verified ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                              <BadgeCheck className="h-3.5 w-3.5" /> Verificado
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                              <ShieldQuestion className="h-3.5 w-3.5" /> Sin verificar
+                            </span>
+                          )}
+                          <span className="text-xs text-zinc-400">{timeAgo(r.createdAt)}</span>
+                        </div>
+                        <p className="mt-1.5 text-sm text-zinc-700">
+                          <span className="font-medium">{r.reporterRelationship}:</span>{" "}
+                          {r.locationFound}
+                        </p>
+                        {r.notes && <p className="mt-0.5 text-sm text-zinc-500">“{r.notes}”</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : undefined
+            }
           />
         </div>
       </div>

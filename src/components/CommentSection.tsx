@@ -16,12 +16,17 @@ export function CommentSection({
   initialComments,
   title = "Comunidad",
   placeholder = "Aporta lo que sepas: lo vi, lo reconozco, dónde estaba...",
+  prefix,
 }: {
   entityType: CommentEntity;
   entityId: string;
   initialComments: Comment[];
   title?: string;
   placeholder?: string;
+  /** Contenido opcional que se ve DENTRO de esta misma tarjeta, antes del
+   * formulario (p. ej. reportes de estado en la ficha de persona) — para que
+   * se sienta como una sola sección en vez de dos cajas separadas. */
+  prefix?: React.ReactNode;
 }) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [name, setName] = useState("");
@@ -187,6 +192,8 @@ export function CommentSection({
         {title}
         <span className="text-sm font-normal text-zinc-400">({comments.length})</span>
       </h2>
+
+      {prefix && <div className="mt-4">{prefix}</div>}
 
       <form onSubmit={submit} className="mt-4 space-y-2">
         {replyTo && (

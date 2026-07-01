@@ -112,10 +112,10 @@ body {
    es suficiente para que algo desaparezca — se ve "vivo" pero acotado. */
 @keyframes hint-swipe {
   0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-10px); }
+  50% { transform: translateX(-6px); }
 }
 .hint-swipe {
-  animation: hint-swipe 2.2s ease-in-out infinite;
+  animation: hint-swipe 2.6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .hint-swipe { animation: none; }

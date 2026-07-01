@@ -5,6 +5,7 @@ import { AID_POINT_TYPE_LABEL, type AidPointType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AidPointCard } from "@/components/AidPointCard";
 import { RegisterAidPointButton } from "@/components/RegisterAidPointButton";
+import { SwipeHintRow } from "@/components/SwipeHint";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
       </div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="no-scrollbar hint-swipe flex gap-2 overflow-x-auto pb-1">
+        <SwipeHintRow className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
           {TYPE_CHIPS.map((c) => (
             <Link
               key={c.value}
@@ -92,7 +93,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
               {c.label}
             </Link>
           ))}
-        </div>
+        </SwipeHintRow>
         <Link
           href={availHref()}
           className={cn(

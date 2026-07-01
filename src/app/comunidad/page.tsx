@@ -10,6 +10,7 @@ import { PinnedPostCard } from "@/components/PinnedPostCard";
 import { PostCard } from "@/components/PostCard";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { SwipeHintRow } from "@/components/SwipeHint";
 
 export const dynamic = "force-dynamic";
 
@@ -131,7 +132,7 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
         </p>
       )}
 
-      <div className="no-scrollbar hint-swipe mb-3 flex gap-2 overflow-x-auto pb-1">
+      <SwipeHintRow className="no-scrollbar mb-3 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <Link
             key={f.value}
@@ -146,7 +147,7 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
             {f.label}
           </Link>
         ))}
-      </div>
+      </SwipeHintRow>
 
       {/* Orden: recientes, más apoyadas (por reacciones) o más antiguas. */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">

@@ -9,15 +9,17 @@ import {
 import { reactToPersonAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
 
-const KINDS: PersonReaction[] = ["fuerza", "corazon", "difundir"];
+// "Difundir" vive aparte como su propio botón "Compartir" (ver
+// PersonShareButton.tsx), debajo de "Guardar" — mezclarlo con estas dos
+// reacciones de apoyo emocional se sentía confuso (una cosa es animar, otra
+// es compartir el enlace).
+const KINDS: PersonReaction[] = ["fuerza", "corazon"];
 
 export function PersonReactions({
   personId,
-  name,
   reactions,
 }: {
   personId: string;
-  name: string;
   reactions: Record<PersonReaction, number>;
 }) {
   const [counts, setCounts] = useState(reactions);
@@ -38,36 +40,18 @@ export function PersonReactions({
   }
 
   async function react(kind: PersonReaction) {
-    // "Difundir" además comparte el enlace; se puede repetir.
-    if (kind === "difundir") {
-      const url = typeof window !== "undefined" ? window.location.href : "";
-      const text = `Ayúdanos a localizar a ${name}. El Mundo Te Busca.`;
-      try {
-        if (navigator.share) await navigator.share({ title: "El Mundo Te Busca", text, url });
-        else {
-          await navigator.clipboard.writeText(url);
-          flash("Enlace copiado para compartir");
-        }
-      } catch {
-        /* el usuario canceló */
-      }
-    } else if (reacted[kind]) {
-      return;
-    }
-
-    if (!reacted[kind]) {
-      setReacted((r) => ({ ...r, [kind]: true }));
-      setCounts((c) => ({ ...c, [kind]: (c[kind] ?? 0) + 1 }));
-      localStorage.setItem(`vtb_preact_${personId}_${kind}`, "1");
-      const res = await reactToPersonAction(personId, kind);
-      if (!res.ok) {
-        // El servidor no lo guardó de verdad: revertimos para no dejar el
-        // botón marcado "para siempre" con un contador que nunca subió.
-        setReacted((r) => ({ ...r, [kind]: false }));
-        setCounts((c) => ({ ...c, [kind]: Math.max(0, (c[kind] ?? 1) - 1) }));
-        localStorage.removeItem(`vtb_preact_${personId}_${kind}`);
-        flash("No se pudo guardar. Intenta de nuevo.");
-      }
+    if (reacted[kind]) return;
+    setReacted((r) => ({ ...r, [kind]: true }));
+    setCounts((c) => ({ ...c, [kind]: (c[kind] ?? 0) + 1 }));
+    localStorage.setItem(`vtb_preact_${personId}_${kind}`, "1");
+    const res = await reactToPersonAction(personId, kind);
+    if (!res.ok) {
+      // El servidor no lo guardó de verdad: revertimos para no dejar el
+      // botón marcado "para siempre" con un contador que nunca subió.
+      setReacted((r) => ({ ...r, [kind]: false }));
+      setCounts((c) => ({ ...c, [kind]: Math.max(0, (c[kind] ?? 1) - 1) }));
+      localStorage.removeItem(`vtb_preact_${personId}_${kind}`);
+      flash("No se pudo guardar. Intenta de nuevo.");
     }
   }
 
@@ -78,9 +62,9 @@ export function PersonReactions({
           <button
             key={k}
             onClick={() => react(k)}
-            disabled={reacted[k] && k !== "difundir"}
+            disabled={reacted[k]}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition active:scale-95",
+              "press flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition",
               reacted[k]
                 ? "border-brand-300 bg-brand-50 text-brand-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50",

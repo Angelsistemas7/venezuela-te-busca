@@ -24,6 +24,7 @@ import { getRecentQuakes } from "@/lib/usgs";
 import { directionsLink, formatDateTime, timeAgo, whatsappLink } from "@/lib/utils";
 import { CrisisMap } from "@/components/map/CrisisMap";
 import { RecentQuakes } from "@/components/RecentQuakes";
+import { SwipeHintNested } from "@/components/SwipeHint";
 import type {
   AidMarker,
   HelpMarker,
@@ -257,8 +258,10 @@ export default async function MapaPage() {
 
       {/* Fila horizontal (igual que las cifras de "Se busca"): cada una lleva a
           su sección. Vaivén leve y constante que insinúa que se puede deslizar. */}
-      <div className="no-scrollbar -mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-        <div className="hint-swipe flex w-max gap-2 sm:w-auto sm:[animation:none] sm:grid sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+      <SwipeHintNested
+        outerClassName="no-scrollbar -mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0"
+        innerClassName="flex w-max gap-2 sm:w-auto sm:[animation:none] sm:grid sm:grid-cols-3 sm:gap-3 lg:grid-cols-6"
+      >
           <Link
             href="/comunidad?type=necesito"
             className="tap-card w-28 shrink-0 rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-center sm:w-auto sm:p-3"
@@ -301,8 +304,7 @@ export default async function MapaPage() {
             <div className="text-lg font-bold text-sky-700 sm:text-xl">{marchMarkers.length}</div>
             <div className="text-[11px] text-zinc-600 sm:text-xs">Caravanas</div>
           </Link>
-        </div>
-      </div>
+      </SwipeHintNested>
 
       {rescuePosts.length > 0 && (
         <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 p-4">
