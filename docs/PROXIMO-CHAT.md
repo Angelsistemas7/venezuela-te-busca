@@ -279,9 +279,46 @@ no hay cuentas en modo demostración).
   estado/región en el modelo de datos (`March` no lo incluye), así que no se
   pudo agregar ese filtro aquí como en las demás secciones.
 
+- **`FilterModal` + paginación real en Hospitales** (`src/app/hospitales/page.tsx`):
+  igual que Comunidad/Voluntarios/etc., `getHospitales()` cacheada 60s traía
+  TODOS los hospitales y la página filtraba por estado (operativo/saturado/
+  lleno/cerrado) en el cliente, sin paginar. Nueva `getHospitalsPage` (en
+  vivo, 10/20/50 a elegir); se dejó `getHospitals` intacta para `/mapa` y
+  `/admin` (y para los conteos del resumen por estado, que siguen sobre el
+  total). El resumen de capacidad (chips operativo/saturado/lleno/cerrado)
+  se queda igual, sin movimiento (ya estaba así). Dentro del modal:
+  Estado/región, Ordenar (nombre A-Z/recientes/antiguos) y rango de fechas
+  de registro. Nueva `HospitalSort` y `estado`/`dateFrom`/`dateTo` en
+  `getHospitalsPage`.
+
+- **`FilterModal` en Ayuda** (`src/app/ayuda/page.tsx`): los chips de tipo
+  (comida/agua/medicina/...) y "Solo disponibles" se quedan igual; el modal
+  agrega Estado/región y rango de fechas de registro. No se agregó "Ordenar"
+  aquí a propósito: la lista ya tiene una regla fija (disponibles primero)
+  que no debía competir con un orden manual. `getAidPointsPage` en `data.ts`
+  ahora acepta `estado`/`dateFrom`/`dateTo`.
+
+- **`FilterModal` en Mascotas** (`src/app/mascotas/page.tsx`): el estado del
+  reporte (perdida/encontrada/refugio/veterinario) se queda como chip suelto;
+  el modal agrega Estado/región, Ordenar (recientes/antiguas) y rango de
+  fechas de registro. Nueva `PetSort` y `estado`/`dateFrom`/`dateTo` en
+  `getPets`.
+
+- **Noticias — NO se le puso `FilterModal`, a propósito.** A diferencia de
+  las otras 9 secciones, `/noticias` no es una lista paginada con
+  búsqueda/filtros: son pestañas de contenido curado muy distinto entre sí
+  (Héroes, Ayuda humanitaria, Últimas noticias, Sismos), mezclando datos de
+  la BD con feeds en vivo (ReliefWeb, Google Noticias) y la API de USGS. No
+  hay un campo común de tipo/estado/fecha que tenga sentido en las 4
+  pestañas a la vez, así que forzar el mismo modal ahí habría sido
+  artificial. Si se quiere, lo que sí valdría la pena más adelante: las
+  pestañas de `NoticiasTabs.tsx` usan estado de React (`useState`), no la
+  URL — a diferencia de `CommunityTabs` y el resto del sitio, no se puede
+  compartir un enlace directo a, por ejemplo, "Noticias → Sismos". Quedó
+  sin tocar por ahora (no era lo que se pidió).
+
 ## Siguiente en la cola
-`FilterModal` en el resto de secciones (Hospitales, Noticias, Ayuda,
-Mascotas), luego Admin.
+Admin (el último en la cola original).
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

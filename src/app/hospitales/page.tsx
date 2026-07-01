@@ -1,25 +1,79 @@
 import Link from "next/link";
 import { Building2 } from "lucide-react";
-import { getHospitals, getPatientCounts } from "@/lib/data";
-import { HOSPITAL_STATUS_LABEL, type HospitalStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { getHospitals, getHospitalsPage, getPatientCounts, type HospitalSort } from "@/lib/data";
+import { ESTADOS, HOSPITAL_STATUS_LABEL, type HospitalStatus } from "@/lib/types";
+import { cn, clampPageSize } from "@/lib/utils";
 import { HospitalCard, HOSPITAL_STATUS_STYLE } from "@/components/HospitalCard";
 import { RegisterHospitalButton } from "@/components/RegisterHospitalButton";
+import { Pagination } from "@/components/Pagination";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { FilterModal, type FilterField } from "@/components/FilterModal";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const num = (v: string | string[] | undefined) => {
+  const s = str(v);
+  const n = s ? Number(s) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+};
+
+const FILTER_FIELDS: FilterField[] = [
+  {
+    kind: "select",
+    key: "estado",
+    label: "Estado (región)",
+    placeholder: "Todos",
+    options: ESTADOS.map((e) => ({ value: e, label: e })),
+  },
+  {
+    kind: "chips",
+    key: "sort",
+    label: "Ordenar por",
+    defaultValue: "name",
+    options: [
+      { value: "name", label: "Nombre (A–Z)" },
+      { value: "recent", label: "Más recientes" },
+      { value: "oldest", label: "Más antiguos" },
+    ],
+  },
+  { kind: "dateRange", fromKey: "dateFrom", toKey: "dateTo", label: "Registrado entre" },
+];
 
 export default async function HospitalesPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const status = str(sp.status) as HospitalStatus | undefined;
+  const estado = str(sp.estado) ?? "all";
+  const sort = (str(sp.sort) as HospitalSort) ?? "name";
+  const dateFrom = str(sp.dateFrom);
+  const dateTo = str(sp.dateTo);
+  const page = num(sp.page) ?? 1;
+  const pageSize = clampPageSize(num(sp.pageSize));
 
-  const [hospitals, counts] = await Promise.all([getHospitals(), getPatientCounts()]);
-  const shown = status ? hospitals.filter((h) => h.status === status) : hospitals;
-
-  const byStatus = (s: HospitalStatus) => hospitals.filter((h) => h.status === s).length;
+  const [{ items: shown, total }, counts, allHospitals] = await Promise.all([
+    getHospitalsPage({ status, estado, dateFrom, dateTo }, page, pageSize, sort),
+    getPatientCounts(),
+    // Conteos del resumen por estado: siempre sobre el total (cacheada 60s),
+    // sin los demás filtros, para que sigan sirviendo de acceso rápido.
+    getHospitals(),
+  ]);
+  const byStatus = (s: HospitalStatus) => allHospitals.filter((h) => h.status === s).length;
   const summary: HospitalStatus[] = ["operativo", "saturado", "lleno", "cerrado"];
+
+  const statusHref = (s: HospitalStatus) => {
+    const params = new URLSearchParams(currentParams);
+    if (status === s) return params.toString() ? `/hospitales?${params.toString()}` : "/hospitales";
+    params.set("status", s);
+    return `/hospitales?${params.toString()}`;
+  };
+
+  const currentParams: Record<string, string> = {};
+  if (estado !== "all") currentParams.estado = estado;
+  if (sort !== "name") currentParams.sort = sort;
+  if (dateFrom) currentParams.dateFrom = dateFrom;
+  if (dateTo) currentParams.dateTo = dateTo;
+  if (pageSize !== 10) currentParams.pageSize = String(pageSize);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -46,7 +100,7 @@ export default async function HospitalesPage({ searchParams }: { searchParams: S
         {summary.map((s) => (
           <Link
             key={s}
-            href={status === s ? "/hospitales" : `/hospitales?status=${s}`}
+            href={statusHref(s)}
             className={cn(
               "w-24 shrink-0 rounded-xl border p-2 text-center transition sm:w-auto sm:p-3",
               status === s
@@ -63,18 +117,28 @@ export default async function HospitalesPage({ searchParams }: { searchParams: S
         ))}
       </div>
 
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <FilterModal basePath="/hospitales" currentParams={currentParams} fields={FILTER_FIELDS} />
+        <PageSizeSelect value={pageSize} />
+      </div>
+
       {shown.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          {status
-            ? "No hay hospitales con ese estado ahora mismo."
-            : "Aún no hay hospitales registrados. Sé el primero en publicar uno."}
+          {total === 0
+            ? "Aún no hay hospitales registrados. Sé el primero en publicar uno."
+            : "Ningún hospital coincide con el filtro."}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {shown.map((h) => (
-            <HospitalCard key={h.id} hospital={h} patientCount={counts[h.id] ?? 0} />
-          ))}
-        </div>
+        <>
+          <div className="animate-rise grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {shown.map((h) => (
+              <HospitalCard key={h.id} hospital={h} patientCount={counts[h.id] ?? 0} />
+            ))}
+          </div>
+          <div className="mt-6">
+            <Pagination page={page} pageSize={pageSize} total={total} />
+          </div>
+        </>
       )}
     </div>
   );

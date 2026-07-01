@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PawPrint, Search } from "lucide-react";
-import { getCommentsForEntities, getPets } from "@/lib/data";
-import { PET_STATUS_EMOJI, PET_STATUS_LABEL, type PetStatus } from "@/lib/types";
+import { getCommentsForEntities, getPets, type PetSort } from "@/lib/data";
+import { ESTADOS, PET_STATUS_EMOJI, PET_STATUS_LABEL, type PetStatus } from "@/lib/types";
 import { cn, clampPageSize } from "@/lib/utils";
 import { PetCard } from "@/components/PetCard";
 import { RegisterPetButton } from "@/components/RegisterPetButton";
@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SwipeHintRow } from "@/components/SwipeHint";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { FilterModal, type FilterField } from "@/components/FilterModal";
 
 export const dynamic = "force-dynamic";
 
@@ -28,24 +29,67 @@ const FILTERS: { value: PetStatus | "all"; label: string }[] = [
   })),
 ];
 
+const FILTER_FIELDS: FilterField[] = [
+  {
+    kind: "select",
+    key: "estado",
+    label: "Estado (región)",
+    placeholder: "Todos",
+    options: ESTADOS.map((e) => ({ value: e, label: e })),
+  },
+  {
+    kind: "chips",
+    key: "sort",
+    label: "Ordenar por",
+    defaultValue: "recent",
+    options: [
+      { value: "recent", label: "Más recientes" },
+      { value: "oldest", label: "Más antiguas" },
+    ],
+  },
+  { kind: "dateRange", fromKey: "dateFrom", toKey: "dateTo", label: "Registrado entre" },
+];
+
 export default async function MascotasPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const status = (str(sp.status) as PetStatus | "all") ?? "all";
   const q = str(sp.q);
+  const estado = str(sp.estado) ?? "all";
+  const sort = (str(sp.sort) as PetSort) ?? "recent";
+  const dateFrom = str(sp.dateFrom);
+  const dateTo = str(sp.dateTo);
   const page = num(sp.page) ?? 1;
   const pageSize = clampPageSize(num(sp.pageSize));
 
-  const { items: pets, total } = await getPets({ status, search: q }, page, pageSize);
+  const { items: pets, total } = await getPets(
+    { status, search: q, estado, dateFrom, dateTo },
+    page,
+    pageSize,
+    sort,
+  );
   const commentsByPet = await getCommentsForEntities("pet", pets.map((p) => p.id));
 
   const statusHref = (s: PetStatus | "all") => {
     const params = new URLSearchParams();
     if (s !== "all") params.set("status", s);
+    if (sort !== "recent") params.set("sort", sort);
+    if (estado !== "all") params.set("estado", estado);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     if (q) params.set("q", q);
     if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/mascotas?${qs}` : "/mascotas";
   };
+
+  const currentParams: Record<string, string> = {};
+  if (status !== "all") currentParams.status = status;
+  if (sort !== "recent") currentParams.sort = sort;
+  if (estado !== "all") currentParams.estado = estado;
+  if (dateFrom) currentParams.dateFrom = dateFrom;
+  if (dateTo) currentParams.dateTo = dateTo;
+  if (q) currentParams.q = q;
+  if (pageSize !== 10) currentParams.pageSize = String(pageSize);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -69,6 +113,10 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
 
       <form action="/mascotas" className="mb-3 flex gap-2">
         {status !== "all" && <input type="hidden" name="status" value={status} />}
+        {sort !== "recent" && <input type="hidden" name="sort" value={sort} />}
+        {estado !== "all" && <input type="hidden" name="estado" value={estado} />}
+        {dateFrom && <input type="hidden" name="dateFrom" value={dateFrom} />}
+        {dateTo && <input type="hidden" name="dateTo" value={dateTo} />}
         {pageSize !== 10 && <input type="hidden" name="pageSize" value={pageSize} />}
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -101,7 +149,8 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
         ))}
       </SwipeHintRow>
 
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <FilterModal basePath="/mascotas" currentParams={currentParams} fields={FILTER_FIELDS} />
         <PageSizeSelect value={pageSize} />
       </div>
 

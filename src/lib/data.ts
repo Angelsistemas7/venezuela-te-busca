@@ -977,7 +977,13 @@ export interface AidPointResult {
  * propósito: acabas de registrar un punto y quieres verte ya en la lista.
  */
 export async function getAidPointsPage(
-  filter: { type?: AidPointType | "all"; availOnly?: boolean },
+  filter: {
+    type?: AidPointType | "all";
+    availOnly?: boolean;
+    estado?: string | "all";
+    dateFrom?: string;
+    dateTo?: string;
+  },
   page = 1,
   pageSize = 10,
 ): Promise<AidPointResult> {
@@ -989,6 +995,9 @@ export async function getAidPointsPage(
       items = items.filter((p) => p.types.includes(t));
     }
     if (filter.availOnly) items = items.filter((p) => p.available);
+    if (filter.estado && filter.estado !== "all") items = items.filter((p) => p.estado === filter.estado);
+    if (filter.dateFrom) items = items.filter((p) => p.createdAt >= filter.dateFrom!);
+    if (filter.dateTo) items = items.filter((p) => p.createdAt <= `${filter.dateTo}T23:59:59.999Z`);
     items = [...items.filter((p) => p.available), ...items.filter((p) => !p.available)];
     const total = items.length;
     const start = (page - 1) * pageSize;
@@ -997,6 +1006,9 @@ export async function getAidPointsPage(
   let query = sb.from("aid_points").select("*", { count: "exact" }).order("created_at", { ascending: false });
   if (filter.type && filter.type !== "all") query = query.contains("types", [filter.type]);
   if (filter.availOnly) query = query.eq("available", true);
+  if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.dateFrom) query = query.gte("created_at", filter.dateFrom);
+  if (filter.dateTo) query = query.lte("created_at", `${filter.dateTo}T23:59:59.999Z`);
   const start = (page - 1) * pageSize;
   const { data, error, count } = await query.range(start, start + pageSize - 1);
   if (error) throw error;
@@ -2307,15 +2319,27 @@ export interface PetResult {
 
 // Antes traía hasta 200 mascotas de un tirón sin paginar. Ahora pagina de
 // verdad (10/20/50 a elegir), en vivo.
+export type PetSort = "recent" | "oldest";
+
 export async function getPets(
-  filter: { status?: PetStatus | "all"; search?: string } = {},
+  filter: {
+    status?: PetStatus | "all";
+    search?: string;
+    estado?: string | "all";
+    dateFrom?: string;
+    dateTo?: string;
+  } = {},
   page = 1,
   pageSize = 10,
+  sort: PetSort = "recent",
 ): Promise<PetResult> {
   const sb = getSupabase();
   if (!sb) {
     let items = mem.pets.slice();
     if (filter.status && filter.status !== "all") items = items.filter((p) => p.status === filter.status);
+    if (filter.estado && filter.estado !== "all") items = items.filter((p) => p.estado === filter.estado);
+    if (filter.dateFrom) items = items.filter((p) => p.createdAt >= filter.dateFrom!);
+    if (filter.dateTo) items = items.filter((p) => p.createdAt <= `${filter.dateTo}T23:59:59.999Z`);
     if (filter.search) {
       const s = filter.search.toLowerCase().trim();
       items = items.filter((p) =>
@@ -2326,13 +2350,22 @@ export async function getPets(
           .includes(s),
       );
     }
-    items = items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    items =
+      sort === "oldest"
+        ? items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        : items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const total = items.length;
     const start = (page - 1) * pageSize;
     return { items: items.slice(start, start + pageSize), total, page, pageSize };
   }
-  let query = sb.from("pets").select("*", { count: "exact" }).order("created_at", { ascending: false });
+  let query = sb
+    .from("pets")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: sort === "oldest" });
   if (filter.status && filter.status !== "all") query = query.eq("status", filter.status);
+  if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.dateFrom) query = query.gte("created_at", filter.dateFrom);
+  if (filter.dateTo) query = query.lte("created_at", `${filter.dateTo}T23:59:59.999Z`);
   if (filter.search) {
     const s = filter.search.replace(/[,()*]/g, " ").trim();
     if (s) query = query.or(`name.ilike.%${s}%,description.ilike.%${s}%,location_text.ilike.%${s}%`);
@@ -2923,6 +2956,64 @@ async function getHospitalsImpl(): Promise<Hospital[]> {
   const { data, error } = await sb.from("hospitals").select("*").order("name");
   if (error) throw error;
   return (data ?? []).map(rowToHospital);
+}
+
+export type HospitalSort = "name" | "recent" | "oldest";
+
+export interface HospitalResult {
+  items: Hospital[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// Antes `getHospitales()` (cacheada 60s, sin límite) traía TODOS los
+// hospitales y la página filtraba por estado en el cliente, sin paginar.
+// Ahora pagina de verdad (10/20/50 a elegir), en vivo. `getHospitals` se deja
+// intacta para `/mapa` y `/admin`.
+export async function getHospitalsPage(
+  filter: {
+    status?: HospitalStatus;
+    estado?: string | "all";
+    dateFrom?: string;
+    dateTo?: string;
+  },
+  page = 1,
+  pageSize = 10,
+  sort: HospitalSort = "name",
+): Promise<HospitalResult> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.hospitals.slice();
+    if (filter.status) items = items.filter((h) => h.status === filter.status);
+    if (filter.estado && filter.estado !== "all") items = items.filter((h) => h.estado === filter.estado);
+    if (filter.dateFrom) items = items.filter((h) => h.createdAt >= filter.dateFrom!);
+    if (filter.dateTo) items = items.filter((h) => h.createdAt <= `${filter.dateTo}T23:59:59.999Z`);
+    items =
+      sort === "recent"
+        ? items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        : sort === "oldest"
+          ? items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          : items.sort((a, b) => a.name.localeCompare(b.name));
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total, page, pageSize };
+  }
+  let query = sb.from("hospitals").select("*", { count: "exact" });
+  query =
+    sort === "recent"
+      ? query.order("created_at", { ascending: false })
+      : sort === "oldest"
+        ? query.order("created_at", { ascending: true })
+        : query.order("name", { ascending: true });
+  if (filter.status) query = query.eq("status", filter.status);
+  if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.dateFrom) query = query.gte("created_at", filter.dateFrom);
+  if (filter.dateTo) query = query.lte("created_at", `${filter.dateTo}T23:59:59.999Z`);
+  const start = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(start, start + pageSize - 1);
+  if (error) throw error;
+  return { items: (data ?? []).map(rowToHospital), total: count ?? 0, page, pageSize };
 }
 
 export async function getHospitalById(id: string): Promise<Hospital | null> {

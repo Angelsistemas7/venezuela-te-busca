@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { HeartHandshake } from "lucide-react";
 import { getAidPointsPage } from "@/lib/data";
-import { AID_POINT_TYPE_LABEL, type AidPointType } from "@/lib/types";
+import { AID_POINT_TYPE_LABEL, ESTADOS, type AidPointType } from "@/lib/types";
 import { cn, clampPageSize } from "@/lib/utils";
 import { AidPointCard } from "@/components/AidPointCard";
 import { RegisterAidPointButton } from "@/components/RegisterAidPointButton";
 import { SwipeHintRow } from "@/components/SwipeHint";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { FilterModal, type FilterField } from "@/components/FilterModal";
 
 export const dynamic = "force-dynamic";
 
@@ -37,21 +38,42 @@ const TYPE_CHIPS: { value: AidPointType | "all"; label: string }[] = [
   })),
 ];
 
+const FILTER_FIELDS: FilterField[] = [
+  {
+    kind: "select",
+    key: "estado",
+    label: "Estado (región)",
+    placeholder: "Todos",
+    options: ESTADOS.map((e) => ({ value: e, label: e })),
+  },
+  { kind: "dateRange", fromKey: "dateFrom", toKey: "dateTo", label: "Registrado entre" },
+];
+
 export default async function AyudaPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const type = (str(sp.type) as AidPointType | "all") ?? "all";
   const availOnly = str(sp.avail) === "1";
+  const estado = str(sp.estado) ?? "all";
+  const dateFrom = str(sp.dateFrom);
+  const dateTo = str(sp.dateTo);
   const page = num(sp.page) ?? 1;
   const pageSize = clampPageSize(num(sp.pageSize));
 
   // Antes: `getAidPoints()` traía la tabla ENTERA sin límite ni paginación en
   // cada visita. Ahora pagina de verdad (10/20/50 a elegir), en vivo.
-  const { items: points, total } = await getAidPointsPage({ type, availOnly }, page, pageSize);
+  const { items: points, total } = await getAidPointsPage(
+    { type, availOnly, estado, dateFrom, dateTo },
+    page,
+    pageSize,
+  );
 
   const chipHref = (t: AidPointType | "all") => {
     const params = new URLSearchParams();
     if (t !== "all") params.set("type", t);
     if (availOnly) params.set("avail", "1");
+    if (estado !== "all") params.set("estado", estado);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/ayuda?${qs}` : "/ayuda";
@@ -60,10 +82,21 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
     const params = new URLSearchParams();
     if (type !== "all") params.set("type", type);
     if (!availOnly) params.set("avail", "1");
+    if (estado !== "all") params.set("estado", estado);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/ayuda?${qs}` : "/ayuda";
   };
+
+  const currentParams: Record<string, string> = {};
+  if (type !== "all") currentParams.type = type;
+  if (availOnly) currentParams.avail = "1";
+  if (estado !== "all") currentParams.estado = estado;
+  if (dateFrom) currentParams.dateFrom = dateFrom;
+  if (dateTo) currentParams.dateTo = dateTo;
+  if (pageSize !== 10) currentParams.pageSize = String(pageSize);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -116,7 +149,8 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
         </Link>
       </div>
 
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <FilterModal basePath="/ayuda" currentParams={currentParams} fields={FILTER_FIELDS} />
         <PageSizeSelect value={pageSize} />
       </div>
 
