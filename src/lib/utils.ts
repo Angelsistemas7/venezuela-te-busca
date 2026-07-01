@@ -4,6 +4,18 @@ export function cn(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
+// Tamaños de página válidos para listados paginados (Comunidad, Se busca/¿La
+// reconoces?). Vive aquí (no en PageSizeSelect.tsx) porque ese componente es
+// "use client": llamar una función suya desde un Server Component revienta la
+// página entera en cada carga ("Attempted to call ... from the server").
+export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+export const DEFAULT_PAGE_SIZE = 10;
+
+/** Clampa cualquier valor a una de las opciones válidas (10/20/50). */
+export function clampPageSize(v: number | undefined): number {
+  return v && (PAGE_SIZE_OPTIONS as readonly number[]).includes(v) ? v : DEFAULT_PAGE_SIZE;
+}
+
 /** Etiqueta de tiempo relativa en español ("hace 5 min"). */
 export function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();

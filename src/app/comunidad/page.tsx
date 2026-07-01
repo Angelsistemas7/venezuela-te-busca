@@ -2,14 +2,14 @@ import Link from "next/link";
 import { Search, Users2 } from "lucide-react";
 import { getCommentsForEntities, getPosts, getPostsPage, type PostSort } from "@/lib/data";
 import { POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, clampPageSize } from "@/lib/utils";
 import { CreatePostButton } from "@/components/CreatePostButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { PinnedPostCard } from "@/components/PinnedPostCard";
 import { PostCard } from "@/components/PostCard";
 import { Pagination } from "@/components/Pagination";
-import { PageSizeSelect, clampPageSize } from "@/components/PageSizeSelect";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
 
 export const dynamic = "force-dynamic";
 

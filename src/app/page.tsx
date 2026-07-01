@@ -19,7 +19,8 @@ import { DevModeNotice } from "@/components/DevModeNotice";
 import { FieldVolunteerBar } from "@/components/FieldVolunteerBar";
 import { FeaturedSections } from "@/components/FeaturedSections";
 import { EstadoChips } from "@/components/EstadoChips";
-import { PageSizeSelect, clampPageSize } from "@/components/PageSizeSelect";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { clampPageSize } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
