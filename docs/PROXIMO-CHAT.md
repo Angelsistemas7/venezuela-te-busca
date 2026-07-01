@@ -240,9 +240,21 @@ Sin esto, la barra de voluntarios seguirá apareciendo siempre en producción
 aunque el usuario ya se haya ofrecido (en local sin Supabase no aplica, porque
 no hay cuentas en modo demostración).
 
+- **`FilterModal` en Se busca / ¿La reconoces?** (`src/components/SearchAndFilters.tsx`):
+  el botón "Filtros" ya NO despliega el panel inline de antes (cuadrícula de
+  selects que empujaba el contenido) — abre la misma ventana centrada que
+  Comunidad. Los chips de estado de localización y de grupo de edad se
+  quedan sueltos, igual que antes. Dentro del modal: Estado/región, Género,
+  edad exacta (rango numérico, nuevo tipo de campo `numberRange` agregado a
+  `FilterModal`), Ordenar (recientes/nombre/estado) y **rango de fechas de
+  registro** (nuevo). `getPersons`/`PersonQuery` en `data.ts` ahora aceptan
+  `dateFrom`/`dateTo`. Importante: el modal conserva el parámetro `view`
+  (Se busca vs. ¿La reconoces? viven en la misma ruta `/`) para no devolver
+  a "Se busca" al aplicar un filtro estando en "¿La reconoces?".
+
 ## Siguiente en la cola
-`FilterModal` en el resto de secciones (Se busca/La reconoces, Voluntarios,
-Caravanas, Denuncias, Hospitales, Noticias, Ayuda, Mascotas), luego Admin.
+`FilterModal` en el resto de secciones (Voluntarios, Caravanas, Denuncias,
+Hospitales, Noticias, Ayuda, Mascotas), luego Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

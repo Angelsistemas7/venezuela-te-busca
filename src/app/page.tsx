@@ -43,9 +43,18 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
   // Las secciones destacadas solo se muestran en la vista "limpia" (sin
   // búsqueda ni filtros activos), para no estorbar cuando se está filtrando.
-  const hasActiveQuery = ["q", "status", "estado", "gender", "minAge", "maxAge", "page", "sort"].some(
-    (k) => str(sp[k]),
-  );
+  const hasActiveQuery = [
+    "q",
+    "status",
+    "estado",
+    "gender",
+    "minAge",
+    "maxAge",
+    "page",
+    "sort",
+    "dateFrom",
+    "dateTo",
+  ].some((k) => str(sp[k]));
 
   // Interruptor de la portada: "Se busca" (gente con datos) o "¿La reconoces?"
   // (gente vista, sin identificar). Cambia qué personas se listan.
@@ -73,6 +82,8 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
     gender: str(sp.gender) ?? "all",
     minAge: num(sp.minAge),
     maxAge: num(sp.maxAge),
+    dateFrom: str(sp.dateFrom),
+    dateTo: str(sp.dateTo),
     sort: (str(sp.sort) as PersonSort) ?? "recent",
   };
 

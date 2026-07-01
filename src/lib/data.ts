@@ -76,6 +76,8 @@ export interface PersonQuery {
   gender?: string | "all";
   minAge?: number;
   maxAge?: number;
+  dateFrom?: string;
+  dateTo?: string;
   unidentifiedOnly?: boolean;
   excludeUnidentified?: boolean;
   hospitalizedOnly?: boolean;
@@ -184,6 +186,8 @@ function queryMemoryPersons(q: PersonQuery): PersonResult {
   if (q.gender && q.gender !== "all") items = items.filter((p) => p.gender === q.gender);
   if (typeof q.minAge === "number") items = items.filter((p) => p.age != null && p.age >= q.minAge!);
   if (typeof q.maxAge === "number") items = items.filter((p) => p.age != null && p.age <= q.maxAge!);
+  if (q.dateFrom) items = items.filter((p) => p.createdAt >= q.dateFrom!);
+  if (q.dateTo) items = items.filter((p) => p.createdAt <= `${q.dateTo}T23:59:59.999Z`);
 
   if (q.search) {
     const s = q.search.toLowerCase().trim();
@@ -229,6 +233,8 @@ export async function getPersons(q: PersonQuery = {}): Promise<PersonResult> {
   if (q.gender && q.gender !== "all") query = query.eq("gender", q.gender);
   if (typeof q.minAge === "number") query = query.gte("age", q.minAge);
   if (typeof q.maxAge === "number") query = query.lte("age", q.maxAge);
+  if (q.dateFrom) query = query.gte("created_at", q.dateFrom);
+  if (q.dateTo) query = query.lte("created_at", `${q.dateTo}T23:59:59.999Z`);
   if (q.search) query = query.textSearch("search_doc", q.search, { type: "websearch", config: "spanish" });
 
   if (q.sort === "name") query = query.order("first_name", { ascending: true });

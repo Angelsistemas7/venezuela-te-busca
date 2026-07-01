@@ -11,7 +11,8 @@ export type FilterOption = { value: string; label: string };
 export type FilterField =
   | { kind: "chips"; key: string; label: string; options: FilterOption[]; defaultValue?: string }
   | { kind: "select"; key: string; label: string; options: FilterOption[]; placeholder?: string; defaultValue?: string }
-  | { kind: "dateRange"; fromKey: string; toKey: string; label: string };
+  | { kind: "dateRange"; fromKey: string; toKey: string; label: string }
+  | { kind: "numberRange"; fromKey: string; toKey: string; label: string; min?: number; max?: number };
 
 // Ventana de filtros reutilizable: mismo diseño en toda la app (Comunidad,
 // Se busca, Voluntarios, Caravanas...), pero cada página decide qué campos
@@ -37,7 +38,7 @@ export function FilterModal({
   const activeCount = useMemo(() => {
     let n = 0;
     for (const f of fields) {
-      if (f.kind === "dateRange") {
+      if (f.kind === "dateRange" || f.kind === "numberRange") {
         if (currentParams[f.fromKey] || currentParams[f.toKey]) n++;
       } else if ((currentParams[f.key] ?? "") !== (f.defaultValue ?? "")) {
         n++;
@@ -54,7 +55,7 @@ export function FilterModal({
   function apply() {
     const defaultOf = (key: string) => {
       for (const f of fields) {
-        if (f.kind !== "dateRange" && f.key === key) return f.defaultValue ?? "";
+        if ((f.kind === "chips" || f.kind === "select") && f.key === key) return f.defaultValue ?? "";
       }
       return "";
     };
@@ -71,7 +72,7 @@ export function FilterModal({
   function clear() {
     const cleared = { ...draft };
     for (const f of fields) {
-      if (f.kind === "dateRange") {
+      if (f.kind === "dateRange" || f.kind === "numberRange") {
         delete cleared[f.fromKey];
         delete cleared[f.toKey];
       } else {
@@ -137,6 +138,35 @@ export function FilterModal({
                     <span className="text-sm text-zinc-400">a</span>
                     <input
                       type="date"
+                      value={draft[f.toKey] ?? ""}
+                      onChange={(e) => setDraft((d) => ({ ...d, [f.toKey]: e.target.value }))}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            if (f.kind === "numberRange") {
+              return (
+                <div key={f.fromKey}>
+                  <p className="mb-1.5 text-sm font-semibold text-zinc-900">{f.label}</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={f.min}
+                      max={f.max}
+                      placeholder="Mín."
+                      value={draft[f.fromKey] ?? ""}
+                      onChange={(e) => setDraft((d) => ({ ...d, [f.fromKey]: e.target.value }))}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                    />
+                    <span className="text-sm text-zinc-400">–</span>
+                    <input
+                      type="number"
+                      min={f.min}
+                      max={f.max}
+                      placeholder="Máx."
                       value={draft[f.toKey] ?? ""}
                       onChange={(e) => setDraft((d) => ({ ...d, [f.toKey]: e.target.value }))}
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"

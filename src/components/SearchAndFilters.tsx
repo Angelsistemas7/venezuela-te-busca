@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { ESTADOS, PERSON_STATUS_LABEL, type PersonStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Select } from "./FormControls";
+import { FilterModal, type FilterField } from "./FilterModal";
 
 const STATUS_CHIPS: { value: PersonStatus | "all"; label: string }[] = [
   { value: "all", label: "Todos" },
@@ -26,6 +26,40 @@ const AGE_CHIPS: { label: string; min: string; max: string }[] = [
   { label: "🧓 Adultos mayores (60+)", min: "60", max: "" },
 ];
 
+const FILTER_FIELDS: FilterField[] = [
+  {
+    kind: "select",
+    key: "estado",
+    label: "Estado (región)",
+    placeholder: "Todos",
+    options: ESTADOS.map((e) => ({ value: e, label: e })),
+  },
+  {
+    kind: "select",
+    key: "gender",
+    label: "Género",
+    placeholder: "Todos",
+    options: [
+      { value: "masculino", label: "Masculino" },
+      { value: "femenino", label: "Femenino" },
+      { value: "otro", label: "Otro" },
+    ],
+  },
+  { kind: "numberRange", fromKey: "minAge", toKey: "maxAge", label: "Edad exacta (opcional)", min: 0, max: 120 },
+  {
+    kind: "chips",
+    key: "sort",
+    label: "Ordenar por",
+    defaultValue: "recent",
+    options: [
+      { value: "recent", label: "Más recientes" },
+      { value: "name", label: "Nombre (A–Z)" },
+      { value: "estado", label: "Estado (región)" },
+    ],
+  },
+  { kind: "dateRange", fromKey: "dateFrom", toKey: "dateTo", label: "Registrado entre" },
+];
+
 export function SearchAndFilters({ unidentified = false }: { unidentified?: boolean } = {}) {
   // En "¿La reconoces?" la persona ya fue vista/ubicada: "Por localizar" no aplica.
   const statusChips = unidentified
@@ -36,13 +70,9 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
   const pathname = usePathname();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [showFilters, setShowFilters] = useState(false);
   const [searchValue, setSearchValue] = useState(params.get("q") ?? "");
 
   const status = params.get("status") ?? "all";
-  const estado = params.get("estado") ?? "all";
-  const gender = params.get("gender") ?? "all";
-  const sort = params.get("sort") ?? "recent";
   const minAge = params.get("minAge") ?? "";
   const maxAge = params.get("maxAge") ?? "";
 
@@ -70,13 +100,13 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchValue]);
 
-  const activeFilterCount = [
-    estado !== "all",
-    gender !== "all",
-    minAge !== "",
-    maxAge !== "",
-    sort !== "recent",
-  ].filter(Boolean).length;
+  // "view" decide Se busca / ¿La reconoces? en la misma ruta — hay que
+  // conservarlo siempre o el modal te devolvería a "Se busca" al aplicar.
+  const currentParams: Record<string, string> = {};
+  for (const key of ["view", "estado", "gender", "sort", "minAge", "maxAge", "dateFrom", "dateTo", "q", "status", "pageSize"]) {
+    const v = params.get(key);
+    if (v) currentParams[key] = v;
+  }
 
   return (
     <div className="space-y-3">
@@ -99,23 +129,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
             </button>
           )}
         </div>
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className={cn(
-            "flex items-center gap-2 rounded-xl border px-4 text-sm font-medium transition",
-            showFilters || activeFilterCount > 0
-              ? "border-zinc-900 bg-zinc-900 text-white"
-              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50",
-          )}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          <span className="hidden sm:inline">Filtros</span>
-          {activeFilterCount > 0 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-400 text-xs font-bold text-zinc-900">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
+        <FilterModal basePath={pathname} currentParams={currentParams} fields={FILTER_FIELDS} />
       </div>
 
       {/* Chips rápidos por estado de localización */}
@@ -156,78 +170,6 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
           );
         })}
       </div>
-
-      {/* Panel de filtros avanzados */}
-      {showFilters && (
-        <div className="animate-fade-in grid grid-cols-1 gap-4 rounded-xl border border-zinc-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Estado (región)</label>
-            <Select value={estado} onChange={(e) => setParams({ estado: e.target.value })}>
-              <option value="all">Todos</option>
-              {ESTADOS.map((e) => (
-                <option key={e} value={e}>
-                  {e}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Género</label>
-            <Select value={gender} onChange={(e) => setParams({ gender: e.target.value })}>
-              <option value="all">Todos</option>
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-              <option value="otro">Otro</option>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Edad</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                max={120}
-                placeholder="Mín."
-                defaultValue={minAge}
-                onBlur={(e) => setParams({ minAge: e.target.value })}
-                className="w-full rounded-lg border border-zinc-300 px-2 py-2 text-sm outline-none focus:border-brand-400"
-              />
-              <span className="text-zinc-400">–</span>
-              <input
-                type="number"
-                min={0}
-                max={120}
-                placeholder="Máx."
-                defaultValue={maxAge}
-                onBlur={(e) => setParams({ maxAge: e.target.value })}
-                className="w-full rounded-lg border border-zinc-300 px-2 py-2 text-sm outline-none focus:border-brand-400"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Ordenar por</label>
-            <Select value={sort} onChange={(e) => setParams({ sort: e.target.value })}>
-              <option value="recent">Más recientes</option>
-              <option value="name">Nombre (A–Z)</option>
-              <option value="estado">Estado (región)</option>
-            </Select>
-          </div>
-
-          {activeFilterCount > 0 && (
-            <button
-              onClick={() =>
-                setParams({ estado: null, gender: null, minAge: null, maxAge: null, sort: null })
-              }
-              className="text-sm font-medium text-rose-600 hover:underline sm:col-span-2 lg:col-span-4"
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-      )}
 
       {isPending && <p className="text-xs text-zinc-400">Actualizando resultados…</p>}
     </div>
