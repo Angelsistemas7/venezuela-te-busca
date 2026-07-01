@@ -2268,6 +2268,52 @@ async function getVolunteersImpl(
   return (data ?? []).map(rowToVolunteer);
 }
 
+export interface VolunteerResult {
+  items: Volunteer[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Lista de voluntarios, PAGINADA. `getVolunteers` (de arriba) se deja igual
+ * para el mapa (necesita "todos, cacheados"); esta es para la página
+ * /voluntarios, que antes traía hasta 300 sin límite de página — pasados los
+ * 300 no había forma de ver más. Sin caché a propósito: te acabas de ofrecer
+ * de voluntario y quieres verte en la lista al instante.
+ */
+export async function getVolunteersPage(
+  filter: { type?: VolunteerType | "all"; search?: string },
+  page = 1,
+  pageSize = 10,
+): Promise<VolunteerResult> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.volunteers.slice();
+    if (filter.type && filter.type !== "all") items = items.filter((v) => v.type === filter.type);
+    if (filter.search) {
+      const s = filter.search.toLowerCase().trim();
+      items = items.filter((v) =>
+        [v.name, v.skillsText, v.locationText, v.estado].filter(Boolean).join(" ").toLowerCase().includes(s),
+      );
+    }
+    items = items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total, page, pageSize };
+  }
+  let query = sb.from("volunteers").select("*", { count: "exact" }).order("created_at", { ascending: false });
+  if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
+  if (filter.search) {
+    const s = filter.search.replace(/[,()*]/g, " ").trim();
+    if (s) query = query.or(`name.ilike.%${s}%,skills_text.ilike.%${s}%,location_text.ilike.%${s}%`);
+  }
+  const start = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(start, start + pageSize - 1);
+  if (error) throw error;
+  return { items: (data ?? []).map(rowToVolunteer), total: count ?? 0, page, pageSize };
+}
+
 export async function createVolunteer(
   input: VolunteerInput,
   photoUrl: string | null = null,

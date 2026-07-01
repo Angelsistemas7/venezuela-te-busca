@@ -1,16 +1,24 @@
 import Link from "next/link";
 import { HandHeart, Mail, MapPin, Phone, Search } from "lucide-react";
-import { getVolunteers } from "@/lib/data";
+import { getVolunteersPage } from "@/lib/data";
 import { VOLUNTEER_TYPE_EMOJI, VOLUNTEER_TYPE_LABEL, type VolunteerType } from "@/lib/types";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn, clampPageSize, timeAgo } from "@/lib/utils";
 import { RegisterVolunteerButton } from "@/components/RegisterVolunteerButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
+import { Pagination } from "@/components/Pagination";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { SwipeHintRow } from "@/components/SwipeHint";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const num = (v: string | string[] | undefined) => {
+  const s = str(v);
+  const n = s ? Number(s) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+};
 
 const FILTERS: { value: VolunteerType | "all"; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -24,13 +32,19 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const type = (str(sp.type) as VolunteerType | "all") ?? "all";
   const q = str(sp.q);
+  const page = num(sp.page) ?? 1;
+  const pageSize = clampPageSize(num(sp.pageSize));
 
-  const volunteers = await getVolunteers({ type, search: q });
+  // Antes: hasta 300 voluntarios sin límite de página, cacheados 60s (te
+  // acababas de ofrecer y podías no verte en la lista por un minuto). Ahora
+  // pagina de verdad (10/20/50 a elegir) y consulta en vivo.
+  const { items: volunteers, total } = await getVolunteersPage({ type, search: q }, page, pageSize);
 
   const typeHref = (t: VolunteerType | "all") => {
     const params = new URLSearchParams();
     if (t !== "all") params.set("type", t);
     if (q) params.set("q", q);
+    if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/voluntarios?${qs}` : "/voluntarios";
   };
@@ -67,26 +81,29 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
             className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-base outline-none sm:text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
-        <button type="submit" className="rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800">
+        <button type="submit" className="press rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800">
           Buscar
         </button>
       </form>
 
-      <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
-        {FILTERS.map((f) => (
-          <Link
-            key={f.value}
-            href={typeHref(f.value)}
-            className={cn(
-              "whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
-              type === f.value
-                ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
-            )}
-          >
-            {f.label}
-          </Link>
-        ))}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <SwipeHintRow className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+          {FILTERS.map((f) => (
+            <Link
+              key={f.value}
+              href={typeHref(f.value)}
+              className={cn(
+                "press whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
+                type === f.value
+                  ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                  : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
+              )}
+            >
+              {f.label}
+            </Link>
+          ))}
+        </SwipeHintRow>
+        <PageSizeSelect value={pageSize} />
       </div>
 
       {volunteers.length === 0 ? (
@@ -96,7 +113,7 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
           description="¿Puedes ayudar con tu tiempo o tu oficio? Sé el primero en ofrecerte."
         />
       ) : (
-        <ul className="space-y-3">
+        <ul className="animate-rise space-y-3">
           {volunteers.map((v) => (
             <li key={v.id} className="flex gap-3 rounded-2xl border border-zinc-200 bg-white p-4">
               {v.photoUrl && (
@@ -132,13 +149,13 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
                   </span>
                 )}
                 {v.contactPhone && (
-                  <a href={`tel:${v.contactPhone}`} className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline">
+                  <a href={`tel:${v.contactPhone}`} className="press inline-flex items-center gap-1 text-xs font-medium text-brand-700 transition hover:underline">
                     <Phone className="h-3.5 w-3.5" />
                     {v.contactPhone}
                   </a>
                 )}
                 {v.contactEmail && (
-                  <a href={`mailto:${v.contactEmail}`} className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline">
+                  <a href={`mailto:${v.contactEmail}`} className="press inline-flex items-center gap-1 text-xs font-medium text-brand-700 transition hover:underline">
                     <Mail className="h-3.5 w-3.5" />
                     {v.contactEmail}
                   </a>
@@ -149,6 +166,10 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
           ))}
         </ul>
       )}
+
+      <div className="mt-6">
+        <Pagination page={page} pageSize={pageSize} total={total} />
+      </div>
     </div>
   );
 }

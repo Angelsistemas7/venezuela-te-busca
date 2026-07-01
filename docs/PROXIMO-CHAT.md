@@ -66,8 +66,12 @@ cambios al azar). Ya se hizo, con commits propios cada vez:
   También: `HospitalCard` sin tap feedback (mismo bug que `PersonCard`),
   buscador de pacientes con el mismo problema de zoom en iPhone.
 
+- **Voluntarios** — mismo bug de Comunidad: `getVolunteers` traía hasta 300 sin
+  paginar, cacheado 60s. Nueva `getVolunteersPage` (en vivo, 10/20/50 a
+  elegir) para la página; se dejó `getVolunteers` intacta para el mapa.
+
 ## Siguiente en la cola
-Voluntarios/Caravanas/Denuncias, Puntos de ayuda, Mascotas, Admin.
+Caravanas/Denuncias, Puntos de ayuda, Mascotas, Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

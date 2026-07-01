@@ -81,14 +81,14 @@ export function RegisterVolunteerButton() {
             <p className="mt-4 max-w-sm text-sm font-medium text-zinc-800">{result.message}</p>
             <button
               onClick={close}
-              className="mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              className="press mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
             >
               Cerrar
             </button>
           </div>
         ) : (
           <form ref={formRef} onSubmit={onSubmit} className="space-y-5">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-6 hover:border-emerald-400 hover:bg-emerald-50">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-6 transition hover:border-emerald-400 hover:bg-emerald-50">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview} alt="Vista previa" className="h-28 w-28 rounded-full object-cover" />
@@ -176,14 +176,14 @@ export function RegisterVolunteerButton() {
               <button
                 type="button"
                 onClick={close}
-                className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                className="press rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                className="press flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Publicar
