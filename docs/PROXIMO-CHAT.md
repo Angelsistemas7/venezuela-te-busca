@@ -52,10 +52,22 @@ cambios al azar). Ya se hizo, con commits propios cada vez:
   los 10s, amplitud reducida (6px).
 - **Emergencias** — página 100% estática (no tenía ninguna consulta a la BD;
   antes forzada a "force-dynamic" sin motivo), tap feedback en los teléfonos.
+- **Noticias** — código muerto eliminado (`getLatestNews`/GDELT, ya no se
+  usaba), dominio viejo en el `appname` de ReliefWeb, aviso de "vas a salir
+  del sitio" en titulares/fuentes (contenido de terceros).
+- **Hospitales** — **hallazgo grande**: TODO `lib/data.ts` tenía el mismo
+  patrón sin revisar errores de `reactToPerson`/`reactToPost` (~18 lugares:
+  likes de aid_points/marches/comments/heroes/news_items/hospitales,
+  votos de insumos/disponibilidad, `person_owners`/`resource_owners`
+  (enlaces de gestión), `saved_items`, `resource_managers`). Se revisó y
+  blindó TODO el archivo (ya no queda ningún `await sb...update/insert/delete`
+  sin comprobar `error`). Esto es justo lo que las 3 claves del VPS seguían
+  rompiendo en silencio — doblemente importante corregir esas claves.
+  También: `HospitalCard` sin tap feedback (mismo bug que `PersonCard`),
+  buscador de pacientes con el mismo problema de zoom en iPhone.
 
 ## Siguiente en la cola
-**Noticias**, a fondo (en curso). Después: Hospitales/Puntos de ayuda,
-Voluntarios/Caravanas/Denuncias, Mascotas, Admin.
+Voluntarios/Caravanas/Denuncias, Puntos de ayuda, Mascotas, Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

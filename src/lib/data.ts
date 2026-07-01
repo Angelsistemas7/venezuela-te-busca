@@ -528,8 +528,13 @@ export async function createPerson(
     .single();
   if (error) throw error;
   const person = rowToPerson(data);
-  // Guarda el token en una tabla aparte, sin lectura pública (secreto).
-  await sb.from("person_owners").insert({ person_id: person.id, token: ownerToken });
+  // Guarda el token en una tabla aparte, sin lectura pública (secreto). Si esto
+  // falla en silencio, el enlace de gestión que se le muestra al autor nunca
+  // funcionaría (el token jamás quedó guardado) — por eso se revisa el error.
+  const { error: ownerError } = await sb
+    .from("person_owners")
+    .insert({ person_id: person.id, token: ownerToken });
+  if (ownerError) throw ownerError;
   return { person, ownerToken };
 }
 
@@ -742,7 +747,10 @@ async function createResourceOwner(
   }
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) return;
-  await sb.from("resource_owners").insert({ entity_type: entityType, entity_id: entityId, token });
+  const { error } = await sb
+    .from("resource_owners")
+    .insert({ entity_type: entityType, entity_id: entityId, token });
+  if (error) throw error;
 }
 
 async function deleteResourceOwner(entityType: ResourceOwnerEntity, entityId: string): Promise<void> {
@@ -754,7 +762,12 @@ async function deleteResourceOwner(entityType: ResourceOwnerEntity, entityId: st
   }
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) return;
-  await sb.from("resource_owners").delete().eq("entity_type", entityType).eq("entity_id", entityId);
+  const { error } = await sb
+    .from("resource_owners")
+    .delete()
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId);
+  if (error) throw error;
 }
 
 /** Verifica que el token corresponde al autor del recurso (punto o caravana). */
@@ -838,12 +851,13 @@ export async function addResourceManager(
   }
   const sb = getSupabaseAdmin();
   if (!sb) return;
-  await sb
+  const { error } = await sb
     .from("resource_managers")
     .upsert(
       { entity_type: entityType, entity_id: entityId, user_id: userId, granted_by: grantedBy },
       { onConflict: "entity_type,entity_id,user_id" },
     );
+  if (error) throw error;
 }
 
 /** Quita a un usuario como gestor de un recurso (admin). */
@@ -860,12 +874,13 @@ export async function removeResourceManager(
   }
   const sb = getSupabaseAdmin();
   if (!sb) return;
-  await sb
+  const { error } = await sb
     .from("resource_managers")
     .delete()
     .eq("entity_type", entityType)
     .eq("entity_id", entityId)
     .eq("user_id", userId);
+  if (error) throw error;
 }
 
 // ── Puntos de ayuda ─────────────────────────────────────────────────────────
@@ -1060,7 +1075,8 @@ export async function likeAidPoint(id: string): Promise<void> {
   }
   const { data, error } = await sb.from("aid_points").select("likes").eq("id", id).single();
   if (error) throw error;
-  await sb.from("aid_points").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  const { error: updateError } = await sb.from("aid_points").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  if (updateError) throw updateError;
 }
 
 /**
@@ -1087,10 +1103,11 @@ export async function voteAidAvailability(id: string, vote: "available" | "deple
   if (error) throw error;
   const va = (data.votes_available ?? 0) + (vote === "available" ? 1 : 0);
   const vd = (data.votes_depleted ?? 0) + (vote === "depleted" ? 1 : 0);
-  await sb
+  const { error: updateError } = await sb
     .from("aid_points")
     .update({ votes_available: va, votes_depleted: vd, updated_at: now })
     .eq("id", id);
+  if (updateError) throw updateError;
 }
 
 // La disponibilidad oficial (disponible/agotado) la fija el AUTOR del punto o el
@@ -1258,7 +1275,8 @@ export async function likeMarch(id: string): Promise<void> {
   }
   const { data, error } = await sb.from("marches").select("likes").eq("id", id).single();
   if (error) throw error;
-  await sb.from("marches").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  const { error: updateError } = await sb.from("marches").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  if (updateError) throw updateError;
 }
 
 // ── Comentarios (foro) ───────────────────────────────────────────────────────
@@ -1399,7 +1417,8 @@ export async function likeComment(id: string): Promise<void> {
   }
   const { data, error } = await sb.from("comments").select("likes").eq("id", id).single();
   if (error) throw error;
-  await sb.from("comments").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  const { error: updateError } = await sb.from("comments").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  if (updateError) throw updateError;
 }
 
 // ── Reportes: lectura pública + moderación (no bloqueante) ──────────────────
@@ -1479,7 +1498,11 @@ export async function verifyAndApplyReport(reportId: string): Promise<void> {
     .select("*")
     .single();
   if (error) throw error;
-  await sb.from("persons").update({ status: report.reported_status }).eq("id", report.person_id);
+  const { error: updateError } = await sb
+    .from("persons")
+    .update({ status: report.reported_status })
+    .eq("id", report.person_id);
+  if (updateError) throw updateError;
 }
 
 /** Descarta un reporte (p. ej. falso) sin tocar el estado de la persona. */
@@ -1896,22 +1919,24 @@ export async function saveItem(
 ): Promise<void> {
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) return;
-  await sb.from("saved_items").upsert(
+  const { error } = await sb.from("saved_items").upsert(
     { user_id: userId, entity_type: type, entity_id: id, title: title.slice(0, 120) },
     { onConflict: "user_id,entity_type,entity_id", ignoreDuplicates: true },
   );
+  if (error) throw error;
 }
 
 /** Quita una publicación de los guardados de la cuenta. */
 export async function unsaveItem(userId: string, type: SavedEntity, id: string): Promise<void> {
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) return;
-  await sb
+  const { error } = await sb
     .from("saved_items")
     .delete()
     .eq("user_id", userId)
     .eq("entity_type", type)
     .eq("entity_id", id);
+  if (error) throw error;
 }
 
 /** Edita una publicación de la comunidad (autor). No toca reacciones ni foto. */
@@ -2091,7 +2116,11 @@ export async function supportComplaint(id: string): Promise<void> {
   }
   const { data, error } = await sb.from("complaints").select("supports").eq("id", id).single();
   if (error) throw error;
-  await sb.from("complaints").update({ supports: (data.supports ?? 0) + 1 }).eq("id", id);
+  const { error: updateError } = await sb
+    .from("complaints")
+    .update({ supports: (data.supports ?? 0) + 1 })
+    .eq("id", id);
+  if (updateError) throw updateError;
 }
 
 // ── Mascotas ────────────────────────────────────────────────────────────────
@@ -2382,7 +2411,8 @@ export async function likeHero(id: string): Promise<void> {
   }
   const { data, error } = await sb.from("heroes").select("likes").eq("id", id).single();
   if (error) throw error;
-  await sb.from("heroes").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  const { error: updateError } = await sb.from("heroes").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  if (updateError) throw updateError;
 }
 
 /** Da/quita el visto bueno del moderador a un héroe. */
@@ -2485,7 +2515,11 @@ export async function likeNewsItem(id: string): Promise<void> {
   }
   const { data, error } = await sb.from("news_items").select("likes").eq("id", id).single();
   if (error) throw error;
-  await sb.from("news_items").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  const { error: updateError } = await sb
+    .from("news_items")
+    .update({ likes: (data.likes ?? 0) + 1 })
+    .eq("id", id);
+  if (updateError) throw updateError;
 }
 
 /** Elimina una noticia curada (solo el equipo). */
@@ -2656,10 +2690,11 @@ export async function voteHospitalSupplies(id: string, vote: "yes" | "no"): Prom
   if (error) throw error;
   const vs = (data.votes_supplies ?? 0) + (vote === "yes" ? 1 : 0);
   const vn = (data.votes_no_supplies ?? 0) + (vote === "no" ? 1 : 0);
-  await sb
+  const { error: updateError } = await sb
     .from("hospitals")
     .update({ votes_supplies: vs, votes_no_supplies: vn, updated_at: now })
     .eq("id", id);
+  if (updateError) throw updateError;
 }
 
 /** "Me gusta" a un hospital (comunidad). */
@@ -2672,7 +2707,8 @@ export async function likeHospital(id: string): Promise<void> {
   }
   const { data, error } = await sb.from("hospitals").select("likes").eq("id", id).single();
   if (error) throw error;
-  await sb.from("hospitals").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  const { error: updateError } = await sb.from("hospitals").update({ likes: (data.likes ?? 0) + 1 }).eq("id", id);
+  if (updateError) throw updateError;
 }
 
 export async function getHospitalPatients(hospitalId: string): Promise<HospitalPatient[]> {

@@ -74,7 +74,7 @@ export function HospitalPatients({
         </h2>
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+          className="press flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
         >
           <UserPlus className="h-4 w-4" />
           Agregar persona
@@ -92,7 +92,7 @@ export function HospitalPatients({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar por nombre o cédula"
-          className="w-full rounded-lg border border-zinc-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-lg border border-zinc-300 py-2 pl-9 pr-3 text-base outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:text-sm"
         />
       </div>
 
@@ -132,10 +132,10 @@ export function HospitalPatients({
             <CheckCircle2 className="h-14 w-14 text-emerald-500" />
             <p className="mt-4 text-sm font-medium text-zinc-800">{result.message}</p>
             <div className="mt-6 flex gap-3">
-              <button onClick={() => setResult(null)} className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+              <button onClick={() => setResult(null)} className="press rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50">
                 Agregar otra
               </button>
-              <button onClick={close} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+              <button onClick={close} className="press rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800">
                 Cerrar
               </button>
             </div>
@@ -171,13 +171,13 @@ export function HospitalPatients({
             )}
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={close} className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+              <button type="button" onClick={close} className="press rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50">
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+                className="press flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 Agregar

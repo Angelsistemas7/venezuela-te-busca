@@ -17,7 +17,7 @@ export function HospitalCard({ hospital, patientCount }: { hospital: Hospital; p
   return (
     <Link
       href={`/hospitales/${hospital.id}`}
-      className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-zinc-200/60"
+      className="tap-card flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-semibold text-zinc-900">{hospital.name}</h3>

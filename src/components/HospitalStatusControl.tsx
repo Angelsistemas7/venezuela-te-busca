@@ -63,7 +63,7 @@ export function HospitalStatusControl({
     return (
       <button
         onClick={() => setEditing(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+        className="press inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
       >
         <Pencil className="h-3.5 w-3.5" />
         Actualizar estado / insumos
@@ -102,13 +102,13 @@ export function HospitalStatusControl({
       {error && <p className="mt-2 text-sm font-medium text-rose-600">{error}</p>}
 
       <div className="mt-3 flex justify-end gap-2">
-        <button onClick={() => setEditing(false)} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-white">
+        <button onClick={() => setEditing(false)} className="press rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-white">
           Cancelar
         </button>
         <button
           onClick={save}
           disabled={pending}
-          className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="press flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
           Guardar
