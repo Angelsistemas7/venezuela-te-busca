@@ -402,16 +402,17 @@ async function getRecentlyLocatedImpl(limit = 12): Promise<Person[]> {
 
 /**
  * Personas por grupo de edad para las "Secciones destacadas" del inicio
- * (Niñas/niños, Adolescentes, Jóvenes, Adultos, Adultos mayores). Es la
- * consulta más repetida del sitio: la ve TODA visita al inicio sin filtros,
- * la página con más tráfico. Antes no tenía caché (a diferencia de las cifras
- * y "localizados recientemente", que sí), así que cada carga del inicio
- * disparaba 6 consultas nuevas a Supabase. Cacheada 60s por combinación de
- * edad, igual para todos — mismo criterio que el resto del panel del inicio.
+ * (Niñas/niños, Adolescentes, Jóvenes, Adultos, Adultos mayores), tanto en
+ * "Se busca" (excludeUnidentified) como en "¿La reconoces?" (unidentifiedOnly)
+ * — el llamador decide cuál con `query`. Es la consulta más repetida del
+ * sitio: la ve TODA visita al inicio sin filtros, la página con más tráfico.
+ * Antes no tenía caché (a diferencia de las cifras y "localizados
+ * recientemente", que sí), así que cada carga disparaba consultas nuevas a
+ * Supabase. Cacheada 60s por combinación de edad, igual para todos.
  */
 export const getFeaturedPersons = unstable_cache(
   async (query: PersonQuery = {}): Promise<Person[]> => {
-    const { items } = await getPersons({ ...query, excludeUnidentified: true });
+    const { items } = await getPersons(query);
     return items;
   },
   ["featured-persons"],

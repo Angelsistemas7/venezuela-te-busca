@@ -48,18 +48,37 @@ create table if not exists persons (
   contact_email   text,
   verified        boolean not null default false,
   reactions       jsonb not null default '{"fuerza":0,"corazon":0,"difundir":0}',
-  -- columna generada para búsqueda de texto completo en español
+  -- columna generada para búsqueda de texto completo en español (incluye
+  -- `description`: es el único dato con el que se busca a alguien sin
+  -- identificar en "¿La reconoces?" — rasgos, ropa, características).
   search_doc tsvector generated always as (
     to_tsvector('spanish',
       coalesce(first_name,'') || ' ' ||
       coalesce(last_name,'') || ' ' ||
       coalesce(cedula,'') || ' ' ||
       coalesce(estado,'') || ' ' ||
-      coalesce(location_text,''))
+      coalesce(location_text,'') || ' ' ||
+      coalesce(description,''))
   ) stored,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migración para bases ya creadas: `search_doc` no incluía `description`, así
+-- que buscar por rasgos/ropa en "¿La reconoces?" no encontraba nada (el único
+-- dato disponible ahí). Recrear la columna generada recalcula sola la
+-- búsqueda para TODOS los registros existentes, sin tocar los datos.
+drop index if exists persons_search_idx;
+alter table persons drop column if exists search_doc;
+alter table persons add column search_doc tsvector generated always as (
+  to_tsvector('spanish',
+    coalesce(first_name,'') || ' ' ||
+    coalesce(last_name,'') || ' ' ||
+    coalesce(cedula,'') || ' ' ||
+    coalesce(estado,'') || ' ' ||
+    coalesce(location_text,'') || ' ' ||
+    coalesce(description,''))
+) stored;
 
 create index if not exists persons_status_idx        on persons (status);
 create index if not exists persons_estado_idx        on persons (estado);

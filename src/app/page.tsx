@@ -72,15 +72,18 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
     sort: (str(sp.sort) as PersonSort) ?? "recent",
   };
 
-  // Las secciones extra (localizados, chips, destacados) son propias de "Se
-  // busca" y solo en la vista limpia.
-  const showExtras = !isReconoces && !hasActiveQuery;
+  // Las secciones por edad (destacadas) se ven en ambas pestañas, siempre que
+  // no haya búsqueda/filtro activo. "Localizados recientemente" y "Por estado"
+  // son propias del concepto de "Se busca" (localizar/región) y no aplican a
+  // avistamientos sin identificar, así que solo se muestran ahí.
+  const showAgeSections = !hasActiveQuery;
+  const showBuscaExtras = !isReconoces && !hasActiveQuery;
 
   const [stats, result, groups, recentlyLocated] = await Promise.all([
     getDashboardStats(),
     groupBy ? Promise.resolve(null) : getPersons({ ...baseQuery, page: num(sp.page) ?? 1, pageSize: 24 }),
     groupBy ? getPersonGroups(baseQuery, groupBy) : Promise.resolve(null),
-    showExtras ? getRecentlyLocated(12) : Promise.resolve([]),
+    showBuscaExtras ? getRecentlyLocated(12) : Promise.resolve([]),
   ]);
 
   const total = groupBy
@@ -128,17 +131,21 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           </div>
         </div>
 
-        {showExtras && (
+        {showAgeSections && (
           <div className="space-y-8 border-t border-zinc-100 pt-6">
-            <RecentlyLocated persons={recentlyLocated} />
-            <EstadoChips />
-            <FeaturedSections />
+            {showBuscaExtras && (
+              <>
+                <RecentlyLocated persons={recentlyLocated} />
+                <EstadoChips />
+              </>
+            )}
+            <FeaturedSections unidentified={isReconoces} />
           </div>
         )}
 
-        {/* Vista plana: solo con búsqueda/filtro activo o en "¿La reconoces?".
-            En "Se busca" limpio, las secciones por edad (arriba) hacen de listado. */}
-        {!(showExtras) && (
+        {/* Vista plana: solo con búsqueda/filtro activo. Con la vista limpia,
+            las secciones por edad (arriba) hacen de listado en ambas pestañas. */}
+        {!showAgeSections && (
         <div className="border-t border-zinc-100 pt-6">
           <h2 className="mb-3 font-bold text-zinc-900">
             {hasActiveQuery
