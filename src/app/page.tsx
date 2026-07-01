@@ -15,6 +15,7 @@ import { SearchAndFilters } from "@/components/SearchAndFilters";
 import { PersonViewToggle } from "@/components/PersonViewToggle";
 import { PersonGrid } from "@/components/PersonGrid";
 import { PersonGroups } from "@/components/PersonGroups";
+import { RecognizeDeck } from "@/components/RecognizeDeck";
 import { Pagination } from "@/components/Pagination";
 import { RegisterPersonButton } from "@/components/RegisterPersonButton";
 import { DevModeNotice } from "@/components/DevModeNotice";
@@ -75,7 +76,10 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         : null;
 
   const baseQuery = {
-    ...(isReconoces ? { unidentifiedOnly: true } : { excludeUnidentified: true }),
+    // "La reconoces" (baraja tipo tarjetas) muestra las mismas personas buscadas
+    // que "Se busca", para deslizarlas y avisar si las reconoces. Mientras no haya
+    // avistamientos "sin identificar" en la base, ambas vistas usan ese conjunto.
+    excludeUnidentified: true,
     search: str(sp.q),
     status,
     estado: str(sp.estado) ?? "all",
@@ -98,7 +102,9 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   const user = await getCurrentUser();
   const [stats, result, groups, recentlyLocated, alreadyVolunteered] = await Promise.all([
     getDashboardStats(),
-    groupBy ? Promise.resolve(null) : getPersons({ ...baseQuery, page: num(sp.page) ?? 1, pageSize }),
+    groupBy
+      ? Promise.resolve(null)
+      : getPersons({ ...baseQuery, page: num(sp.page) ?? 1, pageSize: isReconoces ? 60 : pageSize }),
     groupBy ? getPersonGroups(baseQuery, groupBy) : Promise.resolve(null),
     showBuscaExtras ? getRecentlyLocated(12) : Promise.resolve([]),
     user ? hasVolunteered(user.id) : Promise.resolve(false),
@@ -142,14 +148,21 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
       <div className="mt-8 flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
-            <SearchAndFilters unidentified={isReconoces} />
+            <SearchAndFilters unidentified={false} />
           </div>
           <div className="shrink-0">
             <RegisterPersonButton />
           </div>
         </div>
 
-        {showAgeSections && (
+        {/* "¿La reconoces?": baraja de tarjetas (desliza para reconocer). */}
+        {isReconoces && (
+          <div className="border-t border-zinc-100 pt-6">
+            <RecognizeDeck persons={result?.items ?? []} />
+          </div>
+        )}
+
+        {!isReconoces && showAgeSections && (
           <div className="space-y-8 border-t border-zinc-100 pt-6">
             {showBuscaExtras && (
               <>
@@ -157,13 +170,13 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
                 <EstadoChips />
               </>
             )}
-            <FeaturedSections unidentified={isReconoces} />
+            <FeaturedSections unidentified={false} />
           </div>
         )}
 
         {/* Vista plana: solo con búsqueda/filtro activo. Con la vista limpia,
-            las secciones por edad (arriba) hacen de listado en ambas pestañas. */}
-        {!showAgeSections && (
+            las secciones por edad (arriba) hacen de listado. */}
+        {!isReconoces && !showAgeSections && (
         <div className="border-t border-zinc-100 pt-6">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
             <div>
