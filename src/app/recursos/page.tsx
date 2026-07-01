@@ -77,7 +77,14 @@ export default function RecursosPage() {
       </div>
 
       <p className="mt-8 text-center text-xs text-zinc-400">
-        ¿Conoces una iniciativa verificable que falte aquí? Escríbenos y la evaluamos.
+        ¿Conoces una iniciativa verificable que falte aquí?{" "}
+        <a
+          href="mailto:atencionsentralabs@gmail.com?subject=Sugerencia%20de%20recurso"
+          className="press font-medium text-brand-700 transition hover:underline"
+        >
+          Escríbenos
+        </a>{" "}
+        y la evaluamos.
       </p>
     </div>
   );

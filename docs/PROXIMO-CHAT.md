@@ -147,6 +147,21 @@ create trigger pets_touch before update on pets
 Sin esto, publicar/gestionar una mascota fallará en producción (en local
 sin Supabase configurado sí funciona, porque usa el almacén en memoria).
 
+- **Recursos** (directorio de plataformas de terceros) — **hallazgo real**:
+  la página no tenía NINGÚN enlace de entrada en escritorio (no estaba en
+  el `NAV` de `SiteHeader`, ni en el footer; solo aparecía dentro de "Más"
+  en la barra inferior de móvil). Se agregó a `SiteHeader.tsx`. De paso:
+  el texto final "¿Conoces una iniciativa que falte? Escríbenos" no tenía
+  ningún enlace para escribir — ahora "Escríbenos" abre un `mailto:` al
+  correo de contacto. También se agregó `.press` a las pestañas de
+  `CommunityTabs.tsx` (Muro/Voluntarios/Caravanas/Denuncias), que no
+  tenían el tap feedback que sí tienen los demás chips de filtro del
+  sitio. El resto de la página ya estaba bien: es estática (sin consultas
+  a la BD, se sirve prerenderizada), sin código muerto, con aviso de
+  "sitios de terceros" visible y enlaces `rel="noopener noreferrer"`.
+  (Se verificó también que `/sin-identificar` SÍ es intencional: es un
+  redirect de compatibilidad a `/?view=reconoces`, no una página huérfana.)
+
 ## Siguiente en la cola
 Caravanas/Denuncias, Admin.
 

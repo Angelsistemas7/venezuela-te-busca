@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, HeartHandshake, LifeBuoy, Map, Newspaper, PawPrint, Search, Users2 } from "lucide-react";
+import { Building2, HeartHandshake, LayoutGrid, LifeBuoy, Map, Newspaper, PawPrint, Search, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "./NotificationBell";
 import { AuthMenu } from "./AuthMenu";
@@ -16,6 +16,7 @@ const NAV = [
   { href: "/mascotas", label: "Mascotas", icon: PawPrint },
   { href: "/emergencias", label: "Emergencias", icon: LifeBuoy },
   { href: "/mapa", label: "Mapa", icon: Map },
+  { href: "/recursos", label: "Recursos", icon: LayoutGrid },
 ];
 
 // Sub-secciones que viven bajo la pestaña "Comunidad" (se resaltan con ella).
