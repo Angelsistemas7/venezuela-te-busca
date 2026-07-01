@@ -28,6 +28,13 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Binario de sharp para ARM64 (el VPS es Ampere aarch64; este runner es x64)
+        # npm ci deja el binario nativo de sharp compilado para linux-x64 (el propio
+        # runner), que no carga en el VPS (aarch64) -- "Could not load the sharp
+        # module using the linux-arm64 runtime". Se reinstala apuntando al target
+        # real antes del build, para que el standalone empaquete el binario correcto.
+        run: npm install --no-save --os=linux --cpu=arm64 --libc=glibc sharp
+
       - name: Build (Next.js standalone)
         run: npm run build
         env:
