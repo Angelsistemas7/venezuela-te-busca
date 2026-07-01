@@ -8,6 +8,7 @@ import {
   Building2,
   Check,
   Clock,
+  FileWarning,
   HeartHandshake,
   Loader2,
   MapPin,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import type {
   AidPoint,
+  Complaint,
   Hero,
   Hospital,
   ManagedEntity,
@@ -34,6 +36,8 @@ import type {
   StatusReport,
 } from "@/lib/types";
 import {
+  COMPLAINT_CATEGORY_EMOJI,
+  COMPLAINT_CATEGORY_LABEL,
   HERO_CATEGORY_EMOJI,
   HERO_CATEGORY_LABEL,
   MANAGED_ENTITY_LABEL,
@@ -45,6 +49,7 @@ import { timeAgo } from "@/lib/utils";
 import {
   approveReportAction,
   assignManagerAction,
+  deleteComplaintAction,
   dismissReportAction,
   logoutAdminAction,
   removeManagerAction,
@@ -66,6 +71,7 @@ export function AdminDashboard({
   managers,
   posts,
   heroes,
+  complaints,
   demoOpen,
 }: {
   reports: ReportWithName[];
@@ -75,6 +81,7 @@ export function AdminDashboard({
   managers: ResourceManager[];
   posts: Post[];
   heroes: Hero[];
+  complaints: Complaint[];
   demoOpen: boolean;
 }) {
   const router = useRouter();
@@ -442,6 +449,59 @@ export function AdminDashboard({
                     Eliminar
                   </button>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Denuncias: solo eliminar las comprobadamente falsas o inapropiadas.
+          No se pueden editar ni las borra el autor (a propósito). */}
+      <section className="mt-10">
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-zinc-900">
+          <FileWarning className="h-4.5 w-4.5 text-zinc-500" />
+          Denuncias
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-600">
+            {complaints.length}
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Elimina solo las que sean <strong>comprobadamente falsas</strong> o inapropiadas. Quedan
+          ligadas a la cuenta que las publicó; no se pueden editar ni las borra el autor.
+        </p>
+        {complaints.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-zinc-300 bg-white py-8 text-center text-sm text-zinc-500">
+            Aún no hay denuncias.
+          </p>
+        ) : (
+          <ul className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+            {complaints.map((c) => (
+              <li key={c.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                      {COMPLAINT_CATEGORY_EMOJI[c.category]} {COMPLAINT_CATEGORY_LABEL[c.category]}
+                    </span>
+                    <span className="text-xs text-zinc-400">
+                      Por {c.authorName} · {timeAgo(c.createdAt)}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{c.body}</p>
+                  {(c.locationText || c.estado) && (
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-zinc-400">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {[c.locationText, c.estado].filter(Boolean).join(", ")}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => run(c.id, () => deleteComplaintAction(c.id))}
+                  disabled={pending && busy === c.id}
+                  className="press flex shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar
+                </button>
               </li>
             ))}
           </ul>

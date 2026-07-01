@@ -2,6 +2,7 @@ import { adminConfigured, isAdmin } from "@/lib/admin";
 import {
   getAidPoints,
   getAllResourceManagers,
+  getComplaints,
   getHeroes,
   getHospitals,
   getPendingReports,
@@ -19,15 +20,17 @@ export default async function AdminPage() {
     return <AdminLogin />;
   }
 
-  const [pending, persons, aidPoints, hospitals, managers, posts, heroes] = await Promise.all([
-    getPendingReports(),
-    getRecentPersons(30),
-    getAidPoints(),
-    getHospitals(),
-    getAllResourceManagers(),
-    getPosts({}),
-    getHeroes({ includeUnverified: true }),
-  ]);
+  const [pending, persons, aidPoints, hospitals, managers, posts, heroes, complaintsPage] =
+    await Promise.all([
+      getPendingReports(),
+      getRecentPersons(30),
+      getAidPoints(),
+      getHospitals(),
+      getAllResourceManagers(),
+      getPosts({}),
+      getHeroes({ includeUnverified: true }),
+      getComplaints({}, 1, 25),
+    ]);
 
   // Enriquecemos cada reporte con el nombre de la persona (una sola consulta, no N+1).
   const personsById = await getPersonsByIds(pending.map((r) => r.personId));
@@ -53,6 +56,7 @@ export default async function AdminPage() {
       managers={managers}
       posts={posts.slice(0, 25)}
       heroes={heroes}
+      complaints={complaintsPage.items}
       demoOpen={!adminConfigured}
     />
   );

@@ -2335,6 +2335,19 @@ export async function createComplaint(
   return rowToComplaint(data);
 }
 
+/** Solo el admin elimina una denuncia (comprobadamente falsa/inapropiada).
+ *  El autor NO puede borrarla él mismo (a propósito, para que una denuncia no
+ *  "desaparezca" tras publicada) — ver docs/PLAN-TINDER-Y-ROLES.md §3.1. */
+export async function deleteComplaint(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.complaints = mem.complaints.filter((c) => c.id !== id);
+    return;
+  }
+  const { error } = await sb.from("complaints").delete().eq("id", id);
+  if (error) throw error;
+}
+
 /** Apoyo de la comunidad a una denuncia (uno por dispositivo; exige sesión). */
 export async function supportComplaint(id: string): Promise<void> {
   const sb = getSupabaseAdmin() ?? getSupabase();

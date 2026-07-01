@@ -76,10 +76,13 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         : null;
 
   const baseQuery = {
-    // "La reconoces" (baraja tipo tarjetas) muestra las mismas personas buscadas
-    // que "Se busca", para deslizarlas y avisar si las reconoces. Mientras no haya
-    // avistamientos "sin identificar" en la base, ambas vistas usan ese conjunto.
-    excludeUnidentified: true,
+    // "Se busca" (excludeUnidentified): personas de las que se tiene información.
+    // "¿La reconoces?" (unidentifiedOnly): avistamientos sin identificar —
+    // justo el caso contrario. Antes esta consulta traía siempre "Se busca"
+    // sin importar la pestaña, así que la baraja tipo Tinder nunca iba a
+    // mostrar un avistamiento real (ver docs/PLAN-TINDER-Y-ROLES.md §1).
+    excludeUnidentified: isReconoces ? undefined : true,
+    unidentifiedOnly: isReconoces ? true : undefined,
     search: str(sp.q),
     status,
     estado: str(sp.estado) ?? "all",
@@ -143,12 +146,14 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         <PersonViewToggle view={view} />
       </div>
 
-      <DashboardStats stats={stats} />
+      {/* Los widgets de cifras solo aportan en "Se busca"; en la baraja tipo
+          Tinder de "¿La reconoces?" sobran y quitan espacio a la tarjeta. */}
+      {!isReconoces && <DashboardStats stats={stats} />}
 
       <div className="mt-8 flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
-            <SearchAndFilters unidentified={false} />
+            <SearchAndFilters unidentified={isReconoces} />
           </div>
           <div className="shrink-0">
             <RegisterPersonButton />

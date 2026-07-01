@@ -6,6 +6,7 @@ import { findUserByUsername } from "@/lib/auth";
 import {
   addResourceManager,
   createNewsItem,
+  deleteComplaint,
   deleteHero,
   deleteNewsItem,
   dismissReport,
@@ -154,6 +155,15 @@ export async function togglePostPinnedAction(
   await setPostPinned(id, value);
   revalidatePath("/admin");
   revalidatePath("/comunidad");
+  return { ok: true };
+}
+
+// ── Denuncias: solo el admin elimina las comprobadamente falsas ──────────────
+export async function deleteComplaintAction(id: string): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await deleteComplaint(id);
+  revalidatePath("/admin");
+  revalidatePath("/denuncias");
   return { ok: true };
 }
 
