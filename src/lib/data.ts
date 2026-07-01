@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { getSupabase, getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { getCurrentUser } from "./auth";
 import {
@@ -117,10 +118,11 @@ const mem = {
   resourceManagers: [] as ResourceManager[],
 };
 
+// Genera el token privado de gestión (enlace de autor). Siempre criptográficamente
+// aleatorio: usa `node:crypto` directo, no el global `crypto` (que podría faltar
+// en algún entorno) con un respaldo débil basado en `Math.random`.
 function newToken(): string {
-  return typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  return randomUUID();
 }
 
 function uid(prefix: string) {
@@ -259,6 +261,25 @@ export async function getPersonById(id: string): Promise<Person | null> {
   const { data, error } = await sb.from("persons").select("*").eq("id", id).single();
   if (error) return null;
   return data ? rowToPerson(data) : null;
+}
+
+/** Trae varias personas en una sola consulta (evita N+1 al enriquecer listas, ej. reportes en /admin). */
+export async function getPersonsByIds(ids: string[]): Promise<Map<string, Person>> {
+  const uniqueIds = Array.from(new Set(ids));
+  const map = new Map<string, Person>();
+  if (uniqueIds.length === 0) return map;
+  const sb = getSupabase();
+  if (!sb) {
+    for (const p of mem.persons) if (uniqueIds.includes(p.id)) map.set(p.id, p);
+    return map;
+  }
+  const { data, error } = await sb.from("persons").select("*").in("id", uniqueIds);
+  if (error) return map;
+  for (const row of data ?? []) {
+    const person = rowToPerson(row);
+    map.set(person.id, person);
+  }
+  return map;
 }
 
 // ── Agrupación de resultados al filtrar por estado de localización ───────────

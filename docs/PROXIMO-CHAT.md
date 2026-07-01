@@ -317,8 +317,46 @@ no hay cuentas en modo demostración).
   compartir un enlace directo a, por ejemplo, "Noticias → Sismos". Quedó
   sin tocar por ahora (no era lo que se pidió).
 
+- **Admin** (`/admin`) — último en la cola. Mismo hueco que las 9 secciones
+  anteriores: ningún botón tenía tap feedback (`.press`); se agregó en
+  `AdminDashboard.tsx` (reportes, verificar personas, puntos de ayuda/
+  hospitales, gestores, fijar posts, héroes) y `AdminLogin.tsx`. También un
+  N+1 real: al enriquecer "Reportes por verificar" con el nombre de la
+  persona se hacía un `getPersonById` por reporte (hasta 100 consultas en
+  paralelo); ahora `getPersonsByIds` (nueva, en `data.ts`) trae todas en una
+  sola consulta `in("id", ...)`.
+
+  **Verificado, sin tocar (a propósito)**:
+  - Crear noticias curadas vive en `/noticias` (gated por `isAdmin`), no en
+    el panel — es donde tiene sentido, no es un hueco.
+  - Caravanas y Mascotas no tienen "visto bueno" en Admin porque `March`/
+    `Pet` no tienen campo `verified` en `types.ts` — no forman parte del
+    patrón de consenso/verificación (solo puntos de ayuda y hospitales lo
+    tienen, por ser ubicaciones físicas de las que depende gente). No es un
+    bug, es alcance intencional.
+  - Denuncias sigue sin ninguna moderación por admin (ni panel, ni
+    edición/borrado); ya estaba documentado como "pendiente de decisión" en
+    la ronda anterior — se deja así, no se tocó de nuevo.
+
+  **Pendiente de decisión (nuevo, no se tocó)**: a diferencia de personas/
+  puntos de ayuda/hospitales/comunidad, el admin no tiene forma de eliminar
+  una **caravana** o **mascota** de spam/falsa si el propio autor no lo
+  hace (solo existe el enlace privado de gestión del autor). Sería un
+  patrón nuevo (Admin ya puede eliminar héroes falsos) — si se quiere, se
+  puede agregar `deleteMarchAction`/`deletePetAction` al panel más
+  adelante.
+
 ## Siguiente en la cola
-Admin (el último en la cola original).
+**Ninguna — la auditoría profunda sección por sección terminó** (las 10
+secciones de la cola original están revisadas: Se busca, ¿La reconoces?,
+Comunidad, Mapa, Fichas de persona, Emergencias, Noticias, Hospitales,
+Voluntarios/Ayuda/Mascotas/Caravanas/Denuncias/Recursos, y ahora Admin).
+Queda pendiente aplicar `FilterModal` a Voluntarios/Caravanas/Denuncias/
+Hospitales/Puntos de ayuda/Mascotas si no se hizo ya (revisar más arriba en
+este documento, ya se fue aplicando sección por sección) y los pendientes
+críticos/menores de siempre (ver arriba: claves del VPS, teléfonos de
+emergencia, migraciones SQL de mascotas/voluntarios, kit de prensa,
+importar personas).
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

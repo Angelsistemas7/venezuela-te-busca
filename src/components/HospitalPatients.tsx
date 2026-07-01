@@ -12,6 +12,7 @@ import { addHospitalPatientAction, type ActionResult } from "@/app/actions";
 import { cn, timeAgo } from "@/lib/utils";
 import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
+import { Turnstile } from "./Turnstile";
 
 const PATIENT_STYLE: Record<PatientStatus, string> = {
   estable: "bg-emerald-50 text-emerald-700",
@@ -165,6 +166,8 @@ export function HospitalPatients({
             <Field label="Nota" htmlFor="note">
               <Textarea id="note" name="note" placeholder="Información útil para la familia o el personal." />
             </Field>
+
+            <Turnstile />
 
             {result && !result.ok && (
               <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{result.error}</p>

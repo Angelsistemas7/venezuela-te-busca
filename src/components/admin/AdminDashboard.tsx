@@ -115,7 +115,7 @@ export function AdminDashboard({
           </div>
         </div>
         <form action={logoutAdminAction}>
-          <button className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50">
+          <button className="press rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50">
             Salir
           </button>
         </form>
@@ -184,7 +184,7 @@ export function AdminDashboard({
                     <button
                       onClick={() => run(r.id, () => approveReportAction(r.id))}
                       disabled={pending && busy === r.id}
-                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                      className="press flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
                       <Check className="h-4 w-4" />
                       Verificar y aplicar
@@ -192,7 +192,7 @@ export function AdminDashboard({
                     <button
                       onClick={() => run(r.id, () => dismissReportAction(r.id))}
                       disabled={pending && busy === r.id}
-                      className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                      className="press flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
                     >
                       <X className="h-4 w-4" />
                       Descartar
@@ -229,8 +229,8 @@ export function AdminDashboard({
                   disabled={pending && busy === p.id}
                   className={
                     p.verified
-                      ? "flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                      : "flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                      ? "press flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                      : "press flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
                   }
                 >
                   <BadgeCheck className="h-4 w-4" />
@@ -362,8 +362,8 @@ export function AdminDashboard({
                   disabled={pending && busy === p.id}
                   className={
                     p.pinned
-                      ? "flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
-                      : "flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                      ? "press flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                      : "press flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
                   }
                 >
                   {p.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
@@ -426,8 +426,8 @@ export function AdminDashboard({
                     disabled={pending && busy === h.id}
                     className={
                       h.verified
-                        ? "flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                        : "flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                        ? "press flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                        : "press flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
                     }
                   >
                     {h.verified ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
@@ -436,7 +436,7 @@ export function AdminDashboard({
                   <button
                     onClick={() => run(h.id, () => deleteHeroAction(h.id))}
                     disabled={pending && busy === h.id}
-                    className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                    className="press flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
                     Eliminar
@@ -524,8 +524,8 @@ function ResourceRow({
           disabled={pending}
           className={
             verified
-              ? "flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-              : "flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+              ? "press flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+              : "press flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
           }
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
@@ -600,7 +600,7 @@ function ManagerControls({
                 onClick={() => remove(m.userId)}
                 disabled={pending}
                 title="Quitar gestor"
-                className="ml-0.5 rounded-full p-0.5 text-sky-500 hover:bg-sky-100 hover:text-sky-800 disabled:opacity-50"
+                className="press ml-0.5 rounded-full p-0.5 text-sky-500 hover:bg-sky-100 hover:text-sky-800 disabled:opacity-50"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -631,7 +631,7 @@ function ManagerControls({
         <button
           onClick={add}
           disabled={disabled || pending || !username.trim()}
-          className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="press flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           Asignar gestor

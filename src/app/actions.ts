@@ -1210,6 +1210,11 @@ export async function updateHospitalStatusAction(
 }
 
 export async function addHospitalPatientAction(form: FormData): Promise<ActionResult> {
+  const token = getField(form, "cf-turnstile-response") || null;
+  if (!(await verifyTurnstile(token))) {
+    return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };
+  }
+
   const parsed = hospitalPatientSchema.safeParse({
     hospitalId: getField(form, "hospitalId"),
     fullName: getField(form, "fullName"),
