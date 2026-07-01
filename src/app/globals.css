@@ -102,18 +102,20 @@ body {
 .stagger > *:nth-child(7) { animation-delay: 0.26s; }
 .stagger > *:nth-child(8) { animation-delay: 0.3s; }
 
-/* "Empujoncito" que insinúa que una fila se puede deslizar (chips, cifras).
-   A propósito NO es un carrusel infinito: una animación infinita sobre un
-   contenedor con overflow-x:auto choca con el deslizado manual del usuario
-   (los dos mueven el contenido a la vez) y el resultado era que las tarjetas
-   se iban de la pantalla y no volvían. Esta se mueve un poco, 2 veces, y para
-   sola — nunca pelea con el dedo del usuario ni con las tarjetas duplicadas. */
+/* Vaivén leve y CONSTANTE para insinuar que una fila se puede deslizar (cifras
+   del inicio, pestañas, capas del mapa). A propósito NO es un carrusel que
+   recorre todo el ancho: antes usábamos un translateX(-50%) infinito sobre un
+   contenedor con overflow-x:auto, y eso chocaba con el deslizado manual del
+   usuario (los dos movían el contenido a la vez), sacando las tarjetas de la
+   pantalla sin que volvieran. Esta versión oscila solo unos px, así que sin
+   importar cuánto deslice el usuario a mano, el aporte de la animación nunca
+   es suficiente para que algo desaparezca — se ve "vivo" pero acotado. */
 @keyframes hint-swipe {
   0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-16px); }
+  50% { transform: translateX(-10px); }
 }
 .hint-swipe {
-  animation: hint-swipe 0.9s ease-in-out 2;
+  animation: hint-swipe 2.2s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .hint-swipe { animation: none; }

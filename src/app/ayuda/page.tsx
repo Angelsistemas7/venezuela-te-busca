@@ -77,7 +77,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
       </div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        <div className="no-scrollbar hint-swipe flex gap-2 overflow-x-auto pb-1">
           {TYPE_CHIPS.map((c) => (
             <Link
               key={c.value}

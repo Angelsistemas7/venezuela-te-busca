@@ -67,7 +67,7 @@ export function CrisisMap({
       </div>
 
       <p className="text-xs text-zinc-500">
-        Toca los filtros de arriba del mapa para mostrar u ocultar cada tipo:
+        Toca el panel de capas (arriba a la derecha del mapa) para mostrar u ocultar cada tipo:
         🆘 Necesito ayuda, 🤲 Puedo ayudar, rescates, puntos, hospitales y más.
       </p>
 

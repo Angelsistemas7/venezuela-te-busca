@@ -252,30 +252,52 @@ export default async function MapaPage() {
         </div>
       </div>
 
-      <div className="stagger mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-center">
-          <div className="text-xl font-bold text-rose-700">{needs.length}</div>
-          <div className="text-xs text-zinc-600">🆘 Necesito ayuda</div>
-        </div>
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
-          <div className="text-xl font-bold text-emerald-700">{helps.length}</div>
-          <div className="text-xs text-zinc-600">🤲 Puedo ayudar</div>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-center">
-          <div className="text-xl font-bold text-zinc-700">{totalInZones.toLocaleString("es-VE")}</div>
-          <div className="text-xs text-zinc-600">En zonas con registro</div>
-        </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center">
-          <div className="text-xl font-bold text-amber-700">{aidPoints.length}</div>
-          <div className="text-xs text-zinc-600">Puntos de ayuda</div>
-        </div>
-        <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-center">
-          <div className="text-xl font-bold text-teal-700">{hospitalMarkers.length}</div>
-          <div className="text-xs text-zinc-600">Hospitales</div>
-        </div>
-        <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-center">
-          <div className="text-xl font-bold text-sky-700">{marchMarkers.length}</div>
-          <div className="text-xs text-zinc-600">Caravanas</div>
+      {/* Fila horizontal (igual que las cifras de "Se busca"): cada una lleva a
+          su sección. Vaivén leve y constante que insinúa que se puede deslizar. */}
+      <div className="no-scrollbar -mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+        <div className="hint-swipe flex w-max gap-2 sm:w-auto sm:[animation:none] sm:grid sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+          <Link
+            href="/comunidad?type=necesito"
+            className="tap-card w-28 shrink-0 rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-center sm:w-auto sm:p-3"
+          >
+            <div className="text-lg font-bold text-rose-700 sm:text-xl">{needs.length}</div>
+            <div className="text-[11px] text-zinc-600 sm:text-xs">🆘 Necesito ayuda</div>
+          </Link>
+          <Link
+            href="/comunidad?type=ofrezco"
+            className="tap-card w-28 shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-center sm:w-auto sm:p-3"
+          >
+            <div className="text-lg font-bold text-emerald-700 sm:text-xl">{helps.length}</div>
+            <div className="text-[11px] text-zinc-600 sm:text-xs">🤲 Puedo ayudar</div>
+          </Link>
+          <Link
+            href="/"
+            className="tap-card w-28 shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 p-2.5 text-center sm:w-auto sm:p-3"
+          >
+            <div className="text-lg font-bold text-zinc-700 sm:text-xl">{totalInZones.toLocaleString("es-VE")}</div>
+            <div className="text-[11px] text-zinc-600 sm:text-xs">En zonas con registro</div>
+          </Link>
+          <Link
+            href="/ayuda"
+            className="tap-card w-28 shrink-0 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-center sm:w-auto sm:p-3"
+          >
+            <div className="text-lg font-bold text-amber-700 sm:text-xl">{aidPoints.length}</div>
+            <div className="text-[11px] text-zinc-600 sm:text-xs">Puntos de ayuda</div>
+          </Link>
+          <Link
+            href="/hospitales"
+            className="tap-card w-28 shrink-0 rounded-xl border border-teal-200 bg-teal-50 p-2.5 text-center sm:w-auto sm:p-3"
+          >
+            <div className="text-lg font-bold text-teal-700 sm:text-xl">{hospitalMarkers.length}</div>
+            <div className="text-[11px] text-zinc-600 sm:text-xs">Hospitales</div>
+          </Link>
+          <Link
+            href="/caravanas"
+            className="tap-card w-28 shrink-0 rounded-xl border border-sky-200 bg-sky-50 p-2.5 text-center sm:w-auto sm:p-3"
+          >
+            <div className="text-lg font-bold text-sky-700 sm:text-xl">{marchMarkers.length}</div>
+            <div className="text-[11px] text-zinc-600 sm:text-xs">Caravanas</div>
+          </Link>
         </div>
       </div>
 

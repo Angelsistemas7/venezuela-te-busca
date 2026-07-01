@@ -4,11 +4,19 @@ import { useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 
 const MESSAGE =
-  "🆘 *El Mundo Te Busca* — plataforma ciudadana y sin fines de lucro tras el terremoto de Venezuela 2026.\n\n" +
-  "🔍 Reporta y localiza personas desaparecidas\n" +
-  "🏥 Estado de hospitales y refugios\n" +
-  "🤝 Pide u ofrece ayuda: voluntarios y caravanas\n" +
-  "🗺️ Mapa de la emergencia y noticias verificadas\n\n" +
+  "🌍 *El Mundo Te Busca* — necesitamos voluntarios digitales para esta plataforma ciudadana y sin fines de lucro, en respuesta al terremoto de Venezuela 2026:\n\n" +
+  "🔍 Se busca — reporta y localiza desaparecidos\n" +
+  "👁️ ¿La reconoces? — ponle nombre a quien no se identifica\n" +
+  "💬 Comunidad — pide u ofrece ayuda\n" +
+  "🤝 Voluntarios — súmate desde el terreno\n" +
+  "🚐 Caravanas — rutas de ayuda\n" +
+  "📢 Denuncias — irregularidades con la ayuda\n" +
+  "🏥 Hospitales — capacidad e insumos, validado por la comunidad\n" +
+  "📦 Puntos de ayuda — agua, comida y medicinas\n" +
+  "🐾 Mascotas — perdidas y encontradas\n" +
+  "☎️ Emergencias — teléfonos y guía de seguridad\n" +
+  "🗺️ Mapa — zonas, ayuda, hospitales y rescates\n" +
+  "📰 Noticias — prensa verificada, con su fuente\n\n" +
   "Entre más personas la vean, más vidas se pueden salvar. Compártela:";
 
 function siteUrl() {

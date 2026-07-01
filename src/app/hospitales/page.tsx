@@ -1,13 +1,22 @@
+import Link from "next/link";
 import { Building2 } from "lucide-react";
 import { getHospitals, getPatientCounts } from "@/lib/data";
 import { HOSPITAL_STATUS_LABEL, type HospitalStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { HospitalCard, HOSPITAL_STATUS_STYLE } from "@/components/HospitalCard";
 import { RegisterHospitalButton } from "@/components/RegisterHospitalButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function HospitalesPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+export default async function HospitalesPage({ searchParams }: { searchParams: SearchParams }) {
+  const sp = await searchParams;
+  const status = str(sp.status) as HospitalStatus | undefined;
+
   const [hospitals, counts] = await Promise.all([getHospitals(), getPatientCounts()]);
+  const shown = status ? hospitals.filter((h) => h.status === status) : hospitals;
 
   const byStatus = (s: HospitalStatus) => hospitals.filter((h) => h.status === s).length;
   const summary: HospitalStatus[] = ["operativo", "saturado", "lleno", "cerrado"];
@@ -31,30 +40,38 @@ export default async function HospitalesPage() {
       </div>
 
       {/* Resumen de capacidad: fila horizontal (antes iba en rejilla 2x2, se veía
-          apilada y grande en móvil). Sin movimiento: solo se desliza a mano si
-          no entran los 4 en una línea. */}
+          apilada y grande en móvil). Cada uno filtra la lista de abajo; tocar el
+          que ya está activo lo quita. Sin movimiento (a diferencia de otras filas). */}
       <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4">
         {summary.map((s) => (
-          <div
+          <Link
             key={s}
-            className="w-24 shrink-0 rounded-xl border border-zinc-200 bg-white p-2 text-center sm:w-auto sm:p-3"
+            href={status === s ? "/hospitales" : `/hospitales?status=${s}`}
+            className={cn(
+              "w-24 shrink-0 rounded-xl border p-2 text-center transition sm:w-auto sm:p-3",
+              status === s
+                ? "border-zinc-900 bg-zinc-900/[0.03] ring-1 ring-zinc-900"
+                : "border-zinc-200 bg-white hover:border-zinc-300",
+            )}
           >
             <div className="flex items-center justify-center gap-1.5">
               <span className={`h-2 w-2 rounded-full ${HOSPITAL_STATUS_STYLE[s].dot}`} />
               <span className="text-base font-bold text-zinc-900 sm:text-xl">{byStatus(s)}</span>
             </div>
             <div className="mt-0.5 text-[11px] text-zinc-500 sm:text-xs">{HOSPITAL_STATUS_LABEL[s]}</div>
-          </div>
+          </Link>
         ))}
       </div>
 
-      {hospitals.length === 0 ? (
+      {shown.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          Aún no hay hospitales registrados. Sé el primero en publicar uno.
+          {status
+            ? "No hay hospitales con ese estado ahora mismo."
+            : "Aún no hay hospitales registrados. Sé el primero en publicar uno."}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {hospitals.map((h) => (
+          {shown.map((h) => (
             <HospitalCard key={h.id} hospital={h} patientCount={counts[h.id] ?? 0} />
           ))}
         </div>
