@@ -1,0 +1,44 @@
+"use client";
+
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+const OPTIONS = [10, 20, 50] as const;
+export const DEFAULT_PAGE_SIZE = 10;
+
+/** Clampa cualquier valor a una de las 3 opciones válidas (10/20/50). */
+export function clampPageSize(v: number | undefined): number {
+  return v && (OPTIONS as readonly number[]).includes(v) ? v : DEFAULT_PAGE_SIZE;
+}
+
+// Selector de "cuánto mostrar por página" (10/20/50). Cambiar el tamaño
+// siempre vuelve a la página 1 (si no, se podría caer fuera de rango).
+export function PageSizeSelect({ value }: { value: number }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+
+  function change(size: number) {
+    const next = new URLSearchParams(params.toString());
+    if (size === DEFAULT_PAGE_SIZE) next.delete("pageSize");
+    else next.set("pageSize", String(size));
+    next.delete("page");
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
+  return (
+    <label className="flex shrink-0 items-center gap-1.5 text-xs text-zinc-500">
+      Mostrar
+      <select
+        value={value}
+        onChange={(e) => change(Number(e.target.value))}
+        className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 outline-none transition focus:border-brand-400"
+      >
+        {OPTIONS.map((n) => (
+          <option key={n} value={n}>
+            {n} por página
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}

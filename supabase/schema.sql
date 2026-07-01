@@ -230,12 +230,28 @@ create table if not exists posts (
   contact_phone text,
   pinned        boolean not null default false,
   reactions     jsonb not null default '{"apoyo":0,"corazon":0,"hecho":0}',
+  -- suma de las 3 reacciones, para poder ordenar el muro "por relevancia" sin
+  -- tener que traer todo y sumar en el servidor.
+  reactions_total int generated always as (
+    coalesce((reactions->>'apoyo')::int, 0) +
+    coalesce((reactions->>'corazon')::int, 0) +
+    coalesce((reactions->>'hecho')::int, 0)
+  ) stored,
   created_at timestamptz not null default now()
 );
-create index if not exists posts_type_idx    on posts (type);
-create index if not exists posts_estado_idx  on posts (estado);
-create index if not exists posts_created_idx on posts (created_at desc);
-create index if not exists posts_pinned_idx  on posts (pinned);
+
+-- Migración para bases ya creadas: añade `reactions_total` (no existía).
+alter table posts add column if not exists reactions_total int generated always as (
+  coalesce((reactions->>'apoyo')::int, 0) +
+  coalesce((reactions->>'corazon')::int, 0) +
+  coalesce((reactions->>'hecho')::int, 0)
+) stored;
+
+create index if not exists posts_type_idx      on posts (type);
+create index if not exists posts_estado_idx    on posts (estado);
+create index if not exists posts_created_idx   on posts (created_at desc);
+create index if not exists posts_pinned_idx    on posts (pinned);
+create index if not exists posts_reactions_idx on posts (reactions_total desc);
 
 -- ── Denuncias de irregularidades ────────────────────────────────────────────
 -- Reportes ciudadanos de irregularidades. Publicar requiere sesión (la app lo

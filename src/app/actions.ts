@@ -57,7 +57,15 @@ import {
 } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
-import type { CommentEntity, HospitalStatus, PersonReaction, PersonStatus, ReactionKind, SavedEntity, SavedItem } from "@/lib/types";
+import type {
+  CommentEntity,
+  HospitalStatus,
+  PersonReaction,
+  PersonStatus,
+  ReactionKind,
+  SavedEntity,
+  SavedItem,
+} from "@/lib/types";
 import {
   aidPointSchema,
   complaintSchema,
@@ -491,8 +499,16 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
   }
 
   try {
-    await createComment(entityType, entityId, authorName, body, photoUrl, parentId, sessionUser?.id ?? null);
-    return { ok: true, message: "Comentario publicado." };
+    const comment = await createComment(
+      entityType,
+      entityId,
+      authorName,
+      body,
+      photoUrl,
+      parentId,
+      sessionUser?.id ?? null,
+    );
+    return { ok: true, message: "Comentario publicado.", id: comment.id };
   } catch {
     return { ok: false, error: "No se pudo publicar el comentario." };
   }

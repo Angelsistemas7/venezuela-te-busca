@@ -19,6 +19,7 @@ import { DevModeNotice } from "@/components/DevModeNotice";
 import { FieldVolunteerBar } from "@/components/FieldVolunteerBar";
 import { FeaturedSections } from "@/components/FeaturedSections";
 import { EstadoChips } from "@/components/EstadoChips";
+import { PageSizeSelect, clampPageSize } from "@/components/PageSizeSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -78,10 +79,11 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   // avistamientos sin identificar, así que solo se muestran ahí.
   const showAgeSections = !hasActiveQuery;
   const showBuscaExtras = !isReconoces && !hasActiveQuery;
+  const pageSize = clampPageSize(num(sp.pageSize));
 
   const [stats, result, groups, recentlyLocated] = await Promise.all([
     getDashboardStats(),
-    groupBy ? Promise.resolve(null) : getPersons({ ...baseQuery, page: num(sp.page) ?? 1, pageSize: 24 }),
+    groupBy ? Promise.resolve(null) : getPersons({ ...baseQuery, page: num(sp.page) ?? 1, pageSize }),
     groupBy ? getPersonGroups(baseQuery, groupBy) : Promise.resolve(null),
     showBuscaExtras ? getRecentlyLocated(12) : Promise.resolve([]),
   ]);
@@ -147,28 +149,34 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
             las secciones por edad (arriba) hacen de listado en ambas pestañas. */}
         {!showAgeSections && (
         <div className="border-t border-zinc-100 pt-6">
-          <h2 className="mb-3 font-bold text-zinc-900">
-            {hasActiveQuery
-              ? "Resultados"
-              : isReconoces
-                ? "Personas sin identificar"
-                : "Todos los registros"}
-          </h2>
-          <p className="mb-4 text-sm text-zinc-500">
-            {total.toLocaleString("es-VE")}{" "}
-            {isReconoces
-              ? total === 1
-                ? "caso sin identificar"
-                : "casos sin identificar"
-              : total === 1
-                ? "persona encontrada"
-                : "personas encontradas"}
-            {groupBy && (
-              <span className="text-zinc-400">
-                {" · "}agrupadas por {groupBy === "hospital" ? "hospital" : "región"}
-              </span>
-            )}
-          </p>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="font-bold text-zinc-900">
+                {hasActiveQuery
+                  ? "Resultados"
+                  : isReconoces
+                    ? "Personas sin identificar"
+                    : "Todos los registros"}
+              </h2>
+              <p className="text-sm text-zinc-500">
+                {total.toLocaleString("es-VE")}{" "}
+                {isReconoces
+                  ? total === 1
+                    ? "caso sin identificar"
+                    : "casos sin identificar"
+                  : total === 1
+                    ? "persona encontrada"
+                    : "personas encontradas"}
+                {groupBy && (
+                  <span className="text-zinc-400">
+                    {" · "}agrupadas por {groupBy === "hospital" ? "hospital" : "región"}
+                  </span>
+                )}
+              </p>
+            </div>
+            {/* El tamaño de página no aplica a la vista agrupada (por hospital/región). */}
+            {!groupBy && <PageSizeSelect value={pageSize} />}
+          </div>
 
           {groupBy ? (
             <PersonGroups groups={groups ?? []} groupKind={groupBy} />
@@ -178,7 +186,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
               <div className="mt-6">
                 <Pagination
                   page={result?.page ?? 1}
-                  pageSize={result?.pageSize ?? 24}
+                  pageSize={result?.pageSize ?? pageSize}
                   total={result?.total ?? 0}
                 />
               </div>

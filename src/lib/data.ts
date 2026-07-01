@@ -1634,7 +1634,7 @@ function rowToPost(r: any): Post {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export async function getPosts(
-  filter: { type?: PostType | "all"; estado?: string | "all"; search?: string } = {},
+  filter: { type?: PostType | "all"; estado?: string | "all"; search?: string; pinnedOnly?: boolean } = {},
 ): Promise<Post[]> {
   const sb = getSupabase();
   if (!sb) {
@@ -1642,6 +1642,7 @@ export async function getPosts(
     if (filter.type && filter.type !== "all") items = items.filter((p) => p.type === filter.type);
     if (filter.estado && filter.estado !== "all")
       items = items.filter((p) => p.estado === filter.estado);
+    if (filter.pinnedOnly) items = items.filter((p) => p.pinned);
     if (filter.search) {
       const s = filter.search.toLowerCase().trim();
       items = items.filter((p) =>
@@ -1657,6 +1658,7 @@ export async function getPosts(
   let query = sb.from("posts").select("*").order("created_at", { ascending: false }).limit(100);
   if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
   if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.pinnedOnly) query = query.eq("pinned", true);
   if (filter.search) {
     // Quita caracteres que rompen el filtro `or` de PostgREST.
     const s = filter.search.replace(/[,()*]/g, " ").trim();
@@ -1669,6 +1671,71 @@ export async function getPosts(
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map(rowToPost);
+}
+
+export interface PostResult {
+  items: Post[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export type PostSort = "recent" | "oldest" | "popular";
+
+function postPopularity(p: Post): number {
+  return p.reactions.apoyo + p.reactions.corazon + p.reactions.hecho;
+}
+
+/**
+ * Muro de Comunidad, PAGINADO. Antes `getPosts` traía hasta 100 publicaciones
+ * completas (con foto) en cada visita, sin límite de página — pasados los 100
+ * posts (esperable en una emergencia activa el primer día) no había forma de
+ * ver nada más antiguo. 20 por página, con conteo real para la paginación.
+ * `sort: "popular"` usa `reactions_total` (columna calculada en la base de
+ * datos) para no tener que traer todo y sumar reacciones en el servidor.
+ */
+export async function getPostsPage(
+  filter: { type?: PostType | "all"; search?: string },
+  page = 1,
+  pageSize = 20,
+  sort: PostSort = "recent",
+): Promise<PostResult> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.posts.slice();
+    if (filter.type && filter.type !== "all") items = items.filter((p) => p.type === filter.type);
+    if (filter.search) {
+      const s = filter.search.toLowerCase().trim();
+      items = items.filter((p) =>
+        [p.body, p.locationText, p.authorName, p.estado].filter(Boolean).join(" ").toLowerCase().includes(s),
+      );
+    }
+    items =
+      sort === "oldest"
+        ? items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        : sort === "popular"
+          ? items.sort((a, b) => postPopularity(b) - postPopularity(a) || b.createdAt.localeCompare(a.createdAt))
+          : items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total, page, pageSize };
+  }
+  let query = sb.from("posts").select("*", { count: "exact" });
+  query =
+    sort === "oldest"
+      ? query.order("created_at", { ascending: true })
+      : sort === "popular"
+        ? query.order("reactions_total", { ascending: false }).order("created_at", { ascending: false })
+        : query.order("created_at", { ascending: false });
+  if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
+  if (filter.search) {
+    const s = filter.search.replace(/[,()*]/g, " ").trim();
+    if (s) query = query.or(`body.ilike.%${s}%,location_text.ilike.%${s}%,author_name.ilike.%${s}%`);
+  }
+  const start = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(start, start + pageSize - 1);
+  if (error) throw error;
+  return { items: (data ?? []).map(rowToPost), total: count ?? 0, page, pageSize };
 }
 
 /**

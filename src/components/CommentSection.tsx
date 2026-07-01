@@ -31,6 +31,10 @@ export function CommentSection({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; authorName: string } | null>(null);
+  // El comentario recién publicado en ESTA sesión (para darle la animación de
+  // entrada); ya no se puede detectar por prefijo "tmp-" porque ahora usamos
+  // el id real que devuelve el servidor.
+  const [justPostedId, setJustPostedId] = useState<string | null>(null);
   const fileRef = useRef<File | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -110,9 +114,14 @@ export function CommentSection({
 
     const res = await postCommentAction(form);
     if (res.ok) {
+      // Usamos el id REAL que devuelve el servidor (no uno temporal): si no,
+      // dar "me gusta" a un comentario recién publicado (antes de recargar la
+      // página) apuntaba a un id que no existía en la base de datos y el like
+      // se perdía en silencio.
+      const newId = res.id ?? `tmp-${Date.now()}`;
       setComments((prev) => [
         {
-          id: `tmp-${Date.now()}`,
+          id: newId,
           entityType,
           entityId,
           parentId,
@@ -124,6 +133,7 @@ export function CommentSection({
         },
         ...prev,
       ]);
+      setJustPostedId(newId);
       setBody("");
       setPreview(null);
       setReplyTo(null);
@@ -137,7 +147,10 @@ export function CommentSection({
   function renderComment(c: Comment, isReply: boolean) {
     const replies = isReply ? [] : repliesByParent.get(c.id) ?? [];
     return (
-      <li key={c.id} className={isReply ? "" : "rounded-xl bg-zinc-50 p-3"}>
+      <li
+        key={c.id}
+        className={cn(isReply ? "" : "rounded-xl bg-zinc-50 p-3", c.id === justPostedId && "animate-rise")}
+      >
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-semibold text-zinc-800">{c.authorName}</span>
           <span className="text-xs text-zinc-400">{timeAgo(c.createdAt)}</span>
@@ -151,7 +164,7 @@ export function CommentSection({
           <button
             type="button"
             onClick={() => startReply(c)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-brand-700"
+            className="press inline-flex items-center gap-1 text-xs font-medium text-zinc-500 transition hover:text-brand-700"
           >
             <Reply className="h-3.5 w-3.5" />
             Responder
@@ -236,7 +249,7 @@ export function CommentSection({
               type="submit"
               disabled={submitting || !canSubmit}
               aria-label="Enviar comentario"
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50"
+              className="press flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900 text-white transition hover:bg-zinc-800 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>

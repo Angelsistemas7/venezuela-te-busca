@@ -7,6 +7,7 @@ import { POST_TYPE_EMOJI, POST_TYPE_LABEL, REACTION_EMOJI } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { reactToPostAction } from "@/app/actions";
 import { CommentSection } from "./CommentSection";
+import { ExternalLinkGuard } from "./ExternalLinkGuard";
 import { PhotoView } from "./PhotoView";
 import { SaveButton } from "./SaveButton";
 
@@ -79,15 +80,13 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
       )}
 
       {post.linkUrl && (
-        <a
+        <ExternalLinkGuard
           href={post.linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sky-700 hover:underline"
         >
           <ExternalLink className="h-4 w-4" />
           Ver enlace / video
-        </a>
+        </ExternalLinkGuard>
       )}
 
       <div className="mt-2 text-xs text-zinc-500">
@@ -122,7 +121,7 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
         <SaveButton type="post" id={post.id} title={post.body} className="ml-auto" showLabel={false} />
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+          className="press flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
         >
           <MessageCircle className="h-4 w-4" />
           {comments.length > 0 ? `${comments.length} comentarios` : "Comentar"}
