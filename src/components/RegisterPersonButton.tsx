@@ -98,7 +98,7 @@ export function RegisterPersonButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-xl bg-brand-400 px-3.5 py-2 text-xs font-semibold text-zinc-900 shadow-sm transition hover:bg-brand-300 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
+        className="press flex items-center gap-1.5 rounded-xl bg-brand-400 px-3.5 py-2 text-xs font-semibold text-zinc-900 shadow-sm transition hover:bg-brand-300 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
       >
         <Plus className="h-4 w-4" />
         Publicar persona
@@ -355,7 +355,7 @@ export function RegisterPersonButton() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-300 disabled:opacity-60"
+                className="press flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300 disabled:opacity-60"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isSighting ? "Publicar avistamiento" : "Publicar búsqueda"}

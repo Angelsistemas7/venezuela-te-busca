@@ -131,7 +131,7 @@ export function AuthMenu() {
       ) : (
         <button
           onClick={openLogin}
-          className="flex h-10 items-center gap-1.5 rounded-full border border-zinc-300 px-3.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+          className="press flex h-10 items-center gap-1.5 rounded-full border border-zinc-300 px-3.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
         >
           <LogIn className="h-4 w-4" />
           Entrar
@@ -214,7 +214,7 @@ export function AuthMenu() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300 disabled:opacity-60"
+              className="press flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300 disabled:opacity-60"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {mode === "register" ? "Crear cuenta" : mode === "reset" ? "Enviar enlace" : "Entrar"}

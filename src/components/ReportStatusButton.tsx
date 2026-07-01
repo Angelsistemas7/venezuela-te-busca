@@ -54,7 +54,7 @@ export function ReportStatusButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
+        className="press w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
       >
         Tengo información sobre esta persona
       </button>

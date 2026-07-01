@@ -69,7 +69,7 @@ export function RegisterPetButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-300"
+        className="press flex items-center gap-2 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300"
       >
         <PawPrint className="h-4 w-4" />
         Reportar mascota
