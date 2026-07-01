@@ -205,6 +205,21 @@ Turnstile puede no estar validando de verdad contra Cloudflare.
 
 ---
 
+## 8) Segunda ronda (mismo día, 2026-07-01) — 2 hallazgos nuevos, ambos corregidos
+
+Revisión de seguimiento centrada en lo que la ronda anterior no llegó a cubrir:
+las funciones nuevas de esa misma pull (mascotas, tarjetas de compartir con
+foto/OG-image, paginación real). Se encontraron y corrigieron 2 huecos reales.
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | `photoUrl` no se validaba en ningún lado (ni en `personSchema`/`petSchema` ni en `actions.ts`): cualquiera podía llamar una Server Action de creación directamente con una URL propia. Al compartir la ficha de una persona o mascota, `toEmbeddablePhoto` (`src/lib/ogImage.ts`) hacía `fetch(url)` **en el servidor** con esa URL — un SSRF completo contra la red interna del VPS, disparable sin interacción (cualquier bot de vista previa de WhatsApp/Telegram lo activa solo con visitar el enlace), y sin timeout ni tope de tamaño en la respuesta (riesgo adicional de DoS por memoria/cuelgue). | **Crítica** | Nuevo validador `isSafePhotoUrl` (`src/lib/validation.ts`) que solo acepta URLs del propio bucket de Storage (`https://*.supabase.{co,in}/storage/v1/object/public/photos/...`); se aplica al leer `photoUrl` del formulario en las 8 Server Actions que lo reciben (`src/app/actions.ts`). Además, defensa en profundidad en `toEmbeddablePhoto`: revalida el dominio, agrega timeout de 5 s y tope de 8 MB en la respuesta (`src/lib/ogImage.ts`). |
+| 2 | El "voto de consenso" de disponibilidad de un punto de ayuda (`voteAidAvailabilityAction`) y de insumos de un hospital (`voteHospitalSuppliesAction`) exigía sesión, pero no había ningún límite de UN voto por cuenta: los contadores eran columnas simples (`votes_available`, etc.) sin tabla de por medio, así que la misma cuenta podía llamar la acción sin límite y falsear a voluntad la señal que otros usan para decidir a dónde ir a buscar ayuda. Responde directamente la pregunta abierta en `docs/BRIEF-AUDITORIA-EXTERNA.md` §6.10 sobre manipular el consenso creando/usando cuentas en volumen. | **Media-alta** | Nueva tabla `consensus_votes` (`entity_type, entity_id, user_id`) con clave única — un voto por cuenta y recurso, se puede cambiar pero no repetir (`supabase/schema.sql`). `voteAidAvailability`/`voteHospitalSupplies` (`src/lib/data.ts`) ahora reciben el `userId`, consultan el voto previo y recalculan los contadores en vez de incrementarlos ciegamente; verificado con un script que confirma que 3 llamadas iguales de la misma cuenta solo suman 1, cambiar de voto mueve el contador correctamente, y una cuenta distinta sí puede sumar el suyo. |
+
+Verificado con `npm run build` (verde) tras aplicar ambas correcciones.
+
+---
+
 *Este informe cubre el código de la aplicación y su configuración conocida.
 No sustituye una revisión de la configuración real de Supabase (políticas de
 bucket, RLS aplicado tal cual en producción) ni del servidor VPS en vivo —

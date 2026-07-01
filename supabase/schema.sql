@@ -559,3 +559,26 @@ create trigger pets_touch before update on pets
 -- inicio seguía apareciendo aunque ya lo hubieras hecho.
 alter table volunteers add column if not exists user_id uuid references auth.users(id) on delete set null;
 create index if not exists idx_volunteers_user_id on volunteers(user_id);
+
+-- ── Migración: un voto por cuenta en el consenso de disponibilidad ──────────
+-- Antes "votar" solo sumaba 1 a un contador (votes_available/votes_depleted en
+-- aid_points, votes_supplies/votes_no_supplies en hospitals): una sola cuenta
+-- podía llamar la acción sin límite y falsear la señal de consenso que otros
+-- usan para decidir a dónde ir a buscar ayuda. Ahora cada cuenta tiene UN voto
+-- por recurso (puede cambiarlo, no repetirlo) y los contadores se recalculan
+-- a partir de esta tabla.
+create table if not exists consensus_votes (
+  entity_type text not null check (entity_type in ('aid_point','hospital')),
+  entity_id   uuid not null,
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  vote        text not null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  primary key (entity_type, entity_id, user_id)
+);
+create index if not exists consensus_votes_entity_idx on consensus_votes (entity_type, entity_id);
+
+alter table consensus_votes enable row level security;
+-- Sin lectura pública: es el voto individual de cada cuenta (el contador
+-- agregado sí es público, en aid_points/hospitals). Solo el servidor
+-- (service role) la lee/escribe para recalcular esos contadores.

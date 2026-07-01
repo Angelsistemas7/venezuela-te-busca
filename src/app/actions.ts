@@ -75,6 +75,7 @@ import {
   complaintSchema,
   hospitalPatientSchema,
   hospitalSchema,
+  isSafePhotoUrl,
   loginSchema,
   marchSchema,
   personSchema,
@@ -102,6 +103,14 @@ function zodToFieldErrors(error: { issues: { path: (string | number)[]; message:
 function getField(form: FormData, name: string): string {
   const v = form.get(name);
   return typeof v === "string" ? v : "";
+}
+
+/** Foto ya subida al bucket de Storage. Descarta cualquier URL que no venga
+ *  de ahí (ver `isSafePhotoUrl`): evita SSRF si alguien llama la acción
+ *  directamente con una URL propia en vez de pasar por `uploadPhoto`. */
+function getPhotoUrl(form: FormData): string | null {
+  const raw = getField(form, "photoUrl") || null;
+  return raw && isSafePhotoUrl(raw) ? raw : null;
 }
 
 // ── Cuentas (login opcional) ────────────────────────────────────────────────
@@ -310,7 +319,7 @@ export async function registerPersonAction(form: FormData): Promise<ActionResult
 
   // La foto: en producción se sube a Supabase Storage desde el cliente y aquí
   // llega la URL. De momento aceptamos la URL ya subida (o null).
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
 
   // Un avistamiento "sin identificar" puede no tener nombre, pero algo debe
   // permitir reconocer a la persona: foto, un rasgo/descripción o el lugar.
@@ -408,7 +417,7 @@ export async function registerAidPointAction(form: FormData): Promise<ActionResu
     return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
   }
 
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
 
   try {
     const { point, ownerToken } = await createAidPoint(
@@ -484,7 +493,7 @@ export async function postCommentAction(form: FormData): Promise<ActionResult> {
   const sessionUser = await getCurrentUser();
   const authorName = sessionUser ? sessionUser.username : getField(form, "authorName").trim();
   const body = getField(form, "body").trim();
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
   const parentId = getField(form, "parentId") || null;
 
   // Anti-bot solo para anónimos; con sesión (identidad verificada) no hace falta.
@@ -582,7 +591,7 @@ export async function createPostAction(form: FormData): Promise<ActionResult> {
     return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
   }
 
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
 
   try {
     const { post, ownerToken } = await createPost(
@@ -622,7 +631,7 @@ export async function registerPetAction(form: FormData): Promise<ActionResult> {
     return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
   }
 
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
 
   try {
     const { pet, ownerToken } = await createPet(
@@ -730,7 +739,7 @@ export async function registerVolunteerAction(form: FormData): Promise<ActionRes
     return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
   }
 
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
 
   try {
     const volunteer = await createVolunteer(parsed.data, photoUrl, (await getCurrentUser())?.id ?? null);
@@ -765,7 +774,7 @@ export async function registerHeroAction(form: FormData): Promise<ActionResult> 
     return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
   }
 
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
   const authorName = (await getCurrentUser())?.username ?? "Comunidad";
 
   try {
@@ -822,7 +831,7 @@ export async function createComplaintAction(form: FormData): Promise<ActionResul
     return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
   }
 
-  const photoUrl = getField(form, "photoUrl") || null;
+  const photoUrl = getPhotoUrl(form);
 
   try {
     const complaint = await createComplaint(parsed.data, photoUrl, user.id, user.username);
@@ -1091,11 +1100,12 @@ export async function voteAidAvailabilityAction(
 ): Promise<{ ok: boolean; error?: string }> {
   // Votar es una señal NO vinculante y requiere sesión (anti-spam). La
   // disponibilidad oficial la fija el dueño del punto o el admin.
-  if (!(await getCurrentUser())) {
+  const user = await getCurrentUser();
+  if (!user) {
     return { ok: false, error: "Inicia sesión para opinar sobre la disponibilidad." };
   }
   try {
-    await voteAidAvailability(id, vote);
+    await voteAidAvailability(id, vote, user.id);
     revalidatePath("/ayuda");
     revalidatePath("/mapa");
     return { ok: true };
@@ -1128,11 +1138,12 @@ export async function voteHospitalSuppliesAction(
   id: string,
   vote: "yes" | "no",
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!(await getCurrentUser())) {
+  const user = await getCurrentUser();
+  if (!user) {
     return { ok: false, error: "Inicia sesión para opinar sobre los insumos." };
   }
   try {
-    await voteHospitalSupplies(id, vote);
+    await voteHospitalSupplies(id, vote, user.id);
     revalidatePath("/hospitales");
     revalidatePath(`/hospitales/${id}`);
     return { ok: true };

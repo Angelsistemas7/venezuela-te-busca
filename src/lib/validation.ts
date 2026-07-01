@@ -24,6 +24,28 @@ const httpUrl = (msg: string) =>
     .optional()
     .or(z.literal(""));
 
+// `photoUrl` no pasa por un schema de formulario: llega ya subida por
+// `uploadPhoto` (src/lib/upload.ts) y se lee directo del FormData en
+// `actions.ts`. Sin este chequeo, cualquiera podría llamar la Server Action
+// directamente con una URL arbitraria; esa URL luego se pasa a `fetch()` en
+// el servidor (src/lib/ogImage.ts, para la tarjeta de compartir), lo que
+// permitiría SSRF contra la red interna. Solo se acepta lo que el propio
+// bucket de Storage pudo haber generado.
+const PHOTO_HOST_RE = /\.(supabase\.co|supabase\.in)$/i;
+
+export function isSafePhotoUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === "https:" &&
+      PHOTO_HOST_RE.test(u.hostname) &&
+      u.pathname.startsWith("/storage/v1/object/public/photos/")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export const personSchema = z
   .object({
     // El nombre es obligatorio solo si SE SABE quién es la persona. En un

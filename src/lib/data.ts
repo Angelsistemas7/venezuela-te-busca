@@ -116,6 +116,9 @@ const mem = {
   resourceOwners: [] as { entityType: ResourceOwnerEntity; entityId: string; token: string }[],
   // Gestores delegados que asigna el admin (hospital / punto de ayuda).
   resourceManagers: [] as ResourceManager[],
+  // Un voto de consenso por cuenta y recurso (clave `${tipo}:${id}:${userId}`):
+  // evita que la misma cuenta infle el contador llamando la acción sin límite.
+  consensusVotes: {} as Record<string, "available" | "depleted" | "yes" | "no">,
 };
 
 // Genera el token privado de gestión (enlace de autor). Siempre criptográficamente
@@ -1173,31 +1176,68 @@ export async function likeAidPoint(id: string): Promise<void> {
  * Voto de consenso sobre la disponibilidad de un punto. Si los votos de
  * "se acabó" superan a los de "sí hay", el punto pasa a agotado automáticamente.
  */
-export async function voteAidAvailability(id: string, vote: "available" | "depleted"): Promise<void> {
+/** Un voto por cuenta y punto de ayuda (puede cambiarlo, no repetirlo): sin
+ *  esto, la misma cuenta podía llamar la acción sin límite y falsear el
+ *  consenso que otros usan para decidir a dónde ir a buscar ayuda. */
+export async function voteAidAvailability(
+  id: string,
+  vote: "available" | "depleted",
+  userId: string,
+): Promise<void> {
   const now = new Date().toISOString();
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) {
+    const key = `aid_point:${id}:${userId}`;
+    const previous = mem.consensusVotes[key];
+    if (previous === vote) return;
     const point = mem.aidPoints.find((p) => p.id === id);
     if (point) {
+      if (previous === "available") point.votesAvailable = Math.max(0, point.votesAvailable - 1);
+      else if (previous === "depleted") point.votesDepleted = Math.max(0, point.votesDepleted - 1);
       if (vote === "available") point.votesAvailable++;
       else point.votesDepleted++;
       point.updatedAt = now;
     }
+    mem.consensusVotes[key] = vote;
     return;
   }
+
+  const { data: existing } = await sb
+    .from("consensus_votes")
+    .select("vote")
+    .eq("entity_type", "aid_point")
+    .eq("entity_id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existing?.vote === vote) return;
+
   const { data, error } = await sb
     .from("aid_points")
     .select("votes_available,votes_depleted")
     .eq("id", id)
     .single();
   if (error) throw error;
-  const va = (data.votes_available ?? 0) + (vote === "available" ? 1 : 0);
-  const vd = (data.votes_depleted ?? 0) + (vote === "depleted" ? 1 : 0);
+
+  let va = data.votes_available ?? 0;
+  let vd = data.votes_depleted ?? 0;
+  if (existing?.vote === "available") va = Math.max(0, va - 1);
+  else if (existing?.vote === "depleted") vd = Math.max(0, vd - 1);
+  if (vote === "available") va++;
+  else vd++;
+
   const { error: updateError } = await sb
     .from("aid_points")
     .update({ votes_available: va, votes_depleted: vd, updated_at: now })
     .eq("id", id);
   if (updateError) throw updateError;
+
+  const { error: voteError } = await sb
+    .from("consensus_votes")
+    .upsert(
+      { entity_type: "aid_point", entity_id: id, user_id: userId, vote, updated_at: now },
+      { onConflict: "entity_type,entity_id,user_id" },
+    );
+  if (voteError) throw voteError;
 }
 
 // La disponibilidad oficial (disponible/agotado) la fija el AUTOR del punto o el
@@ -3121,31 +3161,67 @@ export async function updateHospitalStatus(
 }
 
 /** Voto de consenso sobre si el hospital tiene insumos/abasto. */
-export async function voteHospitalSupplies(id: string, vote: "yes" | "no"): Promise<void> {
+/** Un voto por cuenta y hospital (puede cambiarlo, no repetirlo): misma razón
+ *  que `voteAidAvailability`. */
+export async function voteHospitalSupplies(
+  id: string,
+  vote: "yes" | "no",
+  userId: string,
+): Promise<void> {
   const now = new Date().toISOString();
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) {
+    const key = `hospital:${id}:${userId}`;
+    const previous = mem.consensusVotes[key];
+    if (previous === vote) return;
     const hospital = mem.hospitals.find((h) => h.id === id);
     if (hospital) {
+      if (previous === "yes") hospital.votesSupplies = Math.max(0, hospital.votesSupplies - 1);
+      else if (previous === "no") hospital.votesNoSupplies = Math.max(0, hospital.votesNoSupplies - 1);
       if (vote === "yes") hospital.votesSupplies++;
       else hospital.votesNoSupplies++;
       hospital.updatedAt = now;
     }
+    mem.consensusVotes[key] = vote;
     return;
   }
+
+  const { data: existing } = await sb
+    .from("consensus_votes")
+    .select("vote")
+    .eq("entity_type", "hospital")
+    .eq("entity_id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existing?.vote === vote) return;
+
   const { data, error } = await sb
     .from("hospitals")
     .select("votes_supplies,votes_no_supplies")
     .eq("id", id)
     .single();
   if (error) throw error;
-  const vs = (data.votes_supplies ?? 0) + (vote === "yes" ? 1 : 0);
-  const vn = (data.votes_no_supplies ?? 0) + (vote === "no" ? 1 : 0);
+
+  let vs = data.votes_supplies ?? 0;
+  let vn = data.votes_no_supplies ?? 0;
+  if (existing?.vote === "yes") vs = Math.max(0, vs - 1);
+  else if (existing?.vote === "no") vn = Math.max(0, vn - 1);
+  if (vote === "yes") vs++;
+  else vn++;
+
   const { error: updateError } = await sb
     .from("hospitals")
     .update({ votes_supplies: vs, votes_no_supplies: vn, updated_at: now })
     .eq("id", id);
   if (updateError) throw updateError;
+
+  const { error: voteError } = await sb
+    .from("consensus_votes")
+    .upsert(
+      { entity_type: "hospital", entity_id: id, user_id: userId, vote, updated_at: now },
+      { onConflict: "entity_type,entity_id,user_id" },
+    );
+  if (voteError) throw voteError;
 }
 
 /** "Me gusta" a un hospital (comunidad). */
