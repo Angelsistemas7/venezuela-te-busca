@@ -59,7 +59,15 @@ export function PersonReactions({
       setReacted((r) => ({ ...r, [kind]: true }));
       setCounts((c) => ({ ...c, [kind]: (c[kind] ?? 0) + 1 }));
       localStorage.setItem(`vtb_preact_${personId}_${kind}`, "1");
-      await reactToPersonAction(personId, kind);
+      const res = await reactToPersonAction(personId, kind);
+      if (!res.ok) {
+        // El servidor no lo guardó de verdad: revertimos para no dejar el
+        // botón marcado "para siempre" con un contador que nunca subió.
+        setReacted((r) => ({ ...r, [kind]: false }));
+        setCounts((c) => ({ ...c, [kind]: Math.max(0, (c[kind] ?? 1) - 1) }));
+        localStorage.removeItem(`vtb_preact_${personId}_${kind}`);
+        flash("No se pudo guardar. Intenta de nuevo.");
+      }
     }
   }
 

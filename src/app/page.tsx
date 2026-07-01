@@ -41,7 +41,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
   // Las secciones destacadas solo se muestran en la vista "limpia" (sin
   // búsqueda ni filtros activos), para no estorbar cuando se está filtrando.
-  const hasActiveQuery = ["q", "status", "estado", "gender", "minAge", "maxAge", "page"].some(
+  const hasActiveQuery = ["q", "status", "estado", "gender", "minAge", "maxAge", "page", "sort"].some(
     (k) => str(sp[k]),
   );
 

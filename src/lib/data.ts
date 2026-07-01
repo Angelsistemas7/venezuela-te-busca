@@ -1541,7 +1541,11 @@ export async function reactToPerson(id: string, kind: PersonReaction): Promise<v
   if (error) throw error;
   const reactions = { fuerza: 0, corazon: 0, difundir: 0, ...(data.reactions ?? {}) };
   reactions[kind] = (reactions[kind] ?? 0) + 1;
-  await sb.from("persons").update({ reactions }).eq("id", id);
+  // Antes no se comprobaba el resultado: si el guardado fallaba (p. ej. sin
+  // permisos), quedaba en silencio — el botón se veía "presionado" para
+  // siempre en este dispositivo, pero el contador real nunca subía.
+  const { error: updateError } = await sb.from("persons").update({ reactions }).eq("id", id);
+  if (updateError) throw updateError;
 }
 
 /** Personas recientes para revisión en el panel admin. */
@@ -1977,7 +1981,8 @@ export async function reactToPost(id: string, kind: ReactionKind): Promise<void>
   if (error) throw error;
   const reactions = { apoyo: 0, corazon: 0, hecho: 0, ...(data.reactions ?? {}) };
   reactions[kind] = (reactions[kind] ?? 0) + 1;
-  await sb.from("posts").update({ reactions }).eq("id", id);
+  const { error: updateError } = await sb.from("posts").update({ reactions }).eq("id", id);
+  if (updateError) throw updateError;
 }
 
 // ── Denuncias de irregularidades ────────────────────────────────────────────

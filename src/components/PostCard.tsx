@@ -41,7 +41,14 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
     setReacted((r) => ({ ...r, [kind]: true }));
     setCounts((c) => ({ ...c, [kind]: (c[kind] ?? 0) + 1 }));
     localStorage.setItem(`vtb_react_${post.id}_${kind}`, "1");
-    await reactToPostAction(post.id, kind);
+    const res = await reactToPostAction(post.id, kind);
+    if (!res.ok) {
+      // El servidor no lo guardó: revertimos para no dejar el botón marcado
+      // "para siempre" con un contador que en realidad nunca subió.
+      setReacted((r) => ({ ...r, [kind]: false }));
+      setCounts((c) => ({ ...c, [kind]: Math.max(0, (c[kind] ?? 1) - 1) }));
+      localStorage.removeItem(`vtb_react_${post.id}_${kind}`);
+    }
   }
 
   const urgent = post.type === "rescate";

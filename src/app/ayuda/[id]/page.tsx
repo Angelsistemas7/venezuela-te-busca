@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion, Settings } from "lucide-react";
+import { BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion, Settings } from "lucide-react";
 import { canManageAidPoint, getAidPointById, getComments } from "@/lib/data";
 import { AID_POINT_TYPE_LABEL } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { AidConsensusVote } from "@/components/AidConsensusVote";
 import { LikeButton } from "@/components/LikeButton";
 import { CommentSection } from "@/components/CommentSection";
+import { BackLink } from "@/components/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,7 @@ export default async function AidPointPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <Link href="/ayuda" className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900">
-        <ArrowLeft className="h-4 w-4" />
-        Volver a puntos de ayuda
-      </Link>
+      <BackLink label="Volver a puntos de ayuda" fallbackHref="/ayuda" />
 
       <article className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         {point.photoUrl && (

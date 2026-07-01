@@ -87,7 +87,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             placeholder={unidentified ? "Buscar por rasgos, ropa o lugar" : "Buscar nombre, cédula o ubicación"}
-            className="w-full rounded-xl border border-zinc-300 bg-white py-2 pl-10 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-zinc-300 bg-white py-2 pl-10 pr-9 text-base outline-none sm:text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
           {searchValue && (
             <button

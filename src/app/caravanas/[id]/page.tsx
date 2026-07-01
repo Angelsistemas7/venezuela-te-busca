@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   CalendarClock,
   MapPin,
   MessageSquare,
@@ -13,6 +11,7 @@ import { getComments, getMarchById } from "@/lib/data";
 import { formatDateTime } from "@/lib/utils";
 import { LikeButton } from "@/components/LikeButton";
 import { CommentSection } from "@/components/CommentSection";
+import { BackLink } from "@/components/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +24,7 @@ export default async function CaravanaPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <Link href="/caravanas" className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900">
-        <ArrowLeft className="h-4 w-4" />
-        Volver a caravanas
-      </Link>
+      <BackLink label="Volver a caravanas" fallbackHref="/caravanas" />
 
       <article className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="flex items-start justify-between gap-3">

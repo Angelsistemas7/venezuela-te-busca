@@ -114,7 +114,7 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
             name="q"
             defaultValue={q ?? ""}
             placeholder="Buscar en el muro: necesidad, sector, nombre..."
-            className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-base outline-none sm:text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <button type="submit" className="press rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800">

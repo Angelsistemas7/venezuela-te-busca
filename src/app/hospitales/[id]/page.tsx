@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion, Stethoscope } from "lucide-react";
+import { BadgeCheck, Clock3, MapPin, Phone, ShieldQuestion, Stethoscope } from "lucide-react";
+import { BackLink } from "@/components/BackLink";
 import { getComments, getHospitalById, getHospitalPatients } from "@/lib/data";
 import { HOSPITAL_STATUS_LABEL } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -27,10 +27,7 @@ export default async function HospitalPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link href="/hospitales" className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900">
-        <ArrowLeft className="h-4 w-4" />
-        Volver a hospitales
-      </Link>
+      <BackLink label="Volver a hospitales" fallbackHref="/hospitales" />
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">

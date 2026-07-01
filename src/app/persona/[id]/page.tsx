@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   BadgeCheck,
   IdCard,
   MapPin,
@@ -20,6 +18,7 @@ import { SaveButton } from "@/components/SaveButton";
 import { CommentSection } from "@/components/CommentSection";
 import { PersonPhoto } from "@/components/PersonPhoto";
 import { PersonReactions } from "@/components/PersonReactions";
+import { BackLink } from "@/components/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -48,13 +47,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      <Link
-        href="/"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Volver al listado
-      </Link>
+      <BackLink label="Volver al listado" fallbackHref="/" />
 
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         {/* Columna izquierda: foto + acciones */}

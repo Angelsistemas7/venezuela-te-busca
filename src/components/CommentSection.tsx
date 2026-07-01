@@ -215,7 +215,7 @@ export function CommentSection({
             onChange={(e) => setName(e.target.value)}
             placeholder="Tu nombre"
             aria-label="Tu nombre"
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-base outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:text-sm"
           />
         )}
         <div className="flex gap-2">
@@ -226,7 +226,7 @@ export function CommentSection({
             placeholder={replyTo ? `Responde a ${replyTo.authorName}...` : placeholder}
             aria-label={replyTo ? `Responder a ${replyTo.authorName}` : "Escribe un comentario"}
             rows={2}
-            className="w-full resize-y rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full resize-y rounded-lg border border-zinc-300 px-3 py-2 text-base outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:text-sm"
           />
           <div className="flex flex-col gap-1.5 self-end">
             <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-300 text-zinc-500 hover:bg-zinc-50" title="Adjuntar foto">

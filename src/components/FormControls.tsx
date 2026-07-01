@@ -2,8 +2,11 @@
 
 import { cn } from "@/lib/utils";
 
+// text-base (16px) en móvil: por debajo de eso, Safari/Chrome en iOS hacen zoom
+// automático al enfocar el campo (el "acercamiento brusco" al abrir el teclado).
+// De sm en adelante vuelve a text-sm, más compacto para escritorio.
 const baseInput =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
+  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:text-sm";
 
 export function Field({
   label,

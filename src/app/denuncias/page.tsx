@@ -88,7 +88,7 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
             name="q"
             defaultValue={q ?? ""}
             placeholder="Buscar en denuncias: zona, tipo, palabra..."
-            className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+            className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-base outline-none sm:text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
           />
         </div>
         <button type="submit" className="rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800">

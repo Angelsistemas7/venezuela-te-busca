@@ -60,14 +60,16 @@ export function Modal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4 ${closing ? "animate-backdrop-out" : "animate-backdrop"}`}
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/50 p-2 backdrop-blur-sm sm:items-center sm:p-4 ${closing ? "animate-backdrop-out" : "animate-backdrop"}`}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
+      {/* Un poco de aire a los 4 lados incluso en móvil (antes tocaba los
+          bordes y el fondo de la pantalla). */}
       <div
-        className={`flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-2xl bg-white shadow-2xl sm:max-h-[88dvh] sm:rounded-2xl ${closing ? "animate-sheet-out" : "animate-sheet"}`}
+        className={`flex max-h-[85dvh] w-full max-w-lg flex-col rounded-2xl bg-white shadow-2xl sm:max-h-[88dvh] ${closing ? "animate-sheet-out" : "animate-sheet"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-zinc-100 p-5">
