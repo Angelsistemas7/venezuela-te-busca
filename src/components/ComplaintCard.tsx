@@ -64,7 +64,7 @@ export function ComplaintCard({ complaint, comments }: { complaint: Complaint; c
         <SaveButton type="complaint" id={complaint.id} title={complaint.body} className="ml-auto" showLabel={false} />
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+          className="press flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
         >
           <MessageCircle className="h-4 w-4" />
           {comments.length > 0 ? `${comments.length} comentarios` : "Comentar"}

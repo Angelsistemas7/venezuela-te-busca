@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   CalendarClock,
@@ -5,9 +6,10 @@ import {
   MessageSquare,
   Navigation,
   Phone,
+  Settings,
   Users,
 } from "lucide-react";
-import { getComments, getMarchById } from "@/lib/data";
+import { canManageMarch, getComments, getMarchById } from "@/lib/data";
 import { formatDateTime } from "@/lib/utils";
 import { LikeButton } from "@/components/LikeButton";
 import { CommentSection } from "@/components/CommentSection";
@@ -19,7 +21,7 @@ export default async function CaravanaPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const march = await getMarchById(id);
   if (!march) notFound();
-  const comments = await getComments("march", id);
+  const [comments, canManage] = await Promise.all([getComments("march", id), canManageMarch(id)]);
   const isPast = new Date(march.departAt).getTime() < Date.now();
 
   return (
@@ -63,7 +65,7 @@ export default async function CaravanaPage({ params }: { params: Promise<{ id: s
             href={march.whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:brightness-95"
+            className="press inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
           >
             <MessageSquare className="h-4 w-4" />
             Unirse al grupo de WhatsApp
@@ -78,11 +80,21 @@ export default async function CaravanaPage({ params }: { params: Promise<{ id: s
               {march.attendeesCount}
             </span>
           </div>
-          <a href={`tel:${march.organizerPhone}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline">
+          <a href={`tel:${march.organizerPhone}`} className="press inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 transition hover:underline">
             <Phone className="h-4 w-4" />
             {march.organizerName}
           </a>
         </div>
+
+        {canManage && (
+          <Link
+            href={`/caravanas/${march.id}/gestion`}
+            className="press inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            <Settings className="h-4 w-4" />
+            Gestionar esta caravana
+          </Link>
+        )}
       </article>
 
       <div className="mt-6">

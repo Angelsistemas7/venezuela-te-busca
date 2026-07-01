@@ -9,7 +9,7 @@ export function MarchCard({ march }: { march: March }) {
   const isPast = new Date(march.departAt).getTime() < Date.now();
 
   return (
-    <article className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5">
+    <article className={`tap-card flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 ${isPast ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-semibold text-zinc-900">{march.title}</h3>
         {isPast ? (
@@ -50,7 +50,7 @@ export function MarchCard({ march }: { march: March }) {
           href={march.whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-1.5 text-sm font-semibold text-white hover:brightness-95"
+          className="press inline-flex w-fit items-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
         >
           <MessageSquare className="h-4 w-4" />
           Grupo de WhatsApp
@@ -68,7 +68,7 @@ export function MarchCard({ march }: { march: March }) {
         </div>
         <Link
           href={`/caravanas/${march.id}`}
-          className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900"
+          className="press flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition hover:text-zinc-900"
         >
           <MessageCircle className="h-4 w-4" />
           Ver y comentar

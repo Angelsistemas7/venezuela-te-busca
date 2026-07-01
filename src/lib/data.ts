@@ -1190,6 +1190,68 @@ async function getMarchesImpl(): Promise<March[]> {
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
+export interface MarchResult {
+  items: March[];
+  total: number;
+  page: number;
+  pageSize: number;
+  upcomingCount: number;
+  pastCount: number;
+}
+
+type MarchShow = "all" | "upcoming" | "past";
+
+// Antes `getMarches()` (cacheada 60s, sin límite) traía TODAS las caravanas en
+// cada visita a /caravanas. Ahora la página usa esta versión, en vivo y
+// paginada (10/20/50 a elegir); `getMarches` se deja intacta para el mapa.
+export async function getMarchesPage(
+  show: MarchShow,
+  page = 1,
+  pageSize = 10,
+): Promise<MarchResult> {
+  const sb = getSupabase();
+  const nowIso = new Date().toISOString();
+  if (!sb) {
+    const all = mem.marches.slice();
+    const upcomingCount = all.filter((m) => m.departAt >= nowIso).length;
+    const pastCount = all.length - upcomingCount;
+    let items = all;
+    if (show === "upcoming") {
+      items = all.filter((m) => m.departAt >= nowIso).sort((a, b) => a.departAt.localeCompare(b.departAt));
+    } else if (show === "past") {
+      items = all.filter((m) => m.departAt < nowIso).sort((a, b) => b.departAt.localeCompare(a.departAt));
+    } else {
+      items = all.slice().sort((a, b) => a.departAt.localeCompare(b.departAt));
+    }
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total, page, pageSize, upcomingCount, pastCount };
+  }
+
+  let query = sb.from("marches").select("*", { count: "exact" });
+  if (show === "upcoming") query = query.gte("depart_at", nowIso).order("depart_at", { ascending: true });
+  else if (show === "past") query = query.lt("depart_at", nowIso).order("depart_at", { ascending: false });
+  else query = query.order("depart_at", { ascending: true });
+
+  const start = (page - 1) * pageSize;
+  const [{ data, error, count }, upcomingRes, pastRes] = await Promise.all([
+    query.range(start, start + pageSize - 1),
+    sb.from("marches").select("*", { count: "exact", head: true }).gte("depart_at", nowIso),
+    sb.from("marches").select("*", { count: "exact", head: true }).lt("depart_at", nowIso),
+  ]);
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return {
+    items: ((data ?? []) as any[]).map(rowToMarch),
+    total: count ?? 0,
+    page,
+    pageSize,
+    upcomingCount: upcomingRes.count ?? 0,
+    pastCount: pastRes.count ?? 0,
+  };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function rowToMarch(r: any): March {
   return {
@@ -1215,6 +1277,12 @@ export async function getMarchById(id: string): Promise<March | null> {
   const { data, error } = await sb.from("marches").select("*").eq("id", id).single();
   if (error) return null;
   return data ? rowToMarch(data) : null;
+}
+
+/** ¿Puede la sesión actual gestionar esta caravana? (autor por cuenta; el
+ *  token privado se verifica aparte con verifyResourceOwner). */
+export async function canManageMarch(id: string): Promise<boolean> {
+  return sessionOwns("marches", id);
 }
 
 export interface CreateMarchResult {
@@ -2078,9 +2146,20 @@ function rowToComplaint(r: any): Complaint {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+export interface ComplaintResult {
+  items: Complaint[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// Antes traía hasta 200 denuncias de un tirón sin paginar. Ahora pagina de
+// verdad (10/20/50 a elegir), en vivo.
 export async function getComplaints(
   filter: { category?: ComplaintCategory | "all"; search?: string } = {},
-): Promise<Complaint[]> {
+  page = 1,
+  pageSize = 10,
+): Promise<ComplaintResult> {
   const sb = getSupabase();
   if (!sb) {
     let items = mem.complaints.slice();
@@ -2096,25 +2175,21 @@ export async function getComplaints(
           .includes(s),
       );
     }
-    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    items = items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total, page, pageSize };
   }
-  let query = sb.from("complaints").select("*").order("created_at", { ascending: false }).limit(200);
+  let query = sb.from("complaints").select("*", { count: "exact" }).order("created_at", { ascending: false });
   if (filter.category && filter.category !== "all") query = query.eq("category", filter.category);
   if (filter.search) {
     const s = filter.search.replace(/[,()*]/g, " ").trim();
     if (s) query = query.or(`body.ilike.%${s}%,location_text.ilike.%${s}%,author_name.ilike.%${s}%`);
   }
-  const { data, error } = await query;
+  const start = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(start, start + pageSize - 1);
   if (error) throw error;
-  return (data ?? []).map(rowToComplaint);
-}
-
-export async function getComplaintById(id: string): Promise<Complaint | null> {
-  const sb = getSupabase();
-  if (!sb) return mem.complaints.find((c) => c.id === id) ?? null;
-  const { data, error } = await sb.from("complaints").select("*").eq("id", id).single();
-  if (error) return null;
-  return data ? rowToComplaint(data) : null;
+  return { items: (data ?? []).map(rowToComplaint), total: count ?? 0, page, pageSize };
 }
 
 export async function createComplaint(

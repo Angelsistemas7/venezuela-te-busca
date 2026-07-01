@@ -6,16 +6,24 @@ import {
   COMPLAINT_CATEGORY_LABEL,
   type ComplaintCategory,
 } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, clampPageSize } from "@/lib/utils";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { DenunciaButton } from "@/components/DenunciaButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
+import { SwipeHintRow } from "@/components/SwipeHint";
+import { Pagination } from "@/components/Pagination";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const num = (v: string | string[] | undefined) => {
+  const s = str(v);
+  const n = s ? Number(s) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+};
 
 const FILTERS: { value: ComplaintCategory | "all"; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -29,14 +37,17 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
   const sp = await searchParams;
   const category = (str(sp.cat) as ComplaintCategory | "all") ?? "all";
   const q = str(sp.q);
+  const page = num(sp.page) ?? 1;
+  const pageSize = clampPageSize(num(sp.pageSize));
 
-  const complaints = await getComplaints({ category, search: q });
+  const { items: complaints, total } = await getComplaints({ category, search: q }, page, pageSize);
   const commentsByComplaint = await getCommentsForEntities("complaint", complaints.map((c) => c.id));
 
   const catHref = (c: ComplaintCategory | "all") => {
     const params = new URLSearchParams();
     if (c !== "all") params.set("cat", c);
     if (q) params.set("q", q);
+    if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/denuncias?${qs}` : "/denuncias";
   };
@@ -82,6 +93,7 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
 
       <form action="/denuncias" className="mb-3 flex gap-2">
         {category !== "all" && <input type="hidden" name="cat" value={category} />}
+        {pageSize !== 10 && <input type="hidden" name="pageSize" value={pageSize} />}
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
@@ -91,18 +103,18 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
             className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-base outline-none sm:text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
           />
         </div>
-        <button type="submit" className="rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800">
+        <button type="submit" className="press rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800">
           Buscar
         </button>
       </form>
 
-      <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
+      <SwipeHintRow className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <Link
             key={f.value}
             href={catHref(f.value)}
             className={cn(
-              "whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
+              "press whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
               category === f.value
                 ? "border-rose-300 bg-rose-50 text-rose-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -111,20 +123,33 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
             {f.label}
           </Link>
         ))}
+      </SwipeHintRow>
+
+      <div className="mb-4 flex justify-end">
+        <PageSizeSelect value={pageSize} />
       </div>
 
       {complaints.length === 0 ? (
         <EmptyState
           icon={ShieldAlert}
-          title="No hay denuncias de este tipo"
-          description="Si detectas una irregularidad real (desvío de ayuda, riesgo a la niñez…), repórtala con responsabilidad."
+          title={total === 0 ? "No hay denuncias de este tipo" : "Ninguna denuncia coincide"}
+          description={
+            total === 0
+              ? "Si detectas una irregularidad real (desvío de ayuda, riesgo a la niñez…), repórtala con responsabilidad."
+              : "Prueba con otra categoría o cambia el término de búsqueda."
+          }
         />
       ) : (
-        <div className="space-y-4">
-          {complaints.map((c) => (
-            <ComplaintCard key={c.id} complaint={c} comments={commentsByComplaint[c.id] ?? []} />
-          ))}
-        </div>
+        <>
+          <div className="animate-rise space-y-4">
+            {complaints.map((c) => (
+              <ComplaintCard key={c.id} complaint={c} comments={commentsByComplaint[c.id] ?? []} />
+            ))}
+          </div>
+          <div className="mt-6">
+            <Pagination page={page} pageSize={pageSize} total={total} />
+          </div>
+        </>
       )}
     </div>
   );

@@ -162,8 +162,42 @@ sin Supabase configurado sí funciona, porque usa el almacén en memoria).
   (Se verificó también que `/sin-identificar` SÍ es intencional: es un
   redirect de compatibilidad a `/?view=reconoces`, no una página huérfana.)
 
+- **Caravanas y Denuncias** — mismo bug de paginación que ya se arregló en
+  Comunidad/Voluntarios/Ayuda/Mascotas:
+  - **Denuncias**: `getComplaints` traía hasta 200 sin paginar. Ahora
+    pagina de verdad (10/20/50 a elegir).
+  - **Caravanas**: `getMarches()` (cacheada 60s, sin límite) traía TODAS
+    las caravanas; se dejó intacta para `/mapa` y se creó
+    `getMarchesPage(show, page, pageSize)` para la página, con conteos
+    reales de "Próximas"/"Finalizadas" en los chips (antes contaban solo
+    lo cargado en memoria). Se simplificaron las dos secciones apiladas
+    ("Próximas" / "Finalizadas" atenuada) a una sola grilla paginada — el
+    badge "Próxima/Finalizada" de cada `MarchCard` ya comunicaba el
+    estado individualmente, así que no se perdió información.
+  - **Hallazgo**: caravanas no tenía `canManageMarch`, así que la ficha
+    pública nunca mostraba el enlace "Gestionar esta caravana" a quien
+    inició sesión y la publicó (solo funcionaba con el enlace privado
+    guardado). Se agregó, igual que en puntos de ayuda/mascotas.
+  - Tap feedback (`.press`) agregado en: `MarchCard` (ahora con
+    `.tap-card`), `ComplaintCard`, `MarchManagePanel`,
+    `RegisterMarchButton`, `DenunciaButton` (varios botones/dropzone), y
+    los enlaces "Ver/Volver a X" en las páginas de gestión de ayuda,
+    mascotas, caravanas y comunidad (mismo hueco encontrado en las 4).
+  - Se eliminó `getComplaintById` (código muerto, sin usos — las
+    denuncias no tienen ficha propia ni gestión por autor, a propósito:
+    quedan ligadas a la cuenta que las publicó para que no se puedan
+    borrar/editar tras el hecho, igual que los posts de Comunidad).
+
+  **Pendiente de decisión (no se tocó)**: las denuncias no tienen NINGUNA
+  moderación (ni panel admin, ni edición/borrado por el autor). Es
+  distinto al caso de mascotas: aquí podría ser intencional (una
+  denuncia no debería poder "desaparecer" después de publicada, para
+  evitar que alguien borre una acusación falsa), pero si se quiere que
+  el admin pueda al menos eliminar una denuncia comprobadamente falsa,
+  eso falta construirse.
+
 ## Siguiente en la cola
-Caravanas/Denuncias, Admin.
+Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

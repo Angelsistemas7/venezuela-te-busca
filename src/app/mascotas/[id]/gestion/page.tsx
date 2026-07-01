@@ -36,7 +36,7 @@ export default async function PetGestionPage({
           Este enlace privado no es correcto o ha cambiado. Solo quien reportó la mascota tiene el
           enlace de gestión que se mostró al momento de publicar.
         </p>
-        <Link href={`/mascotas/${id}`} className="mt-6 inline-block rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">
+        <Link href={`/mascotas/${id}`} className="press mt-6 inline-block rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
           Ver la mascota
         </Link>
       </div>
@@ -45,7 +45,7 @@ export default async function PetGestionPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link href={`/mascotas/${id}`} className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900">
+      <Link href={`/mascotas/${id}`} className="press mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition hover:text-zinc-900">
         <ArrowLeft className="h-4 w-4" />
         Ver la mascota
       </Link>

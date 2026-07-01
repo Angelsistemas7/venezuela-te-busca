@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { MapPinned } from "lucide-react";
-import { getMarches } from "@/lib/data";
-import { cn } from "@/lib/utils";
+import { getMarchesPage } from "@/lib/data";
+import { cn, clampPageSize } from "@/lib/utils";
 import { MarchCard } from "@/components/MarchCard";
 import { RegisterMarchButton } from "@/components/RegisterMarchButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
+import { Pagination } from "@/components/Pagination";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const num = (v: string | string[] | undefined) => {
+  const s = str(v);
+  const n = s ? Number(s) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+};
 
 const SHOWS = ["all", "upcoming", "past"] as const;
 type Show = (typeof SHOWS)[number];
@@ -19,19 +26,23 @@ export default async function CaravanasPage({ searchParams }: { searchParams: Se
   const sp = await searchParams;
   const raw = str(sp.show);
   const show: Show = SHOWS.includes(raw as Show) ? (raw as Show) : "all";
+  const page = num(sp.page) ?? 1;
+  const pageSize = clampPageSize(num(sp.pageSize));
 
-  const marches = await getMarches();
-  const now = Date.now();
-  const upcoming = marches.filter((m) => new Date(m.departAt).getTime() >= now);
-  const past = marches.filter((m) => new Date(m.departAt).getTime() < now);
+  const { items: marches, total, upcomingCount, pastCount } = await getMarchesPage(show, page, pageSize);
 
-  const showUpcoming = show === "all" || show === "upcoming";
-  const showPast = show === "all" || show === "past";
+  const showHref = (s: Show) => {
+    const params = new URLSearchParams();
+    if (s !== "all") params.set("show", s);
+    if (pageSize !== 10) params.set("pageSize", String(pageSize));
+    const qs = params.toString();
+    return qs ? `/caravanas?${qs}` : "/caravanas";
+  };
 
   const CHIPS: { value: Show; label: string }[] = [
-    { value: "all", label: "Todas" },
-    { value: "upcoming", label: `Próximas (${upcoming.length})` },
-    { value: "past", label: `Finalizadas (${past.length})` },
+    { value: "all", label: `Todas (${upcomingCount + pastCount})` },
+    { value: "upcoming", label: `Próximas (${upcomingCount})` },
+    { value: "past", label: `Finalizadas (${pastCount})` },
   ];
 
   return (
@@ -55,64 +66,44 @@ export default async function CaravanasPage({ searchParams }: { searchParams: Se
         <RegisterMarchButton />
       </div>
 
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+          {CHIPS.map((c) => (
+            <Link
+              key={c.value}
+              href={showHref(c.value)}
+              className={cn(
+                "press whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+                show === c.value
+                  ? "border-brand-400 bg-brand-50 text-brand-700"
+                  : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
+              )}
+            >
+              {c.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-4 flex justify-end">
+        <PageSizeSelect value={pageSize} />
+      </div>
+
       {marches.length === 0 ? (
         <EmptyState
           icon={MapPinned}
-          title="Aún no hay caravanas"
+          title={total === 0 ? "Aún no hay caravanas" : "No hay caravanas en esta vista"}
           description="Organiza una ida en grupo a la zona afectada: publica el punto de salida y la hora."
         />
       ) : (
         <>
-          <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
-            {CHIPS.map((c) => (
-              <Link
-                key={c.value}
-                href={c.value === "all" ? "/caravanas" : `/caravanas?show=${c.value}`}
-                className={cn(
-                  "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
-                  show === c.value
-                    ? "border-brand-400 bg-brand-50 text-brand-700"
-                    : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
-                )}
-              >
-                {c.label}
-              </Link>
+          <div className="animate-rise grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {marches.map((m) => (
+              <MarchCard key={m.id} march={m} />
             ))}
           </div>
-
-          <div className="space-y-8">
-            {showUpcoming && upcoming.length > 0 && (
-              <section>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                  Próximas ({upcoming.length})
-                </h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {upcoming.map((m) => (
-                    <MarchCard key={m.id} march={m} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {showPast && past.length > 0 && (
-              <section>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                  Finalizadas ({past.length})
-                </h2>
-                <div className="grid grid-cols-1 gap-4 opacity-70 md:grid-cols-2 lg:grid-cols-3">
-                  {past.map((m) => (
-                    <MarchCard key={m.id} march={m} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {((show === "upcoming" && upcoming.length === 0) ||
-              (show === "past" && past.length === 0)) && (
-              <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-                No hay caravanas en esta vista.
-              </div>
-            )}
+          <div className="mt-6">
+            <Pagination page={page} pageSize={pageSize} total={total} />
           </div>
         </>
       )}

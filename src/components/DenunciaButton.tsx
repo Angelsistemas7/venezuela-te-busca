@@ -106,7 +106,7 @@ export function DenunciaButton() {
             <p className="mt-4 max-w-sm text-sm font-medium text-zinc-800">{result.message}</p>
             <button
               onClick={close}
-              className="mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              className="press mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
             >
               Cerrar
             </button>
@@ -125,7 +125,7 @@ export function DenunciaButton() {
             </p>
             <button
               onClick={close}
-              className="mt-6 rounded-xl border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              className="press mt-6 rounded-xl border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
             >
               Entendido
             </button>
@@ -155,7 +155,7 @@ export function DenunciaButton() {
               <button
                 type="button"
                 onClick={() => setStep("form")}
-                className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                className="press rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
               >
                 Volver
               </button>
@@ -163,7 +163,7 @@ export function DenunciaButton() {
                 type="button"
                 onClick={publish}
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                className="press flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Sí, publico bajo mi responsabilidad
@@ -216,7 +216,7 @@ export function DenunciaButton() {
               </Field>
             </div>
 
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-5 hover:border-rose-300 hover:bg-rose-50">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-5 transition hover:border-rose-300 hover:bg-rose-50">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview} alt="Vista previa" className="h-24 w-full max-w-xs rounded-lg object-cover" />
@@ -249,14 +249,14 @@ export function DenunciaButton() {
               <button
                 type="button"
                 onClick={close}
-                className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                className="press rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={goConfirm}
-                className="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
+                className="press flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
               >
                 Continuar
               </button>
