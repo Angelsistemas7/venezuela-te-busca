@@ -401,26 +401,50 @@ async function getRecentlyLocatedImpl(limit = 12): Promise<Person[]> {
 }
 
 /**
+ * Personas por grupo de edad para las "Secciones destacadas" del inicio
+ * (Niñas/niños, Adolescentes, Jóvenes, Adultos, Adultos mayores). Es la
+ * consulta más repetida del sitio: la ve TODA visita al inicio sin filtros,
+ * la página con más tráfico. Antes no tenía caché (a diferencia de las cifras
+ * y "localizados recientemente", que sí), así que cada carga del inicio
+ * disparaba 6 consultas nuevas a Supabase. Cacheada 60s por combinación de
+ * edad, igual para todos — mismo criterio que el resto del panel del inicio.
+ */
+export const getFeaturedPersons = unstable_cache(
+  async (query: PersonQuery = {}): Promise<Person[]> => {
+    const { items } = await getPersons({ ...query, excludeUnidentified: true });
+    return items;
+  },
+  ["featured-persons"],
+  { revalidate: 60 },
+);
+
+/**
  * Personas con coordenada exacta marcada (para pinearlas en el mapa). Sobre todo
  * avistamientos de "¿La reconoces?" donde alguien señaló dónde la vio.
+ * Cacheada 60s: solo se usa en /mapa (otra página de mucho tráfico) y, a
+ * diferencia de las alertas de rescate, un retraso corto aquí es aceptable.
  */
-export async function getPersonsWithLocation(limit = 200): Promise<Person[]> {
-  const sb = getSupabase();
-  if (!sb) {
-    return mem.persons
-      .filter((p) => p.lat != null && p.lng != null)
-      .slice(0, limit);
-  }
-  const { data, error } = await sb
-    .from("persons")
-    .select("*")
-    .not("lat", "is", null)
-    .not("lng", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return (data ?? []).map(rowToPerson);
-}
+export const getPersonsWithLocation = unstable_cache(
+  async (limit = 200): Promise<Person[]> => {
+    const sb = getSupabase();
+    if (!sb) {
+      return mem.persons
+        .filter((p) => p.lat != null && p.lng != null)
+        .slice(0, limit);
+    }
+    const { data, error } = await sb
+      .from("persons")
+      .select("*")
+      .not("lat", "is", null)
+      .not("lng", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data ?? []).map(rowToPerson);
+  },
+  ["persons-with-location"],
+  { revalidate: 60 },
+);
 
 export interface CreatePersonResult {
   person: Person;
@@ -1635,6 +1659,19 @@ export async function getPosts(
   if (error) throw error;
   return (data ?? []).map(rowToPost);
 }
+
+/**
+ * Posts "necesito"/"ofrezco" para las capas del mapa, cacheados 60s (misma
+ * lógica que el resto del mapa: hospitales, puntos de ayuda, caravanas...).
+ * A propósito NO se usa para "rescate": una alerta de rescate es urgente de
+ * verdad y un retraso de hasta 60s ahí sí puede importar, así que esas se
+ * siguen consultando en vivo (ver getPosts en mapa/page.tsx).
+ */
+export const getMapPosts = unstable_cache(
+  async (type: "necesito" | "ofrezco"): Promise<Post[]> => getPosts({ type }),
+  ["map-posts"],
+  { revalidate: 60 },
+);
 
 export async function getPostById(id: string): Promise<Post | null> {
   const sb = getSupabase();

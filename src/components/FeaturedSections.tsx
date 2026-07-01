@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Baby, Clock, GraduationCap, PersonStanding, Sparkles, User, Users } from "lucide-react";
-import { getPersons } from "@/lib/data";
+import { getFeaturedPersons, type getPersons } from "@/lib/data";
 import { PersonCard } from "./PersonCard";
 
 // Secciones curadas del inicio: agrupan a las personas por grupo de edad para
@@ -68,7 +68,7 @@ const SECTIONS: SectionDef[] = [
 ];
 
 async function Section({ def }: { def: SectionDef }) {
-  const { items } = await getPersons({ ...def.query, excludeUnidentified: true });
+  const items = await getFeaturedPersons(def.query);
   if (items.length === 0) return null;
   const Icon = def.icon;
 

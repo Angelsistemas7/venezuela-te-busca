@@ -4,6 +4,7 @@ import {
   getAidPoints,
   getEstadoBreakdown,
   getHospitals,
+  getMapPosts,
   getMarches,
   getPersonsWithLocation,
   getPosts,
@@ -60,9 +61,11 @@ export default async function MapaPage() {
       getAidPoints(),
       getMarches(),
       getHospitals(),
+      // Rescate queda en vivo (sin caché): una alerta de rescate es urgente y no
+      // debe esperar hasta 60s en aparecer. Necesito/ofrezco sí toleran el retraso.
       getPosts({ type: "rescate" }),
-      getPosts({ type: "necesito" }),
-      getPosts({ type: "ofrezco" }),
+      getMapPosts("necesito"),
+      getMapPosts("ofrezco"),
       getVolunteers(),
       // Si la columna lat aún no existe (esquema sin migrar), no rompemos el mapa.
       getPersonsWithLocation().catch(() => []),
