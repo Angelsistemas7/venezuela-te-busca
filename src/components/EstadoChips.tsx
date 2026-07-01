@@ -19,7 +19,7 @@ export async function EstadoChips() {
           <Link
             key={estado}
             href={`/?estado=${encodeURIComponent(estado)}`}
-            className="group flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:border-brand-400 hover:bg-brand-50"
+            className="press group flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:border-brand-400 hover:bg-brand-50"
           >
             {estado}
             <span className="rounded-full bg-zinc-100 px-1.5 text-xs font-semibold text-zinc-500 group-hover:bg-brand-100 group-hover:text-brand-700">

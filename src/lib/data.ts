@@ -1583,8 +1583,18 @@ async function getEstadoBreakdownImpl(): Promise<Record<string, EstadoBreakdown>
   return tally((data ?? []) as { estado: string | null; status: PersonStatus }[]);
 }
 
-/** Conteo de personas por estado/región (para el mapa y secciones). */
-export async function getCountsByEstado(): Promise<Record<string, number>> {
+/**
+ * Conteo de personas por estado/región (para el mapa y "Por estado" del
+ * inicio). Traía la tabla `persons` COMPLETA (sin límite) en cada carga del
+ * inicio, sin caché — el peor caso de los tres que encontré hoy. Cacheado 60s
+ * igual que el resto del panel.
+ */
+export const getCountsByEstado = unstable_cache(
+  getCountsByEstadoImpl,
+  ["counts-by-estado"],
+  { revalidate: 60 },
+);
+async function getCountsByEstadoImpl(): Promise<Record<string, number>> {
   const sb = getSupabase();
   if (!sb) {
     const counts: Record<string, number> = {};

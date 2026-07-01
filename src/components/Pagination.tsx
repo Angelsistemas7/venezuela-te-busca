@@ -39,7 +39,7 @@ export function Pagination({
       <button
         onClick={() => goTo(page - 1)}
         disabled={page <= 1}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 disabled:opacity-40 enabled:hover:bg-zinc-50"
+        className="press flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition disabled:opacity-40 enabled:hover:bg-zinc-50"
         aria-label="Página anterior"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -51,7 +51,7 @@ export function Pagination({
           key={p}
           onClick={() => goTo(p)}
           className={cn(
-            "h-9 min-w-9 rounded-lg border px-3 text-sm font-medium",
+            "press h-9 min-w-9 rounded-lg border px-3 text-sm font-medium transition",
             p === page
               ? "border-zinc-900 bg-zinc-900 text-white"
               : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50",
@@ -65,7 +65,7 @@ export function Pagination({
       <button
         onClick={() => goTo(page + 1)}
         disabled={page >= totalPages}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 disabled:opacity-40 enabled:hover:bg-zinc-50"
+        className="press flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition disabled:opacity-40 enabled:hover:bg-zinc-50"
         aria-label="Página siguiente"
       >
         <ChevronRight className="h-4 w-4" />

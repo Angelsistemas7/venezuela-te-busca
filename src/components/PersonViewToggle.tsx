@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 //  • "¿La reconoces?": gente que alguien VIO, falta saber quién es (foto/rasgos).
 export function PersonViewToggle({ view }: { view: "busca" | "reconoces" }) {
   const base =
-    "flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition";
+    "press flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition";
   return (
     <div className="flex gap-1 rounded-2xl border border-zinc-200 bg-zinc-100 p-1">
       <Link

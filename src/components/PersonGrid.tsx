@@ -16,7 +16,7 @@ export function PersonGrid({ persons }: { persons: Person[] }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="animate-rise grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {persons.map((person) => (
         <PersonCard key={person.id} person={person} />
       ))}

@@ -19,7 +19,7 @@ export function PersonCard({ person }: { person: Person }) {
   return (
     <Link
       href={`/persona/${person.id}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-zinc-200/60"
+      className="tap-card group flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-zinc-100">
         <PersonPhoto

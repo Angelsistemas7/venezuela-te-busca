@@ -25,7 +25,7 @@ export function RecentlyLocated({ persons }: { persons: Person[] }) {
             <li key={p.id}>
               <Link
                 href={`/persona/${p.id}`}
-                className="flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-white px-3 py-2.5 transition hover:border-emerald-300 hover:shadow-sm"
+                className="press flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-white px-3 py-2.5 transition hover:border-emerald-300 hover:shadow-sm"
               >
                 <span
                   className={
