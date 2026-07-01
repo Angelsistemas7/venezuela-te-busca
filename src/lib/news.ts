@@ -28,12 +28,6 @@ function isVenezuela(...text: (string | null | undefined)[]): boolean {
   return VE_TERMS.test(text.filter(Boolean).join(" "));
 }
 
-/** Convierte la fecha de GDELT ("20260625T143000Z") a ISO. */
-function parseGdeltDate(s: string | undefined): string | null {
-  if (!s) return null;
-  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(s);
-  return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : null;
-}
 
 /** Decodifica entidades y CDATA básicos de un RSS. */
 function decodeXml(s: string): string {
@@ -107,48 +101,6 @@ export async function getWorldPress(limit = 14): Promise<NewsArticle[]> {
 }
 
 /**
- * Últimas noticias de prensa sobre el sismo de Venezuela (GDELT).
- * Titular + medio + fecha + enlace a la fuente original.
- */
-export async function getLatestNews(limit = 12): Promise<NewsArticle[]> {
-  try {
-    const params = new URLSearchParams({
-      query: '(Venezuela earthquake) OR (Venezuela sismo) OR (Venezuela terremoto)',
-      mode: "ArtList",
-      format: "json",
-      maxrecords: String(Math.min(limit * 3, 75)),
-      sort: "DateDesc",
-      timespan: "1w", // última semana (unidades GDELT: min/H/d/w)
-    });
-    const res = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {
-      next: { revalidate: 1800 }, // refresca cada 30 min
-      signal: AbortSignal.timeout(8000), // no colgar la página si la API tarda
-    });
-    // GDELT a veces responde texto plano (límite de tasa) en vez de JSON.
-    const ct = res.headers.get("content-type") ?? "";
-    if (!res.ok || !ct.includes("json")) return [];
-    const json = (await res.json()) as {
-      articles?: { url: string; title: string; seendate: string; domain: string; socialimage?: string }[];
-    };
-    const seen = new Set<string>();
-    return (json.articles ?? [])
-      .filter((a) => a.url && a.title && isVenezuela(a.title, a.domain))
-      .filter((a) => (seen.has(a.url) ? false : (seen.add(a.url), true)))
-      .slice(0, limit)
-      .map((a) => ({
-        id: a.url,
-        title: a.title,
-        source: a.domain ?? "Prensa",
-        url: a.url,
-        publishedAt: parseGdeltDate(a.seendate),
-        image: a.socialimage || null,
-      }));
-  } catch {
-    return [];
-  }
-}
-
-/**
  * Reportes de ayuda humanitaria sobre Venezuela (ReliefWeb / ONU-OCHA):
  * ayuda internacional que llegó, va en camino o fue anunciada.
  */
@@ -157,7 +109,7 @@ export async function getHumanitarianUpdates(limit = 10): Promise<NewsArticle[]>
     // ReliefWeb v1: GET con appname obligatorio. Filtramos por país Venezuela
     // (id 257 en su taxonomía) y orientamos la búsqueda al sismo/ayuda.
     const params = new URLSearchParams({
-      appname: "venezuelatebusca.org",
+      appname: "elmundotebusca.com",
       "query[value]": "earthquake OR sismo OR terremoto OR humanitarian aid",
       "query[operator]": "OR",
       "filter[field]": "primary_country.iso3",

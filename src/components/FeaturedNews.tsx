@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import { ExternalLinkGuard } from "./ExternalLinkGuard";
 
 // Historias destacadas con foto, elegidas a mano. Cada una enlaza a su fuente
 // original (medios reconocidos). No son contenido editable: van fijas aquí.
@@ -38,12 +39,10 @@ export function FeaturedNews() {
       </h2>
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
         {FEATURED.map((f) => (
-          <a
+          <ExternalLinkGuard
             key={f.url}
             href={f.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="reveal-up group flex gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:border-zinc-300 hover:shadow-sm sm:flex-col sm:gap-0"
+            className="reveal-up group flex w-full gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white text-left transition hover:border-zinc-300 hover:shadow-sm sm:flex-col sm:gap-0"
           >
             <div className="relative aspect-[16/10] w-32 shrink-0 overflow-hidden bg-zinc-100 sm:w-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -65,7 +64,7 @@ export function FeaturedNews() {
                 <ExternalLink className="h-3.5 w-3.5" />
               </span>
             </div>
-          </a>
+          </ExternalLinkGuard>
         ))}
       </div>
     </section>

@@ -8,6 +8,7 @@ import { timeAgo } from "@/lib/utils";
 import { deleteNewsItemAction } from "@/app/admin/actions";
 import { LikeButton } from "./LikeButton";
 import { CommentSection } from "./CommentSection";
+import { ExternalLinkGuard } from "./ExternalLinkGuard";
 import { PhotoView } from "./PhotoView";
 
 export function NewsItemCard({
@@ -38,15 +39,13 @@ export function NewsItemCard({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
         {item.sourceName &&
           (item.sourceUrl ? (
-            <a
+            <ExternalLinkGuard
               href={item.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"
             >
               Fuente: {item.sourceName}
               <ExternalLink className="h-3 w-3" />
-            </a>
+            </ExternalLinkGuard>
           ) : (
             <span>Fuente: {item.sourceName}</span>
           ))}
@@ -57,7 +56,7 @@ export function NewsItemCard({
         <LikeButton kind="news" id={item.id} likes={item.likes} />
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+          className="press flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
         >
           <MessageCircle className="h-4 w-4" />
           {comments.length > 0 ? `${comments.length} comentarios` : "Comentar"}
@@ -71,7 +70,7 @@ export function NewsItemCard({
               })
             }
             disabled={pending}
-            className="ml-auto flex items-center gap-1.5 rounded-full border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+            className="press ml-auto flex items-center gap-1.5 rounded-full border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
           >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             Eliminar

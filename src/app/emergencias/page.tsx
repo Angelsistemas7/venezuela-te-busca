@@ -3,7 +3,11 @@ import { ChevronRight, LayoutGrid, LifeBuoy, Phone, ShieldCheck } from "lucide-r
 import { COMMUNITY_GUIDE, NATIONAL_LINE, PHONE_GROUPS } from "@/lib/emergency";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 
-export const dynamic = "force-dynamic";
+// A diferencia de casi todo el resto del sitio, esta página NO consulta la
+// base de datos — todo es texto fijo (`lib/emergency.ts`). Forzarla a
+// renderizar en cada visita ("force-dynamic") no tenía ningún beneficio y
+// costaba trabajo de servidor de más. Al quitarlo, Next la genera UNA vez y
+// la sirve al instante desde caché para todo el mundo.
 
 export const metadata = {
   title: "Emergencia y seguridad",
@@ -30,7 +34,7 @@ export default function EmergenciasPage() {
       {/* Línea única nacional */}
       <a
         href={`tel:${NATIONAL_LINE.number}`}
-        className="flex items-center gap-4 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 transition hover:bg-rose-100"
+        className="press flex items-center gap-4 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 transition hover:bg-rose-100"
       >
         <span className="text-4xl font-extrabold leading-none text-rose-600 sm:text-5xl">
           {NATIONAL_LINE.number}
@@ -85,7 +89,7 @@ export default function EmergenciasPage() {
                     <a
                       key={p}
                       href={`tel:${p.replace(/[^+\d]/g, "")}`}
-                      className="rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-brand-700 hover:bg-zinc-200"
+                      className="press rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-brand-700 transition hover:bg-zinc-200"
                     >
                       {p}
                     </a>

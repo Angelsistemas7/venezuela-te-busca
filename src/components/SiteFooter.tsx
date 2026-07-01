@@ -36,7 +36,7 @@ export function SiteFooter() {
           <h3 className="text-sm font-semibold text-zinc-900">Emergencias</h3>
           <a
             href="tel:911"
-            className="mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 transition hover:bg-rose-100"
+            className="press mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 transition hover:bg-rose-100"
           >
             <span className="text-3xl font-extrabold leading-none text-rose-600">911</span>
             <span className="text-xs leading-relaxed text-zinc-600">
@@ -47,7 +47,7 @@ export function SiteFooter() {
           </a>
           <Link
             href="/emergencias"
-            className="mt-2 inline-block text-sm font-medium text-brand-700 hover:underline"
+            className="press mt-2 inline-block text-sm font-medium text-brand-700 transition hover:underline"
           >
             Más teléfonos y guía de seguridad →
           </Link>

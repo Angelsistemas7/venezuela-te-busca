@@ -7,6 +7,7 @@ import { HERO_CATEGORY_EMOJI, HERO_CATEGORY_LABEL } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { LikeButton } from "./LikeButton";
 import { CommentSection } from "./CommentSection";
+import { ExternalLinkGuard } from "./ExternalLinkGuard";
 import { PhotoView } from "./PhotoView";
 import { SaveButton } from "./SaveButton";
 
@@ -55,15 +56,13 @@ export function HeroCard({ hero, comments }: { hero: Hero; comments: Comment[] }
         )}
         {hero.sourceName &&
           (hero.sourceUrl ? (
-            <a
+            <ExternalLinkGuard
               href={hero.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"
             >
               Fuente: {hero.sourceName}
               <ExternalLink className="h-3 w-3" />
-            </a>
+            </ExternalLinkGuard>
           ) : (
             <span>Fuente: {hero.sourceName}</span>
           ))}
@@ -75,7 +74,7 @@ export function HeroCard({ hero, comments }: { hero: Hero; comments: Comment[] }
         <SaveButton type="hero" id={hero.id} title={hero.title} className="ml-auto" showLabel={false} />
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+          className="press flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
         >
           <MessageCircle className="h-4 w-4" />
           {comments.length > 0 ? `${comments.length} comentarios` : "Comentar"}

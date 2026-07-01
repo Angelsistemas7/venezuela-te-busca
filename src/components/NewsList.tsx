@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import type { NewsArticle } from "@/lib/news";
 import { timeAgo } from "@/lib/utils";
+import { ExternalLinkGuard } from "./ExternalLinkGuard";
 
 // Lista de artículos en vivo (solo lectura). Cada uno enlaza a su fuente
 // original y muestra el medio y la hora. No se edita ni se vota: es prensa
@@ -24,12 +25,7 @@ export function NewsList({
     <ul className="divide-y divide-zinc-100">
       {articles.map((a) => (
         <li key={a.id} className="py-3">
-          <a
-            href={a.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-start gap-3"
-          >
+          <ExternalLinkGuard href={a.url} className="group flex w-full items-start gap-3 text-left">
             {a.image && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -49,7 +45,7 @@ export function NewsList({
               </p>
             </div>
             <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-zinc-300 group-hover:text-zinc-600" />
-          </a>
+          </ExternalLinkGuard>
         </li>
       ))}
     </ul>
