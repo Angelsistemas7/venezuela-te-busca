@@ -16,6 +16,7 @@ import { compressImage } from "@/lib/image";
 import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
+import { ManageLinkBox } from "./ManageLinkBox";
 
 const STATUSES = Object.keys(PET_STATUS_LABEL) as PetStatus[];
 const SPECIES = Object.keys(PET_SPECIES_LABEL) as PetSpecies[];
@@ -26,6 +27,7 @@ export function RegisterPetButton() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const fileRef = useRef<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -46,6 +48,7 @@ export function RegisterPetButton() {
     setResult(null);
     try {
       const form = new FormData(e.currentTarget);
+      setTitle(String(form.get("name") ?? "").trim() || "Mascota");
       if (fileRef.current) {
         try {
           const compressed = await compressImage(fileRef.current);
@@ -85,16 +88,26 @@ export function RegisterPetButton() {
           <div className="flex flex-col items-center py-8 text-center">
             <CheckCircle2 className="h-14 w-14 text-emerald-500" />
             <p className="mt-4 max-w-sm text-sm font-medium text-zinc-800">{result.message}</p>
+            {result.id && result.ownerToken && (
+              <ManageLinkBox
+                id={result.id}
+                token={result.ownerToken}
+                entityType="pet"
+                title={title}
+                basePath="/mascotas"
+                note="Con este enlace —y solo con él— podrás marcar a la mascota como encontrada, editar sus datos o eliminar el reporte."
+              />
+            )}
             <button
               onClick={close}
-              className="mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              className="press mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
             >
               Cerrar
             </button>
           </div>
         ) : (
           <form ref={formRef} onSubmit={onSubmit} className="space-y-5">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-6 hover:border-brand-400 hover:bg-brand-50">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-6 transition hover:border-brand-400 hover:bg-brand-50">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview} alt="Vista previa" className="h-28 w-full max-w-xs rounded-lg object-cover" />
@@ -177,14 +190,14 @@ export function RegisterPetButton() {
               <button
                 type="button"
                 onClick={close}
-                className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                className="press rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-300 disabled:opacity-60"
+                className="press flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300 disabled:opacity-60"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Publicar

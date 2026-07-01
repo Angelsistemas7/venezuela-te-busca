@@ -800,7 +800,13 @@ export async function verifyResourceOwner(
     }
   }
   const table =
-    entityType === "post" ? "posts" : entityType === "aid_point" ? "aid_points" : "marches";
+    entityType === "post"
+      ? "posts"
+      : entityType === "aid_point"
+        ? "aid_points"
+        : entityType === "pet"
+          ? "pets"
+          : "marches";
   if (await sessionOwns(table, entityId)) return true;
   // Además del autor, un gestor delegado por el admin puede administrar el punto.
   if (entityType === "aid_point" && (await sessionIsManager("aid_point", entityId))) return true;
@@ -2181,14 +2187,26 @@ function rowToPet(r: any): Pet {
     estado: r.estado,
     locationText: r.location_text ?? "",
     contactPhone: r.contact_phone,
+    updatedAt: r.updated_at ?? r.created_at,
     createdAt: r.created_at,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+export interface PetResult {
+  items: Pet[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// Antes traía hasta 200 mascotas de un tirón sin paginar. Ahora pagina de
+// verdad (10/20/50 a elegir), en vivo.
 export async function getPets(
   filter: { status?: PetStatus | "all"; search?: string } = {},
-): Promise<Pet[]> {
+  page = 1,
+  pageSize = 10,
+): Promise<PetResult> {
   const sb = getSupabase();
   if (!sb) {
     let items = mem.pets.slice();
@@ -2203,17 +2221,21 @@ export async function getPets(
           .includes(s),
       );
     }
-    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    items = items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total, page, pageSize };
   }
-  let query = sb.from("pets").select("*").order("created_at", { ascending: false }).limit(200);
+  let query = sb.from("pets").select("*", { count: "exact" }).order("created_at", { ascending: false });
   if (filter.status && filter.status !== "all") query = query.eq("status", filter.status);
   if (filter.search) {
     const s = filter.search.replace(/[,()*]/g, " ").trim();
     if (s) query = query.or(`name.ilike.%${s}%,description.ilike.%${s}%,location_text.ilike.%${s}%`);
   }
-  const { data, error } = await query;
+  const start = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(start, start + pageSize - 1);
   if (error) throw error;
-  return (data ?? []).map(rowToPet);
+  return { items: (data ?? []).map(rowToPet), total: count ?? 0, page, pageSize };
 }
 
 export async function getPetById(id: string): Promise<Pet | null> {
@@ -2224,8 +2246,21 @@ export async function getPetById(id: string): Promise<Pet | null> {
   return data ? rowToPet(data) : null;
 }
 
-export async function createPet(input: PetInput, photoUrl: string | null): Promise<Pet> {
+export interface CreatePetResult {
+  pet: Pet;
+  ownerToken: string;
+}
+
+// Mismo modelo de gestión que un punto de ayuda: enlace privado (token) para
+// que quien reporta la mascota pueda editarla, marcarla como encontrada o
+// eliminarla después. Antes quedaba fija para siempre.
+export async function createPet(
+  input: PetInput,
+  photoUrl: string | null,
+  userId: string | null = null,
+): Promise<CreatePetResult> {
   const now = new Date().toISOString();
+  const ownerToken = newToken();
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) {
     const pet: Pet = {
@@ -2238,10 +2273,12 @@ export async function createPet(input: PetInput, photoUrl: string | null): Promi
       estado: input.estado ?? null,
       locationText: input.locationText || "",
       contactPhone: input.contactPhone || null,
+      updatedAt: now,
       createdAt: now,
     };
     mem.pets.unshift(pet);
-    return pet;
+    await createResourceOwner("pet", pet.id, ownerToken);
+    return { pet, ownerToken };
   }
   const { data, error } = await sb
     .from("pets")
@@ -2254,11 +2291,79 @@ export async function createPet(input: PetInput, photoUrl: string | null): Promi
       estado: input.estado ?? null,
       location_text: input.locationText || "",
       contact_phone: input.contactPhone || null,
+      user_id: userId,
     })
     .select("*")
     .single();
   if (error) throw error;
-  return rowToPet(data);
+  const pet = rowToPet(data);
+  await createResourceOwner("pet", pet.id, ownerToken);
+  return { pet, ownerToken };
+}
+
+/** Edita los datos de una mascota (autor). No toca el estado (ver setPetStatus). */
+export async function updatePetFields(id: string, input: PetInput): Promise<void> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const pet = mem.pets.find((p) => p.id === id);
+    if (pet) {
+      pet.species = input.species;
+      pet.name = input.name || "";
+      pet.description = input.description;
+      pet.estado = input.estado ?? null;
+      pet.locationText = input.locationText || "";
+      pet.contactPhone = input.contactPhone || null;
+      pet.updatedAt = now;
+    }
+    return;
+  }
+  const { error } = await sb
+    .from("pets")
+    .update({
+      species: input.species,
+      name: input.name || "",
+      description: input.description,
+      estado: input.estado ?? null,
+      location_text: input.locationText || "",
+      contact_phone: input.contactPhone || null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** El autor marca el estado (perdida/encontrada/refugio/veterinario). */
+export async function setPetStatus(id: string, status: PetStatus): Promise<void> {
+  const now = new Date().toISOString();
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const pet = mem.pets.find((p) => p.id === id);
+    if (pet) {
+      pet.status = status;
+      pet.updatedAt = now;
+    }
+    return;
+  }
+  const { error } = await sb.from("pets").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deletePet(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.pets = mem.pets.filter((p) => p.id !== id);
+    await deleteResourceOwner("pet", id);
+    return;
+  }
+  const { error } = await sb.from("pets").delete().eq("id", id);
+  if (error) throw error;
+  await deleteResourceOwner("pet", id);
+}
+
+/** ¿Puede la sesión actual gestionar esta mascota? (autor por cuenta; el token
+ *  privado se verifica aparte con verifyResourceOwner). */
+export async function canManagePet(id: string): Promise<boolean> {
+  return sessionOwns("pets", id);
 }
 
 // ── Voluntarios ─────────────────────────────────────────────────────────────

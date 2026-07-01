@@ -81,8 +81,74 @@ cambios al azar). Ya se hizo, con commits propios cada vez:
   eliminar"/"Cancelar"), y en `RegisterAidPointButton` (dropzone de foto,
   "Cerrar", "Cancelar"/"Publicar punto").
 
+- **Mascotas** — mismo bug de paginación (`getPets` traía hasta 200 sin
+  paginar); ahora pagina de verdad (10/20/50). Tap feedback agregado:
+  tarjeta (`.tap-card`), teléfono en `PetCard`; dropzone, "Cerrar",
+  "Cancelar"/"Publicar" en `RegisterPetButton`.
+
+  **Hallazgo grande, ya resuelto**: a diferencia de personas/puntos de
+  ayuda/caravanas/posts, las mascotas no tenían enlace de gestión. El
+  dueño pidió el mismo alcance que una persona (editar, marcar
+  encontrada, eliminar, compartir). Se construyó:
+  - `resource_owners.entity_type` ahora incluye `'pet'` (migración en
+    `supabase/schema.sql`, **hay que correrla en Supabase — ver abajo**).
+  - `pets` tiene `user_id` (cuenta) y `updated_at` (trigger `pets_touch`),
+    igual que `aid_points`/`persons`.
+  - Nueva ficha pública `/mascotas/[id]` (foto, estado, descripción,
+    contacto, `PetShareButton`, comentarios) — antes solo existía la
+    tarjeta en el listado con comentarios inline (se quitó ese modo, la
+    tarjeta ahora enlaza a la ficha, como `AidPointCard`).
+  - Nueva `/mascotas/[id]/gestion` + `PetManagePanel`: botones rápidos de
+    estado (perdida/encontrada/refugio/veterinario), editar datos,
+    eliminar — igual que `AidPointManagePanel`.
+  - `RegisterPetButton` ahora muestra el enlace privado de gestión
+    (`ManageLinkBox`) al publicar, igual que puntos de ayuda.
+  - Nueva `/mascotas/[id]/opengraph-image.tsx` (tarjeta de compartir con
+    foto real, igual que la de personas).
+  - "Mis publicaciones" (campanita) y "Guardar" ya reconocían `pet`; se
+    corrigió que el enlace de la campanita apuntara a la ficha propia en
+    vez de al listado general.
+
+- **Corregido de paso**: la foto de una persona compartida por WhatsApp
+  salía en blanco. Causa: las fotos se suben en formato WebP y el
+  generador de la tarjeta de compartir (`next/og`/satori) no decodifica
+  WebP — la incrustaba rota sin avisar del error. Se arregló
+  descargando y convirtiendo la foto a JPEG con `sharp` (ya venía
+  instalado por Next, ahora es dependencia directa) antes de
+  incrustarla. Se extrajo a `src/lib/ogImage.ts` (helper compartido:
+  `toEmbeddablePhoto`, `getLogoDataUrl`, `PLATFORM_BLURB`) y lo usan
+  tanto `persona/[id]/opengraph-image.tsx` como la nueva de mascotas. De
+  paso se agrandó el logo y se movió a la esquina superior derecha de la
+  tarjeta, y se agregó una línea con las funcionalidades de la
+  plataforma tras el llamado a la acción (pedido del dueño). También se
+  agregó un aviso en el formulario de personas: "sube una foto de la
+  persona, no de su cédula u otro documento de identidad" (se detectó
+  que una foto de prueba era en realidad una cédula).
+
+### ⚠️ Pendiente del dueño: correr la migración de mascotas en Supabase
+La gestión de mascotas (arriba) necesita este cambio en la base de datos
+de producción. Ir al **SQL Editor de Supabase** y correr de nuevo TODO
+`supabase/schema.sql` (es idempotente, ya se ha hecho antes con otras
+migraciones) — o, si se prefiere algo más quirúrgico, solo estas líneas
+nuevas:
+```sql
+alter table resource_owners drop constraint if exists resource_owners_entity_type_check;
+alter table resource_owners add constraint resource_owners_entity_type_check
+  check (entity_type in ('aid_point','march','post','pet'));
+
+alter table pets add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table pets add column if not exists updated_at timestamptz not null default now();
+create index if not exists idx_pets_user_id on pets(user_id);
+
+drop trigger if exists pets_touch on pets;
+create trigger pets_touch before update on pets
+  for each row execute function touch_updated_at();
+```
+Sin esto, publicar/gestionar una mascota fallará en producción (en local
+sin Supabase configurado sí funciona, porque usa el almacén en memoria).
+
 ## Siguiente en la cola
-Caravanas/Denuncias, Mascotas, Admin.
+Caravanas/Denuncias, Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

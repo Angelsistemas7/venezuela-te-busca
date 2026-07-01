@@ -216,6 +216,9 @@ export function RegisterPersonButton() {
                 }}
               />
             </label>
+            <p className="-mt-3 text-xs text-zinc-400">
+              Sube una foto de la persona, no de su cédula u otro documento de identidad.
+            </p>
 
             <h3 className="text-sm font-semibold text-zinc-900">
               {isSighting ? "Lo que sepas de la persona" : "Datos de la persona"}

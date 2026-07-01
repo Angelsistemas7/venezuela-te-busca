@@ -5,7 +5,7 @@
 // pueda recibir avisos de actividad. Todo vive en localStorage; el token sigue
 // siendo el secreto que da el control (igual que el enlace de gestión).
 
-export type MyPubType = "person" | "post" | "aid_point" | "march";
+export type MyPubType = "person" | "post" | "aid_point" | "march" | "pet";
 
 export interface MyPub {
   type: MyPubType;
@@ -88,7 +88,9 @@ export function managePath(type: MyPubType, id: string, token: string): string {
         ? "/comunidad"
         : type === "aid_point"
           ? "/ayuda"
-          : "/caravanas";
+          : type === "pet"
+            ? "/mascotas"
+            : "/caravanas";
   // Con cuenta no hace falta token: la sesión demuestra la propiedad.
   return token ? `${base}/${id}/gestion?token=${token}` : `${base}/${id}/gestion`;
 }

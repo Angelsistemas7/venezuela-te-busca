@@ -2,15 +2,23 @@ import Link from "next/link";
 import { PawPrint, Search } from "lucide-react";
 import { getCommentsForEntities, getPets } from "@/lib/data";
 import { PET_STATUS_EMOJI, PET_STATUS_LABEL, type PetStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, clampPageSize } from "@/lib/utils";
 import { PetCard } from "@/components/PetCard";
 import { RegisterPetButton } from "@/components/RegisterPetButton";
 import { EmptyState } from "@/components/EmptyState";
+import { SwipeHintRow } from "@/components/SwipeHint";
+import { Pagination } from "@/components/Pagination";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const num = (v: string | string[] | undefined) => {
+  const s = str(v);
+  const n = s ? Number(s) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+};
 
 const FILTERS: { value: PetStatus | "all"; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -24,14 +32,17 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
   const sp = await searchParams;
   const status = (str(sp.status) as PetStatus | "all") ?? "all";
   const q = str(sp.q);
+  const page = num(sp.page) ?? 1;
+  const pageSize = clampPageSize(num(sp.pageSize));
 
-  const pets = await getPets({ status, search: q });
+  const { items: pets, total } = await getPets({ status, search: q }, page, pageSize);
   const commentsByPet = await getCommentsForEntities("pet", pets.map((p) => p.id));
 
   const statusHref = (s: PetStatus | "all") => {
     const params = new URLSearchParams();
     if (s !== "all") params.set("status", s);
     if (q) params.set("q", q);
+    if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/mascotas?${qs}` : "/mascotas";
   };
@@ -58,6 +69,7 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
 
       <form action="/mascotas" className="mb-3 flex gap-2">
         {status !== "all" && <input type="hidden" name="status" value={status} />}
+        {pageSize !== 10 && <input type="hidden" name="pageSize" value={pageSize} />}
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
@@ -67,18 +79,18 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
             className="w-full rounded-xl border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-base outline-none sm:text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
         </div>
-        <button type="submit" className="rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800">
+        <button type="submit" className="press rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800">
           Buscar
         </button>
       </form>
 
-      <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
+      <SwipeHintRow className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <Link
             key={f.value}
             href={statusHref(f.value)}
             className={cn(
-              "whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
+              "press whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
               status === f.value
                 ? "border-brand-400 bg-brand-50 text-brand-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -87,20 +99,33 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
             {f.label}
           </Link>
         ))}
+      </SwipeHintRow>
+
+      <div className="mb-4 flex justify-end">
+        <PageSizeSelect value={pageSize} />
       </div>
 
       {pets.length === 0 ? (
         <EmptyState
           icon={PawPrint}
-          title="No hay mascotas reportadas aquí"
-          description="¿Perdiste o encontraste una mascota tras el sismo? Repórtala para reunirla con su familia."
+          title={total === 0 ? "No hay mascotas reportadas aquí" : "Ninguna mascota coincide"}
+          description={
+            total === 0
+              ? "¿Perdiste o encontraste una mascota tras el sismo? Repórtala para reunirla con su familia."
+              : "Prueba con otro estado o cambia el término de búsqueda."
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {pets.map((p) => (
-            <PetCard key={p.id} pet={p} comments={commentsByPet[p.id] ?? []} />
-          ))}
-        </div>
+        <>
+          <div className="animate-rise grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pets.map((p) => (
+              <PetCard key={p.id} pet={p} commentCount={(commentsByPet[p.id] ?? []).length} />
+            ))}
+          </div>
+          <div className="mt-6">
+            <Pagination page={page} pageSize={pageSize} total={total} />
+          </div>
+        </>
       )}
     </div>
   );

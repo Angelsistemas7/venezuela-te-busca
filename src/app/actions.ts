@@ -29,18 +29,21 @@ import {
   deleteAidPoint,
   deleteMarch,
   deletePerson,
+  deletePet,
   deletePost,
   likeAidPoint,
   likeHospital,
   likeMarch,
   reactToPerson,
   setAidAvailability,
+  setPetStatus,
   reactToPost,
   updateAidPointFields,
   updateHospitalStatus,
   updateMarchFields,
   updatePersonFields,
   updatePersonStatus,
+  updatePetFields,
   updatePostFields,
   verifyOwner,
   verifyResourceOwner,
@@ -62,6 +65,7 @@ import type {
   HospitalStatus,
   PersonReaction,
   PersonStatus,
+  PetStatus,
   ReactionKind,
   SavedEntity,
   SavedItem,
@@ -621,11 +625,85 @@ export async function registerPetAction(form: FormData): Promise<ActionResult> {
   const photoUrl = getField(form, "photoUrl") || null;
 
   try {
-    const pet = await createPet(parsed.data, photoUrl);
+    const { pet, ownerToken } = await createPet(
+      parsed.data,
+      photoUrl,
+      (await getCurrentUser())?.id ?? null,
+    );
     revalidatePath("/mascotas");
-    return { ok: true, id: pet.id, message: "Publicado. Gracias por ayudar a reunir a las mascotas con su familia." };
+    return {
+      ok: true,
+      id: pet.id,
+      ownerToken,
+      message: "Publicado. Gracias por ayudar a reunir a las mascotas con su familia.",
+    };
   } catch {
     return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
+  }
+}
+
+// ── Gestión por el autor de una mascota (enlace privado) ────────────────────
+export async function ownerUpdatePetAction(form: FormData): Promise<ActionResult> {
+  const id = getField(form, "petId");
+  const token = getField(form, "token");
+  if (!(await verifyResourceOwner("pet", id, token))) {
+    return { ok: false, error: "Enlace de gestión no válido." };
+  }
+
+  const parsed = petSchema.safeParse({
+    status: getField(form, "status"),
+    species: getField(form, "species"),
+    name: getField(form, "name"),
+    description: getField(form, "description"),
+    estado: getField(form, "estado") || undefined,
+    locationText: getField(form, "locationText"),
+    contactPhone: getField(form, "contactPhone"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa los campos marcados.", fieldErrors: zodToFieldErrors(parsed.error) };
+  }
+
+  try {
+    await updatePetFields(id, parsed.data);
+    revalidatePath(`/mascotas/${id}`);
+    revalidatePath("/mascotas");
+    return { ok: true, message: "Mascota actualizada." };
+  } catch {
+    return { ok: false, error: "No se pudo actualizar. Intenta de nuevo." };
+  }
+}
+
+/** El AUTOR de la mascota (o el admin) marca perdida/encontrada/refugio/veterinario. */
+export async function ownerSetPetStatusAction(
+  id: string,
+  token: string,
+  status: PetStatus,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await verifyResourceOwner("pet", id, token))) {
+    return { ok: false, error: "Enlace de gestión no válido." };
+  }
+  try {
+    await setPetStatus(id, status);
+    revalidatePath("/mascotas");
+    revalidatePath(`/mascotas/${id}`);
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No se pudo actualizar el estado." };
+  }
+}
+
+export async function ownerDeletePetAction(
+  id: string,
+  token: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await verifyResourceOwner("pet", id, token)))
+    return { ok: false, error: "Enlace de gestión no válido." };
+  try {
+    await deletePet(id);
+    revalidatePath("/mascotas");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No se pudo eliminar." };
   }
 }
 

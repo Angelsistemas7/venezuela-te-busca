@@ -941,6 +941,7 @@ export const seedPets: Pet[] = [
     estado: "La Guaira",
     locationText: "Playa Grande",
     contactPhone: null,
+    updatedAt: petBase(0),
     createdAt: petBase(0),
   },
   {
@@ -953,6 +954,7 @@ export const seedPets: Pet[] = [
     estado: "La Guaira",
     locationText: "Caribe",
     contactPhone: null,
+    updatedAt: petBase(1),
     createdAt: petBase(1),
   },
   {
@@ -965,6 +967,7 @@ export const seedPets: Pet[] = [
     estado: "Carabobo",
     locationText: "San Blas, Valencia",
     contactPhone: null,
+    updatedAt: petBase(2),
     createdAt: petBase(2),
   },
   {
@@ -977,6 +980,7 @@ export const seedPets: Pet[] = [
     estado: "La Guaira",
     locationText: "Refugio temporal, La Guaira",
     contactPhone: null,
+    updatedAt: petBase(3),
     createdAt: petBase(3),
   },
   {
@@ -989,6 +993,7 @@ export const seedPets: Pet[] = [
     estado: "Distrito Capital",
     locationText: "Av. Fuerzas Armadas, Caracas",
     contactPhone: null,
+    updatedAt: petBase(4),
     createdAt: petBase(4),
   },
   {
@@ -1001,6 +1006,7 @@ export const seedPets: Pet[] = [
     estado: "La Guaira",
     locationText: "El Caribe",
     contactPhone: null,
+    updatedAt: petBase(5),
     createdAt: petBase(5),
   },
 ];

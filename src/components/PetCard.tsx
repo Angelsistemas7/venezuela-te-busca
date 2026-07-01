@@ -1,11 +1,8 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 import { MapPin, MessageCircle, Phone } from "lucide-react";
-import type { Comment, Pet, PetStatus } from "@/lib/types";
+import type { Pet, PetStatus } from "@/lib/types";
 import { PET_SPECIES_LABEL, PET_STATUS_EMOJI, PET_STATUS_LABEL } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
-import { CommentSection } from "./CommentSection";
 import { SaveButton } from "./SaveButton";
 
 const STATUS_STYLE: Record<PetStatus, string> = {
@@ -15,11 +12,9 @@ const STATUS_STYLE: Record<PetStatus, string> = {
   veterinario: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
-export function PetCard({ pet, comments }: { pet: Pet; comments: Comment[] }) {
-  const [showComments, setShowComments] = useState(false);
-
+export function PetCard({ pet, commentCount }: { pet: Pet; commentCount: number }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <article className="tap-card overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
       {pet.photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={pet.photoUrl} alt={pet.name || "Mascota"} className="h-44 w-full object-cover" />
@@ -46,7 +41,7 @@ export function PetCard({ pet, comments }: { pet: Pet; comments: Comment[] }) {
         </div>
 
         {pet.name && <h3 className="font-semibold text-zinc-900">{pet.name}</h3>}
-        <p className="text-sm text-zinc-600">{pet.description}</p>
+        <p className="line-clamp-3 text-sm text-zinc-600">{pet.description}</p>
 
         {(pet.locationText || pet.estado) && (
           <p className="flex items-start gap-1.5 text-sm text-zinc-500">
@@ -59,7 +54,7 @@ export function PetCard({ pet, comments }: { pet: Pet; comments: Comment[] }) {
           {pet.contactPhone ? (
             <a
               href={`tel:${pet.contactPhone}`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline"
+              className="press inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 transition hover:underline"
             >
               <Phone className="h-4 w-4" />
               {pet.contactPhone}
@@ -75,27 +70,15 @@ export function PetCard({ pet, comments }: { pet: Pet; comments: Comment[] }) {
               showLabel={false}
               className="border-0 px-1.5 py-1"
             />
-            <button
-              onClick={() => setShowComments((v) => !v)}
-              className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900"
+            <Link
+              href={`/mascotas/${pet.id}`}
+              className="press flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition hover:text-zinc-900"
             >
               <MessageCircle className="h-4 w-4" />
-              {comments.length > 0 ? `${comments.length}` : "Comentar"}
-            </button>
+              {commentCount > 0 ? `${commentCount}` : "Ver y comentar"}
+            </Link>
           </div>
         </div>
-
-        {showComments && (
-          <div className="pt-1">
-            <CommentSection
-              entityType="pet"
-              entityId={pet.id}
-              initialComments={comments}
-              title="Comentarios"
-              placeholder="¿La viste? Aporta dónde y cuándo, o sube una foto."
-            />
-          </div>
-        )}
       </div>
     </article>
   );

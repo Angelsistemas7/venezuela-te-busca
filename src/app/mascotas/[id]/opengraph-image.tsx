@@ -1,37 +1,32 @@
 import { ImageResponse } from "next/og";
-import { getPersonById } from "@/lib/data";
-import { PERSON_STATUS_LABEL, type PersonStatus } from "@/lib/types";
+import { getPetById } from "@/lib/data";
+import { PET_SPECIES_LABEL, PET_STATUS_LABEL, type PetStatus } from "@/lib/types";
 import { getLogoDataUrl, PLATFORM_BLURB, toEmbeddablePhoto } from "@/lib/ogImage";
 
-// Tarjeta que se ve al compartir la ficha de una persona (WhatsApp, redes).
-// A diferencia de la genérica del inicio, esta trae la FOTO real (si tiene) y
-// un texto que invita a ayudar a localizarla — mucho más movilizador que solo
-// el logo. Sin acentos: la fuente por defecto de ImageResponse no los trae.
+// Tarjeta que se ve al compartir la ficha de una mascota (WhatsApp, redes).
+// Mismo formato que la de una persona: foto real + estado + descripción.
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const STATUS_COLOR: Record<PersonStatus, string> = {
-  por_localizar: "#f43f5e",
-  hospitalizado: "#f59e0b",
-  localizado: "#10b981",
-  fallecido: "#71717a",
+const STATUS_COLOR: Record<PetStatus, string> = {
+  perdida: "#f43f5e",
+  encontrada: "#10b981",
+  refugio: "#0ea5e9",
+  veterinario: "#f59e0b",
 };
 
-export default async function PersonOpengraphImage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PetOpengraphImage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const person = await getPersonById(id);
+  const pet = await getPetById(id);
   const logoSrc = await getLogoDataUrl();
-  const photoSrc = person?.photoUrl ? await toEmbeddablePhoto(person.photoUrl) : null;
+  const photoSrc = pet?.photoUrl ? await toEmbeddablePhoto(pet.photoUrl) : null;
 
-  const fullName = person ? `${person.firstName} ${person.lastName}`.trim() : "";
-  const displayName =
-    person && person.isUnidentified && !fullName ? "Persona sin identificar" : fullName || "Persona desaparecida";
-  const statusColor = person ? STATUS_COLOR[person.status] : STATUS_COLOR.por_localizar;
-  const statusLabel = person ? PERSON_STATUS_LABEL[person.status] : "Se busca";
-  const cta =
-    person?.isUnidentified
-      ? `Alguien vio a ${displayName === "Persona sin identificar" ? "esta persona" : displayName} y no se sabe quien es. Si la reconoces, avisa.`
-      : `Ayudanos a localizar a ${displayName}. Sus familiares esperan verlo pronto.`;
+  const displayName = pet?.name || (pet ? PET_SPECIES_LABEL[pet.species] : "Mascota");
+  const statusColor = pet ? STATUS_COLOR[pet.status] : STATUS_COLOR.perdida;
+  const statusLabel = pet ? PET_STATUS_LABEL[pet.status] : "Perdida";
+  const cta = pet?.name
+    ? `Ayudanos a encontrar a ${pet.name}. Su familia la espera.`
+    : "Ayudanos a reunir a esta mascota con su familia.";
 
   return new ImageResponse(
     (
@@ -45,7 +40,6 @@ export default async function PersonOpengraphImage({ params }: { params: Promise
           padding: "56px 64px",
         }}
       >
-        {/* Logo grande como marca, en la esquina donde no hay información. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={logoSrc}
@@ -61,7 +55,7 @@ export default async function PersonOpengraphImage({ params }: { params: Promise
           }}
         />
 
-        {/* Foto de la persona (o iniciales si no tiene) a la izquierda. */}
+        {/* Foto de la mascota (o silueta si no tiene) a la izquierda. */}
         <div
           style={{
             display: "flex",
@@ -87,11 +81,9 @@ export default async function PersonOpengraphImage({ params }: { params: Promise
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: "160px",
-                fontWeight: 800,
-                color: "#94a3b8",
               }}
             >
-              {displayName === "Persona sin identificar" ? "?" : displayName.slice(0, 1)}
+              {pet?.species === "gato" ? "🐈" : pet?.species === "perro" ? "🐕" : "🐾"}
             </div>
           )}
         </div>

@@ -99,13 +99,14 @@ create table if not exists person_owners (
   created_at timestamptz not null default now()
 );
 
--- ── Propietario de recursos (puntos de ayuda, caravanas) ────────────────────
--- Igual que person_owners pero genérico: el autor de un punto de ayuda o de una
--- caravana lo gestiona con un enlace privado (token). Sin lectura pública; la
--- verificación del autor se hace en el servidor con la service role. No es una
--- FK porque entity_id apunta a una de varias tablas según entity_type.
+-- ── Propietario de recursos (puntos de ayuda, caravanas, mascotas) ──────────
+-- Igual que person_owners pero genérico: el autor de un punto de ayuda, una
+-- caravana o una mascota lo gestiona con un enlace privado (token). Sin
+-- lectura pública; la verificación del autor se hace en el servidor con la
+-- service role. No es una FK porque entity_id apunta a una de varias tablas
+-- según entity_type.
 create table if not exists resource_owners (
-  entity_type text not null check (entity_type in ('aid_point','march','post')),
+  entity_type text not null check (entity_type in ('aid_point','march','post','pet')),
   entity_id   uuid not null,
   token       text not null,
   created_at  timestamptz not null default now(),
@@ -283,6 +284,8 @@ create table if not exists pets (
   estado        text,
   location_text text default '',
   contact_phone text,
+  user_id       uuid references auth.users(id) on delete set null,
+  updated_at    timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 create index if not exists pets_status_idx  on pets (status);
@@ -530,3 +533,20 @@ drop policy if exists "saved_items_delete_own" on saved_items;
 create policy "saved_items_select_own" on saved_items for select using (auth.uid() = user_id);
 create policy "saved_items_insert_own" on saved_items for insert with check (auth.uid() = user_id);
 create policy "saved_items_delete_own" on saved_items for delete using (auth.uid() = user_id);
+
+-- ── Migración: mascotas con el mismo alcance que un punto de ayuda ──────────
+-- Antes una mascota reportada quedaba fija para siempre (sin editar, sin
+-- marcar "encontrada", sin borrar). Ahora tiene el mismo modelo de gestión por
+-- enlace privado (token) que puntos de ayuda/caravanas/posts, más enlace a la
+-- cuenta si publicaste con sesión iniciada.
+alter table resource_owners drop constraint if exists resource_owners_entity_type_check;
+alter table resource_owners add constraint resource_owners_entity_type_check
+  check (entity_type in ('aid_point','march','post','pet'));
+
+alter table pets add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table pets add column if not exists updated_at timestamptz not null default now();
+create index if not exists idx_pets_user_id on pets(user_id);
+
+drop trigger if exists pets_touch on pets;
+create trigger pets_touch before update on pets
+  for each row execute function touch_updated_at();

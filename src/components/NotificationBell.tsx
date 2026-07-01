@@ -55,7 +55,7 @@ const PUBLIC_PATH: Record<CommentEntity, (id: string) => string> = {
   hospital: (id) => `/hospitales/${id}`,
   post: () => "/comunidad",
   complaint: () => "/denuncias",
-  pet: () => "/mascotas",
+  pet: (id) => `/mascotas/${id}`,
   hero: () => "/noticias",
   news_item: () => "/noticias",
 };
