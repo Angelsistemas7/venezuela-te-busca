@@ -18,6 +18,7 @@ import {
 } from "./seed";
 import type {
   AidPoint,
+  AidPointType,
   Comment,
   Complaint,
   ComplaintCategory,
@@ -947,6 +948,50 @@ export async function getAidPointById(id: string): Promise<AidPoint | null> {
   const { data, error } = await sb.from("aid_points").select("*").eq("id", id).single();
   if (error) return null;
   return data ? rowToAidPoint(data) : null;
+}
+
+export interface AidPointResult {
+  items: AidPoint[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Puntos de ayuda, PAGINADOS. `getAidPoints` no tenía límite NI paginación —
+ * traía la tabla entera de un jalón en cada visita a /ayuda; con pocos puntos
+ * no se nota, pero no escala. Se deja `getAidPoints` intacta para el mapa y
+ * el admin (necesitan "todos"); esta es solo para el listado. Sin caché a
+ * propósito: acabas de registrar un punto y quieres verte ya en la lista.
+ */
+export async function getAidPointsPage(
+  filter: { type?: AidPointType | "all"; availOnly?: boolean },
+  page = 1,
+  pageSize = 10,
+): Promise<AidPointResult> {
+  const sb = getSupabase();
+  if (!sb) {
+    let items = mem.aidPoints.slice();
+    if (filter.type && filter.type !== "all") {
+      const t = filter.type;
+      items = items.filter((p) => p.types.includes(t));
+    }
+    if (filter.availOnly) items = items.filter((p) => p.available);
+    items = [...items.filter((p) => p.available), ...items.filter((p) => !p.available)];
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total, page, pageSize };
+  }
+  let query = sb.from("aid_points").select("*", { count: "exact" }).order("created_at", { ascending: false });
+  if (filter.type && filter.type !== "all") query = query.contains("types", [filter.type]);
+  if (filter.availOnly) query = query.eq("available", true);
+  const start = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(start, start + pageSize - 1);
+  if (error) throw error;
+  const items = (data ?? []).map(rowToAidPoint);
+  // Disponibles primero, dentro de la página actual (misma regla que antes).
+  const sorted = [...items.filter((p) => p.available), ...items.filter((p) => !p.available)];
+  return { items: sorted, total: count ?? 0, page, pageSize };
 }
 
 export interface CreateAidPointResult {

@@ -92,14 +92,14 @@ export function RegisterAidPointButton() {
             )}
             <button
               onClick={close}
-              className="mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              className="press mt-6 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
             >
               Cerrar
             </button>
           </div>
         ) : (
           <form ref={formRef} onSubmit={onSubmit} className="space-y-5">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-6 hover:border-brand-400 hover:bg-brand-50">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 py-6 transition hover:border-brand-400 hover:bg-brand-50">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview} alt="Vista previa" className="h-28 w-full max-w-xs rounded-lg object-cover" />
@@ -132,7 +132,7 @@ export function RegisterAidPointButton() {
                 {(Object.keys(AID_POINT_TYPE_LABEL) as AidPointType[]).map((t) => (
                   <label
                     key={t}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-50 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50"
                   >
                     <input type="checkbox" name="types" value={t} defaultChecked={t === "comida"} className="h-4 w-4 rounded" />
                     {AID_POINT_TYPE_LABEL[t]}
@@ -190,14 +190,14 @@ export function RegisterAidPointButton() {
               <button
                 type="button"
                 onClick={close}
-                className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                className="press rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-300 disabled:opacity-60"
+                className="press flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300 disabled:opacity-60"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Publicar punto

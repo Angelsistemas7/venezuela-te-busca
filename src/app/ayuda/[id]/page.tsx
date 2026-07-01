@@ -78,7 +78,7 @@ export default async function AidPointPage({ params }: { params: Promise<{ id: s
           <div className="flex items-center justify-between pt-1">
             <LikeButton kind="aid" id={point.id} likes={point.likes} />
             {point.contactPhone && (
-              <a href={`tel:${point.contactPhone}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline">
+              <a href={`tel:${point.contactPhone}`} className="press inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 transition hover:underline">
                 <Phone className="h-4 w-4" />
                 {point.contactPhone}
               </a>
@@ -89,7 +89,7 @@ export default async function AidPointPage({ params }: { params: Promise<{ id: s
           {canManage && (
             <Link
               href={`/ayuda/${point.id}/gestion`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              className="press inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
             >
               <Settings className="h-4 w-4" />
               Gestionar este punto

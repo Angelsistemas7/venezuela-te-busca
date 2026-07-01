@@ -81,7 +81,7 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
               {TYPES.map((t) => (
                 <label
                   key={t}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-50 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50"
                 >
                   <input type="checkbox" name="types" value={t} defaultChecked={point.types.includes(t)} className="h-4 w-4 rounded" />
                   {AID_POINT_TYPE_LABEL[t]}
@@ -134,7 +134,7 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="press flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Guardar cambios
@@ -155,7 +155,7 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
             onClick={() => setAvail(true)}
             disabled={availPending}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-60",
+              "press flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-60",
               available
                 ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                 : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
@@ -168,7 +168,7 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
             onClick={() => setAvail(false)}
             disabled={availPending}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-60",
+              "press flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-60",
               !available
                 ? "border-rose-300 bg-rose-50 text-rose-700"
                 : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
@@ -192,7 +192,7 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="mt-3 flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
+            className="press mt-3 flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
           >
             <Trash2 className="h-4 w-4" />
             Eliminar
@@ -200,10 +200,10 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
         ) : (
           <div className="mt-3 flex items-center gap-3">
             <span className="text-sm font-medium text-rose-800">¿Seguro?</span>
-            <button onClick={remove} disabled={pending} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60">
+            <button onClick={remove} disabled={pending} className="press rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60">
               Sí, eliminar
             </button>
-            <button onClick={() => setConfirmDelete(false)} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white">
+            <button onClick={() => setConfirmDelete(false)} className="press rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-white">
               Cancelar
             </button>
           </div>

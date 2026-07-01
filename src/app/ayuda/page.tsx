@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { HeartHandshake } from "lucide-react";
-import { getAidPoints } from "@/lib/data";
+import { getAidPointsPage } from "@/lib/data";
 import { AID_POINT_TYPE_LABEL, type AidPointType } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, clampPageSize } from "@/lib/utils";
 import { AidPointCard } from "@/components/AidPointCard";
 import { RegisterAidPointButton } from "@/components/RegisterAidPointButton";
 import { SwipeHintRow } from "@/components/SwipeHint";
+import { Pagination } from "@/components/Pagination";
+import { PageSizeSelect } from "@/components/PageSizeSelect";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const num = (v: string | string[] | undefined) => {
+  const s = str(v);
+  const n = s ? Number(s) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+};
 
 const TYPE_EMOJI: Record<AidPointType, string> = {
   comida: "🍲",
@@ -34,17 +41,18 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
   const sp = await searchParams;
   const type = (str(sp.type) as AidPointType | "all") ?? "all";
   const availOnly = str(sp.avail) === "1";
+  const page = num(sp.page) ?? 1;
+  const pageSize = clampPageSize(num(sp.pageSize));
 
-  const all = await getAidPoints();
-  let points = type === "all" ? all : all.filter((p) => p.types.includes(type));
-  if (availOnly) points = points.filter((p) => p.available);
-  // Disponibles primero (la recencia se mantiene dentro de cada grupo).
-  points = [...points.filter((p) => p.available), ...points.filter((p) => !p.available)];
+  // Antes: `getAidPoints()` traía la tabla ENTERA sin límite ni paginación en
+  // cada visita. Ahora pagina de verdad (10/20/50 a elegir), en vivo.
+  const { items: points, total } = await getAidPointsPage({ type, availOnly }, page, pageSize);
 
   const chipHref = (t: AidPointType | "all") => {
     const params = new URLSearchParams();
     if (t !== "all") params.set("type", t);
     if (availOnly) params.set("avail", "1");
+    if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/ayuda?${qs}` : "/ayuda";
   };
@@ -52,6 +60,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
     const params = new URLSearchParams();
     if (type !== "all") params.set("type", type);
     if (!availOnly) params.set("avail", "1");
+    if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/ayuda?${qs}` : "/ayuda";
   };
@@ -84,7 +93,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
               key={c.value}
               href={chipHref(c.value)}
               className={cn(
-                "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+                "press whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
                 type === c.value
                   ? "border-brand-400 bg-brand-50 text-brand-700"
                   : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -97,7 +106,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
         <Link
           href={availHref()}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+            "press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
             availOnly
               ? "border-emerald-400 bg-emerald-50 text-emerald-700"
               : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -107,18 +116,27 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
         </Link>
       </div>
 
+      <div className="mb-4 flex justify-end">
+        <PageSizeSelect value={pageSize} />
+      </div>
+
       {points.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white py-16 text-center text-zinc-500">
-          {all.length === 0
+          {total === 0
             ? "Aún no hay puntos registrados. Sé el primero en publicar uno."
             : "Ningún punto coincide con el filtro. Prueba con otro recurso o quita “solo disponibles”."}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {points.map((point) => (
-            <AidPointCard key={point.id} point={point} />
-          ))}
-        </div>
+        <>
+          <div className="animate-rise grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {points.map((point) => (
+              <AidPointCard key={point.id} point={point} />
+            ))}
+          </div>
+          <div className="mt-6">
+            <Pagination page={page} pageSize={pageSize} total={total} />
+          </div>
+        </>
       )}
     </div>
   );

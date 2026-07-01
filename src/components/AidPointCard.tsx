@@ -99,7 +99,7 @@ export function AidPointCard({ point }: { point: AidPoint }) {
           {point.contactPhone ? (
             <a
               href={`tel:${point.contactPhone}`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline"
+              className="press inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 transition hover:underline"
             >
               <Phone className="h-4 w-4" />
               {point.contactPhone}
@@ -117,7 +117,7 @@ export function AidPointCard({ point }: { point: AidPoint }) {
           </div>
           <Link
             href={`/ayuda/${point.id}`}
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900"
+            className="press flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition hover:text-zinc-900"
           >
             <MessageCircle className="h-4 w-4" />
             Ver y comentar

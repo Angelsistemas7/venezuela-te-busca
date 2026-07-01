@@ -70,8 +70,19 @@ cambios al azar). Ya se hizo, con commits propios cada vez:
   paginar, cacheado 60s. Nueva `getVolunteersPage` (en vivo, 10/20/50 a
   elegir) para la página; se dejó `getVolunteers` intacta para el mapa.
 
+- **Puntos de ayuda** — mismo bug de Comunidad/Voluntarios: `getAidPoints()`
+  traía la tabla entera cacheada 60s sin límite. Nueva `getAidPointsPage`
+  (en vivo, filtro por tipo/disponibilidad, 10/20/50 a elegir); se dejó
+  `getAidPoints` intacta para `/admin` y `/mapa`. Tap feedback (`.press`)
+  agregado en varios botones que quedaron sin él: teléfono y "Ver y
+  comentar" de `AidPointCard`, teléfono y "Gestionar este punto" en la
+  ficha, y en `AidPointManagePanel` (checkbox de tipos, "Guardar cambios",
+  toggle Disponible/Agotado, "Eliminar" y su confirmación "Sí,
+  eliminar"/"Cancelar"), y en `RegisterAidPointButton` (dropzone de foto,
+  "Cerrar", "Cancelar"/"Publicar punto").
+
 ## Siguiente en la cola
-Caravanas/Denuncias, Puntos de ayuda, Mascotas, Admin.
+Caravanas/Denuncias, Mascotas, Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.
