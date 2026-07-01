@@ -196,8 +196,53 @@ sin Supabase configurado sí funciona, porque usa el almacén en memoria).
   el admin pueda al menos eliminar una denuncia comprobadamente falsa,
   eso falta construirse.
 
+- **Comunidad: filtros + limpieza de portada** — varios pedidos relacionados:
+  - Se quitó el widget "Sismo (preliminar): M, heridos, fallecidos" de
+    `DashboardStats.tsx` (se veía en "Se busca" y "¿La reconoces?", debajo de
+    las 8 cifras) — el dueño sintió esa zona sobrecargada de información.
+    `QUAKE_INFO` sigue viva para el mapa.
+  - "Destacado" y "Rescates activos" en Comunidad ya NO se apilan uno debajo
+    del otro: ahora es una sola fila que se desliza (rescates primero, con un
+    badge 🚨 en el título si hay alguno activo), en vez de obligar a bajar la
+    página.
+  - Puntos de ayuda del seed: los 3 que estaban `verified: true` pasan a
+    `false` — los datos vinieron de la web, nadie ha ido presencialmente a
+    confirmarlos. **Si en producción hay puntos ya marcados verificados**,
+    correr en el SQL Editor de Supabase: `update aid_points set verified =
+    false;` (decisión del dueño, no lo ejecuté).
+  - Nuevo componente reutilizable **`FilterModal`** (`src/components/FilterModal.tsx`):
+    ventana de filtros con el mismo diseño para toda la app; cada página define
+    qué campos expone (chips de orden, un `select`, un rango de fechas). Los
+    chips de tipo/categoría que ya funcionaban bien en cada sección se
+    mantienen sueltos, fuera del modal.
+  - Aplicado en **Comunidad**: el "Ordenar" (antes 3 chips sueltos) ahora abre
+    el modal de Filtros con 4 opciones de orden (se agregó "Menos apoyadas"),
+    más filtro por estado/región y rango de fechas de publicación —
+    `getPostsPage` en `data.ts` ahora acepta `estado`/`dateFrom`/`dateTo`.
+  - **Pendiente, siguiente en la cola**: aplicar el mismo `FilterModal` en Se
+    busca/¿La reconoces?, Voluntarios, Caravanas, Denuncias, Hospitales,
+    Noticias, Puntos de ayuda y Mascotas — sección por sección, como el resto
+    de esta auditoría.
+  - Barra "¿Estás en la zona? Quiero ayudar" del inicio: ahora se oculta si la
+    cuenta que inició sesión ya se ofreció como voluntario. Antes `volunteers`
+    no se enlazaba a la cuenta (`user_id` no existía en esa tabla); se agregó
+    igual que en persons/posts/aid_points/marches/hospitals, y
+    `registerVolunteerAction` ahora pasa el id de sesión. **Requiere correr la
+    migración en Supabase** (ver abajo).
+
+### ⚠️ Pendiente del dueño: correr la migración de `volunteers.user_id` en Supabase
+```sql
+alter table volunteers add column if not exists user_id uuid references auth.users(id) on delete set null;
+create index if not exists idx_volunteers_user_id on volunteers(user_id);
+```
+O correr de nuevo todo `supabase/schema.sql` en el SQL Editor (idempotente).
+Sin esto, la barra de voluntarios seguirá apareciendo siempre en producción
+aunque el usuario ya se haya ofrecido (en local sin Supabase no aplica, porque
+no hay cuentas en modo demostración).
+
 ## Siguiente en la cola
-Admin.
+`FilterModal` en el resto de secciones (Se busca/La reconoces, Voluntarios,
+Caravanas, Denuncias, Hospitales, Noticias, Ayuda, Mascotas), luego Admin.
 
 ## Otros pendientes menores
 - Los 4 documentos del kit de prensa (`docs/kit-prensa/`) con el nombre nuevo.

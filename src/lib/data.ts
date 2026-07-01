@@ -1826,7 +1826,7 @@ export interface PostResult {
   pageSize: number;
 }
 
-export type PostSort = "recent" | "oldest" | "popular";
+export type PostSort = "recent" | "oldest" | "popular" | "least_popular";
 
 function postPopularity(p: Post): number {
   return p.reactions.apoyo + p.reactions.corazon + p.reactions.hecho;
@@ -1837,11 +1837,19 @@ function postPopularity(p: Post): number {
  * completas (con foto) en cada visita, sin límite de página — pasados los 100
  * posts (esperable en una emergencia activa el primer día) no había forma de
  * ver nada más antiguo. 20 por página, con conteo real para la paginación.
- * `sort: "popular"` usa `reactions_total` (columna calculada en la base de
- * datos) para no tener que traer todo y sumar reacciones en el servidor.
+ * `sort: "popular"`/"least_popular" usan `reactions_total` (columna calculada
+ * en la base de datos) para no tener que traer todo y sumar reacciones en el
+ * servidor. `estado` filtra por región y `dateFrom`/`dateTo` (fechas ISO,
+ * solo la parte de fecha) acotan cuándo se publicó.
  */
 export async function getPostsPage(
-  filter: { type?: PostType | "all"; search?: string },
+  filter: {
+    type?: PostType | "all";
+    search?: string;
+    estado?: string | "all";
+    dateFrom?: string;
+    dateTo?: string;
+  },
   page = 1,
   pageSize = 20,
   sort: PostSort = "recent",
@@ -1850,6 +1858,9 @@ export async function getPostsPage(
   if (!sb) {
     let items = mem.posts.slice();
     if (filter.type && filter.type !== "all") items = items.filter((p) => p.type === filter.type);
+    if (filter.estado && filter.estado !== "all") items = items.filter((p) => p.estado === filter.estado);
+    if (filter.dateFrom) items = items.filter((p) => p.createdAt >= filter.dateFrom!);
+    if (filter.dateTo) items = items.filter((p) => p.createdAt <= `${filter.dateTo}T23:59:59.999Z`);
     if (filter.search) {
       const s = filter.search.toLowerCase().trim();
       items = items.filter((p) =>
@@ -1861,7 +1872,9 @@ export async function getPostsPage(
         ? items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
         : sort === "popular"
           ? items.sort((a, b) => postPopularity(b) - postPopularity(a) || b.createdAt.localeCompare(a.createdAt))
-          : items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+          : sort === "least_popular"
+            ? items.sort((a, b) => postPopularity(a) - postPopularity(b) || b.createdAt.localeCompare(a.createdAt))
+            : items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const total = items.length;
     const start = (page - 1) * pageSize;
     return { items: items.slice(start, start + pageSize), total, page, pageSize };
@@ -1872,8 +1885,13 @@ export async function getPostsPage(
       ? query.order("created_at", { ascending: true })
       : sort === "popular"
         ? query.order("reactions_total", { ascending: false }).order("created_at", { ascending: false })
-        : query.order("created_at", { ascending: false });
+        : sort === "least_popular"
+          ? query.order("reactions_total", { ascending: true }).order("created_at", { ascending: false })
+          : query.order("created_at", { ascending: false });
   if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
+  if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.dateFrom) query = query.gte("created_at", filter.dateFrom);
+  if (filter.dateTo) query = query.lte("created_at", `${filter.dateTo}T23:59:59.999Z`);
   if (filter.search) {
     const s = filter.search.replace(/[,()*]/g, " ").trim();
     if (s) query = query.or(`body.ilike.%${s}%,location_text.ilike.%${s}%,author_name.ilike.%${s}%`);
@@ -2542,6 +2560,7 @@ export async function getVolunteersPage(
 export async function createVolunteer(
   input: VolunteerInput,
   photoUrl: string | null = null,
+  userId: string | null = null,
 ): Promise<Volunteer> {
   const now = new Date().toISOString();
   const sb = getSupabaseAdmin() ?? getSupabase();
@@ -2578,11 +2597,22 @@ export async function createVolunteer(
       contact_phone: input.contactPhone || null,
       contact_email: input.contactEmail || null,
       photo_url: photoUrl || null,
+      user_id: userId,
     })
     .select("*")
     .single();
   if (error) throw error;
   return rowToVolunteer(data);
+}
+
+/** ¿Esta cuenta ya se ofreció como voluntario? Para ocultar el aviso "Quiero
+ *  ayudar" del inicio si ya lo hizo. Solo tiene sentido con Supabase (en modo
+ *  demostración no hay cuentas). */
+export async function hasVolunteered(userId: string): Promise<boolean> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return false;
+  const { data } = await sb.from("volunteers").select("id").eq("user_id", userId).limit(1);
+  return Boolean(data && data.length > 0);
 }
 
 // ── Héroes (sección curada de Noticias) ─────────────────────────────────────

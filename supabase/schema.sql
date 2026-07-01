@@ -303,10 +303,12 @@ create table if not exists volunteers (
   contact_phone text,
   contact_email text,
   photo_url     text,
+  user_id       uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 create index if not exists volunteers_type_idx    on volunteers (type);
 create index if not exists volunteers_created_idx  on volunteers (created_at desc);
+create index if not exists idx_volunteers_user_id  on volunteers (user_id);
 
 -- ── Héroes (sección curada de Noticias) ─────────────────────────────────────
 -- Cualquiera puede proponer un héroe; nace verified=false ("sin verificar") y
@@ -550,3 +552,10 @@ create index if not exists idx_pets_user_id on pets(user_id);
 drop trigger if exists pets_touch on pets;
 create trigger pets_touch before update on pets
   for each row execute function touch_updated_at();
+
+-- ── Migración: enlazar voluntarios a la cuenta (para saber si ya te ofreciste) ──
+-- Antes `volunteers` no tenía `user_id`, así que no había forma de saber si
+-- quien inició sesión ya se había ofrecido, y el aviso "Quiero ayudar" del
+-- inicio seguía apareciendo aunque ya lo hubieras hecho.
+alter table volunteers add column if not exists user_id uuid references auth.users(id) on delete set null;
+create index if not exists idx_volunteers_user_id on volunteers(user_id);

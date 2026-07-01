@@ -3,9 +3,11 @@ import {
   getPersonGroups,
   getPersons,
   getRecentlyLocated,
+  hasVolunteered,
   type GroupBy,
   type PersonSort,
 } from "@/lib/data";
+import { getCurrentUser } from "@/lib/auth";
 import type { PersonStatus } from "@/lib/types";
 import { DashboardStats } from "@/components/DashboardStats";
 import { RecentlyLocated } from "@/components/RecentlyLocated";
@@ -82,11 +84,13 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   const showBuscaExtras = !isReconoces && !hasActiveQuery;
   const pageSize = clampPageSize(num(sp.pageSize));
 
-  const [stats, result, groups, recentlyLocated] = await Promise.all([
+  const user = await getCurrentUser();
+  const [stats, result, groups, recentlyLocated, alreadyVolunteered] = await Promise.all([
     getDashboardStats(),
     groupBy ? Promise.resolve(null) : getPersons({ ...baseQuery, page: num(sp.page) ?? 1, pageSize }),
     groupBy ? getPersonGroups(baseQuery, groupBy) : Promise.resolve(null),
     showBuscaExtras ? getRecentlyLocated(12) : Promise.resolve([]),
+    user ? hasVolunteered(user.id) : Promise.resolve(false),
   ]);
 
   const total = groupBy
@@ -96,7 +100,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <DevModeNotice />
-      <FieldVolunteerBar />
+      <FieldVolunteerBar alreadyVolunteered={alreadyVolunteered} />
 
       <div className="mb-5 flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">

@@ -13,8 +13,10 @@ let shownThisLoad = false;
 let dismissedThisLoad = false;
 
 // Barra de reclutamiento de voluntarios en el terreno. Cerrable; cero costo de
-// servidor. Aparece/anima solo al recargar, no al cambiar de sección.
-export function FieldVolunteerBar() {
+// servidor. Aparece/anima solo al recargar, no al cambiar de sección. Si la
+// cuenta que inició sesión ya se ofreció como voluntario, no tiene sentido
+// seguir invitándola: no se muestra.
+export function FieldVolunteerBar({ alreadyVolunteered = false }: { alreadyVolunteered?: boolean }) {
   const [hidden, setHidden] = useState(dismissedThisLoad);
   // Anima la entrada solo la primera vez que se muestra en esta carga.
   const [animate] = useState(() => {
@@ -23,7 +25,7 @@ export function FieldVolunteerBar() {
     return true;
   });
 
-  if (hidden) return null;
+  if (hidden || alreadyVolunteered) return null;
 
   function close() {
     dismissedThisLoad = true;

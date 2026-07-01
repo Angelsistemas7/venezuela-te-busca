@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { DashboardStats as Stats } from "@/lib/data";
-import { QUAKE_INFO } from "@/lib/geo";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { SwipeHintNested } from "./SwipeHint";
 
@@ -55,21 +54,6 @@ export function DashboardStats({ stats }: { stats: Stats }) {
           <Card key={c.label} {...c} />
         ))}
       </SwipeHintNested>
-
-      {/* Cifras del sismo: caja pequeña debajo (compacta también en móvil). */}
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600">
-        <span className="font-semibold text-zinc-700">Sismo (preliminar):</span>
-        <span>
-          M <strong>{QUAKE_INFO.magnitude}</strong>
-        </span>
-        <span>
-          Heridos <strong>+{QUAKE_INFO.injured.toLocaleString("es-VE")}</strong>
-        </span>
-        <span>
-          Fallecidos <strong>{QUAKE_INFO.deaths.toLocaleString("es-VE")}</strong>
-        </span>
-        <span className="text-[10px] text-zinc-400">Fuentes: {QUAKE_INFO.sourceName}</span>
-      </div>
     </section>
   );
 }

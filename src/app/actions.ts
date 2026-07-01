@@ -733,8 +733,9 @@ export async function registerVolunteerAction(form: FormData): Promise<ActionRes
   const photoUrl = getField(form, "photoUrl") || null;
 
   try {
-    const volunteer = await createVolunteer(parsed.data, photoUrl);
+    const volunteer = await createVolunteer(parsed.data, photoUrl, (await getCurrentUser())?.id ?? null);
     revalidatePath("/voluntarios");
+    revalidatePath("/");
     return { ok: true, id: volunteer.id, message: "¡Gracias por ofrecerte! Tu disponibilidad ya es visible." };
   } catch {
     return { ok: false, error: "No se pudo publicar. Intenta de nuevo." };
