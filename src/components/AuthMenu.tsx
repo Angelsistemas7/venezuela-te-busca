@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn, LogOut, Loader2, MailCheck, UserCircle2 } from "lucide-react";
+import { LogIn, Loader2, MailCheck } from "lucide-react";
 import {
   getSessionUserAction,
   requestPasswordResetAction,
   signInAction,
-  signOutAction,
   signUpAction,
   type AuthActionResult,
 } from "@/app/actions";
 import { Modal } from "./Modal";
 import { Field, Input } from "./FormControls";
 import { Turnstile } from "./Turnstile";
+import { ProfileMenu } from "./ProfileMenu";
 
 type SessionUser = { id: string; username: string } | null;
 type Mode = "login" | "register" | "reset";
@@ -89,12 +89,6 @@ export function AuthMenu() {
     }
   }
 
-  async function logout() {
-    await signOutAction();
-    await refresh();
-    router.refresh();
-  }
-
   const fieldErrors = result && !result.ok ? result.fieldErrors : undefined;
 
   const title =
@@ -113,21 +107,7 @@ export function AuthMenu() {
   return (
     <>
       {user ? (
-        <div className="flex items-center gap-1.5">
-          <span className="hidden items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 sm:flex">
-            <UserCircle2 className="h-4 w-4 text-zinc-500" />
-            {user.username}
-          </span>
-          <button
-            onClick={logout}
-            aria-label="Cerrar sesión"
-            title="Cerrar sesión"
-            className="flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
-        </div>
+        <ProfileMenu />
       ) : (
         <button
           onClick={openLogin}

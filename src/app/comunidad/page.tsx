@@ -65,11 +65,11 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   const page = num(sp.page) ?? 1;
   const pageSize = clampPageSize(num(sp.pageSize));
 
-  // Destacados (fijados por el equipo) y rescates activos (últimas 72h): se ven
-  // SIEMPRE arriba, en una fila que se desliza de lado — antes se apilaban uno
-  // debajo del otro y había que bajar mucho para llegar al muro normal.
-  const RECENT_MS = 72 * 60 * 60 * 1000;
-  const nowMs = Date.now();
+  // Destacados (fijados por el equipo) y rescates: se ven SIEMPRE arriba, en
+  // una fila que se desliza de lado — antes se apilaban uno debajo del otro y
+  // había que bajar mucho para llegar al muro normal. Un rescate se queda ahí
+  // hasta que su autor (o el admin) lo borre — no hay límite de tiempo: un
+  // rescate sigue siendo urgente mientras exista, sin importar cuánto lleve.
   const [featuredPosts, rescuePosts, pageResult] = await Promise.all([
     type === "all" ? getPosts({ pinnedOnly: true, search: q }) : Promise.resolve([]),
     type === "all" ? getPosts({ type: "rescate", search: q }) : Promise.resolve([]),
@@ -80,9 +80,7 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   ]);
   const featured = featuredPosts;
   const featuredIds = new Set(featured.map((p) => p.id));
-  const pinned = rescuePosts.filter(
-    (p) => !featuredIds.has(p.id) && nowMs - new Date(p.createdAt).getTime() < RECENT_MS,
-  );
+  const pinned = rescuePosts.filter((p) => !featuredIds.has(p.id));
   const pinnedIds = new Set([...featuredIds, ...pinned.map((p) => p.id)]);
   // El muro no repite lo que ya se muestra fijo arriba.
   const restPosts = pageResult.items.filter((p) => !pinnedIds.has(p.id));

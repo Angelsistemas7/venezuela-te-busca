@@ -215,26 +215,39 @@ asignar roles reales todavía.
 - Página dedicada de "gestión de colaboradores" si la lista crece mucho (hoy
   vive en una sola sección compacta del panel, suficiente para pocos roles).
 
-### 4.3 Campanita, perfil y configuración (esquina superior derecha)
-- **Campanita de notificaciones**: **ya existe y funciona** (`NotificationBell.tsx`)
-  — ícono con contador de avisos nuevos, ventana desplegable con lo que
-  publicaste/guardaste y si tiene comentarios/reportes nuevos, botón
-  "marcar como leído". Lo que **falta** de lo que pediste: un enlace/botón
-  **"Ver todas las notificaciones"** que lleve a una página dedicada (hoy
-  todo vive solo en el desplegable de la campanita, no hay una página
-  aparte). Vale la pena revisarla en el sitio real primero para que me digas
-  si el diseño/animación ya te convence o si específicamente qué cambiarías,
-  antes de plantear una página nueva.
-- **Ícono de perfil con foto**: **no existe** — hoy solo hay un ícono
-  genérico de "usuario" (círculo con silueta), sin foto real ni página de
-  perfil propia. Sería una función nueva: subir/cambiar foto de perfil
-  (columna nueva en `profiles`), y una página `/perfil` o similar.
-- **Ícono de configuración**: **no existe**. Antes de construirlo hace falta
-  que me digas qué opciones concretas quieres ahí — "bastantes opciones y
-  funciones" es muy abierto para planear; dame una lista (ej. cambiar
-  contraseña, cambiar correo de recuperación, notificaciones por
-  correo/WhatsApp, privacidad, cerrar sesión en todos los dispositivos,
-  etc.) y lo agrego al plan con alcance claro.
+### 4.3 Campanita, perfil y configuración — ✅ Construido (2026-07-01)
+- **Campanita**: se agregó el enlace **"Ver todas (N)"** al final del
+  desplegable, que lleva a `/notificaciones` (página completa, sin límite de
+  alto). Se extrajo la lógica compartida a `src/lib/useNotifications.ts` para
+  no duplicarla entre la campanita y la página nueva.
+- **Perfil**: tocar tu nombre de usuario ahora abre un **menú desplegable**
+  (`ProfileMenu.tsx`): Mi perfil, Configuración, Cerrar sesión. Nueva página
+  `/perfil` con foto de perfil (subir/cambiar/quitar, opcional — bucket de
+  Storage, igual que las demás fotos del sitio), y las listas de "Mis
+  publicaciones" y "Guardados" (antes solo vivían dentro de la campanita).
+- **Configuración**: nueva página `/configuracion` con las 4 que elegiste
+  más 2 ideas que agregué:
+  - Cambiar contraseña (pide la actual primero, no solo la nueva).
+  - Cambiar/agregar correo de recuperación.
+  - Avisos por correo (interruptor, desactivado hasta que haya un correo
+    registrado) — la parte de ENVIAR esos correos de verdad (cuando alguien
+    comenta) queda para una siguiente ronda; hoy solo se guarda la
+    preferencia.
+  - Eliminar cuenta — con la fricción que pediste: hay que escribir la
+    contraseña Y el nombre de usuario exacto para confirmar, dentro de una
+    ventana aparte. Las publicaciones NO se borran, solo se desvinculan de
+    la cuenta (ya funcionaba así a nivel de base de datos).
+  - *(Ideas nuevas, no las pediste pero encajan)*: por ahora no se
+    construyeron, quedan anotadas por si las quieres más adelante —
+    "cerrar sesión en todos los dispositivos" y "descargar mis datos".
+
+⚠️ **Pendiente de tu parte**: correr de nuevo `supabase/schema.sql` en
+Supabase (agrega `avatar_url` y `email_notifications` a `profiles`).
+
+**No se pudo probar en vivo con una cuenta real** en este entorno (la
+sandbox no tiene acceso a Supabase real) — probé que las páginas nuevas no
+truenan y redirigen bien sin sesión, pero avatar/contraseña/eliminar cuenta
+hay que probarlos tú con una cuenta real después de desplegar.
 - **Idioma**: de acuerdo contigo, el navegador ya maneja esto razonablemente
   bien por defecto — lo dejamos fuera del plan salvo que más adelante
   quieras traducir la plataforma a otro idioma de verdad (relacionado con

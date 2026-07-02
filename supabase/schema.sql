@@ -480,6 +480,11 @@ create table if not exists profiles (
   created_at     timestamptz not null default now()
 );
 
+-- Migración para bases ya creadas: foto de perfil (opcional) y preferencia de
+-- avisos por correo (ver /perfil y /configuracion).
+alter table profiles add column if not exists avatar_url text;
+alter table profiles add column if not exists email_notifications boolean not null default false;
+
 alter table profiles enable row level security;
 -- Sin políticas a propósito: `profiles` solo se lee/escribe con la service role
 -- desde el servidor (registro e inicio de sesión). Con la clave anon no se puede

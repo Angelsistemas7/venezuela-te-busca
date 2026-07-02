@@ -52,12 +52,18 @@ import {
   voteHospitalSupplies,
 } from "@/lib/data";
 import {
+  changePassword,
+  deleteAccount,
   getCurrentUser,
+  getMyProfile,
   requestPasswordReset,
   signIn,
   signOut,
   signUp,
+  updateAvatar,
+  updateEmailNotifications,
   updatePassword,
+  updateRecoveryEmail,
 } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
@@ -190,6 +196,73 @@ export async function updatePasswordAction(form: FormData): Promise<AuthActionRe
 /** Sesión actual para la UI (cabecera, banner). null si no hay login. */
 export async function getSessionUserAction(): Promise<{ id: string; username: string } | null> {
   return getCurrentUser();
+}
+
+// ── Perfil y configuración de la cuenta ──────────────────────────────────────
+/** Perfil completo (foto, correo de recuperación, avisos) para /perfil y /configuracion. */
+export async function getMyProfileAction() {
+  return getMyProfile();
+}
+
+export async function updateAvatarAction(url: string | null): Promise<{ ok: boolean }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false };
+  const ok = await updateAvatar(user.id, url && isSafePhotoUrl(url) ? url : null);
+  if (ok) revalidatePath("/perfil");
+  return { ok };
+}
+
+export async function updateRecoveryEmailAction(
+  form: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Inicia sesión." };
+  const email = getField(form, "email").trim();
+  if (email) {
+    const parsed = signupSchema.pick({ email: true }).safeParse({ email });
+    if (!parsed.success) return { ok: false, error: "Correo no válido." };
+  }
+  const ok = await updateRecoveryEmail(user.id, email || null);
+  if (!ok) return { ok: false, error: "No se pudo actualizar. Intenta de nuevo." };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+
+export async function updateEmailNotificationsAction(value: boolean): Promise<{ ok: boolean }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false };
+  const ok = await updateEmailNotifications(user.id, value);
+  return { ok };
+}
+
+export async function changePasswordAction(
+  form: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Inicia sesión." };
+  const currentPassword = getField(form, "currentPassword");
+  const newPassword = getField(form, "newPassword");
+  const parsed = signupSchema.pick({ password: true }).safeParse({ password: newPassword });
+  if (!parsed.success) {
+    return { ok: false, error: "La contraseña nueva debe tener al menos 10 caracteres." };
+  }
+  const res = await changePassword(currentPassword, newPassword);
+  return res.ok ? { ok: true } : { ok: false, error: res.error };
+}
+
+/** Elimina la cuenta. Exige re-escribir la contraseña y el nombre de usuario
+ *  (no es un solo clic). Las publicaciones quedan públicas, solo se desvinculan. */
+export async function deleteAccountAction(
+  form: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Inicia sesión." };
+  const password = getField(form, "password");
+  const confirmUsername = getField(form, "confirmUsername");
+  if (!password || !confirmUsername) {
+    return { ok: false, error: "Completa la contraseña y tu nombre de usuario." };
+  }
+  return deleteAccount(password, confirmUsername);
 }
 
 /** Publicaciones ligadas a la cuenta con sesión (cross-device). [] sin login. */

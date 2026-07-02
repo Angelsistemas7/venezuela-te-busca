@@ -1,151 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, Bookmark, ExternalLink, FileWarning, MessageCircle } from "lucide-react";
-import {
-  getActivityForEntities,
-  getMyPublicationsAction,
-  getSavedItemsAction,
-} from "@/app/actions";
-import type { CommentEntity } from "@/lib/types";
-import {
-  getMyPubs,
-  getSeen,
-  managePath,
-  markSeen,
-  type Counts,
-  type MyPubType,
-} from "@/lib/myPubs";
-
-type Activity = Record<string, Counts>;
-
-// Clave estable por entidad (mismo formato que usa myPubs), pero admite todos
-// los tipos comentables (los guardados pueden ser hospital, denuncia, etc.).
-const keyOf = (type: CommentEntity, id: string) => `${type}:${id}`;
-
-// Una entrada de la campanita: o es TUYA (con enlace de gestión) o la GUARDASTE
-// (con enlace público). Ambas avisan de comentarios nuevos.
-type Entry = {
-  key: string;
-  type: CommentEntity;
-  id: string;
-  title: string;
-  saved: boolean;
-  token: string;
-};
-
-const TYPE_LABEL: Record<CommentEntity, string> = {
-  person: "Persona",
-  post: "Publicación",
-  aid_point: "Punto de ayuda",
-  march: "Caravana",
-  hospital: "Hospital",
-  complaint: "Denuncia",
-  pet: "Mascota",
-  hero: "Héroe",
-  news_item: "Noticia",
-};
-
-// Enlace público para lo guardado. Lo que no tiene ficha propia va a su feed.
-const PUBLIC_PATH: Record<CommentEntity, (id: string) => string> = {
-  person: (id) => `/persona/${id}`,
-  aid_point: (id) => `/ayuda/${id}`,
-  march: (id) => `/caravanas/${id}`,
-  hospital: (id) => `/hospitales/${id}`,
-  post: () => "/comunidad",
-  complaint: () => "/denuncias",
-  pet: (id) => `/mascotas/${id}`,
-  hero: () => "/noticias",
-  news_item: () => "/noticias",
-};
+import { TYPE_LABEL, useNotifications } from "@/lib/useNotifications";
 
 // Campanita de actividad: junta lo que publicaste en este dispositivo o cuenta
 // con lo que guardaste, y avisa cuando hay comentarios o reportes nuevos. Sin
-// servidores de notificaciones: compara el conteo actual con el visto.
+// servidores de notificaciones: compara el conteo actual con el visto. Vista
+// completa (sin límite de alto) en /notificaciones.
 export function NotificationBell() {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [activity, setActivity] = useState<Activity>({});
-  const [seen, setSeenState] = useState<Activity>({});
+  const { entries, newsOf, totalNew, markRead, linkFor } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  const refresh = useCallback(async () => {
-    // 1) Publicaciones propias: de este dispositivo (token) + de tu cuenta.
-    const owned: Entry[] = getMyPubs().map((p) => ({
-      key: keyOf(p.type, p.id),
-      type: p.type,
-      id: p.id,
-      title: p.title,
-      saved: false,
-      token: p.token,
-    }));
-    const known = new Set(owned.map((e) => e.key));
-    try {
-      const account = await getMyPublicationsAction();
-      for (const a of account) {
-        const k = keyOf(a.type, a.id);
-        if (!known.has(k)) {
-          owned.push({ key: k, type: a.type, id: a.id, title: a.title, saved: false, token: "" });
-          known.add(k);
-        }
-      }
-    } catch {
-      /* sin sesión o sin Supabase: solo las locales */
-    }
-
-    // 2) Guardados (solo con cuenta). Omite los que ya son tuyos.
-    let saved: Entry[] = [];
-    try {
-      const items = await getSavedItemsAction();
-      saved = items
-        .filter((s) => !known.has(keyOf(s.type, s.id)))
-        .map((s) => ({
-          key: keyOf(s.type, s.id),
-          type: s.type,
-          id: s.id,
-          title: s.title || TYPE_LABEL[s.type],
-          saved: true,
-          token: "",
-        }));
-    } catch {
-      /* sin sesión: sin guardados */
-    }
-
-    const all = [...owned, ...saved];
-    setEntries(all);
-    setSeenState(getSeen());
-    if (all.length === 0) {
-      setActivity({});
-      return;
-    }
-
-    try {
-      const act = await getActivityForEntities(all.map((e) => ({ type: e.type, id: e.id })));
-      setActivity(act);
-
-      // Línea base de los guardados nuevos: lo que YA tienen no cuenta como
-      // nuevo; solo la actividad posterior a guardarlos te avisa.
-      const seenNow = getSeen();
-      const partial: Activity = {};
-      for (const e of saved) {
-        if (!seenNow[e.key]) partial[e.key] = act[e.key] ?? { comments: 0, reports: 0 };
-      }
-      if (Object.keys(partial).length > 0) {
-        markSeen(partial);
-        setSeenState(getSeen());
-      }
-    } catch {
-      /* si falla la consulta, no rompemos la cabecera */
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const onFocus = () => refresh();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refresh]);
 
   useEffect(() => {
     if (!open) return;
@@ -161,29 +28,10 @@ export function NotificationBell() {
     };
   }, [open]);
 
-  function newsOf(e: Entry) {
-    const cur = activity[e.key] ?? { comments: 0, reports: 0 };
-    const base = seen[e.key] ?? { comments: 0, reports: 0 };
-    const comments = Math.max(0, cur.comments - base.comments);
-    const reports = Math.max(0, cur.reports - base.reports);
-    return { comments, reports, total: comments + reports };
-  }
-
-  const totalNew = entries.reduce((n, e) => n + newsOf(e).total, 0);
-
-  function markRead() {
-    markSeen(activity);
-    setSeenState(getSeen());
-  }
-
-  function linkFor(e: Entry) {
-    return e.saved
-      ? PUBLIC_PATH[e.type](e.id)
-      : managePath(e.type as MyPubType, e.id, e.token);
-  }
-
   // Nada que mostrar (sin publicaciones ni guardados en este dispositivo/cuenta).
   if (entries.length === 0) return null;
+
+  const preview = entries.slice(0, 8);
 
   return (
     <div className="relative" ref={ref}>
@@ -215,7 +63,7 @@ export function NotificationBell() {
           </div>
 
           <ul className="max-h-[70vh] divide-y divide-zinc-100 overflow-y-auto">
-            {entries.map((e) => {
+            {preview.map((e) => {
               const n = newsOf(e);
               return (
                 <li key={e.key}>
@@ -269,10 +117,13 @@ export function NotificationBell() {
             })}
           </ul>
 
-          <p className="border-t border-zinc-100 px-4 py-2.5 text-[11px] leading-snug text-zinc-400">
-            Tus guardados y avisos viven en tu cuenta y este dispositivo. Guarda una publicación para
-            seguir su actividad desde aquí.
-          </p>
+          <Link
+            href="/notificaciones"
+            onClick={() => setOpen(false)}
+            className="press block border-t border-zinc-100 px-4 py-2.5 text-center text-sm font-semibold text-brand-700 hover:bg-zinc-50"
+          >
+            Ver todas ({entries.length})
+          </Link>
         </div>
       )}
     </div>

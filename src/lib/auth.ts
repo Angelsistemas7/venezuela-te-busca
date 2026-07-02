@@ -186,3 +186,145 @@ export async function updatePassword(newPassword: string): Promise<AuthResult> {
   const username = (data.user.user_metadata?.username as string | undefined) ?? "Usuario";
   return { ok: true, username };
 }
+
+// ── Perfil (foto, correo de recuperación, avisos por correo) ────────────────
+export interface MyProfile {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  recoveryEmail: string | null;
+  emailNotifications: boolean;
+}
+
+/** Perfil completo de la sesión actual (para /perfil y /configuracion). Hace
+ *  una consulta aparte a `profiles`; NO se mete en `getCurrentUser()` (esa la
+ *  llaman muchas Server Actions solo para saber quién eres, sin necesitar esto). */
+export async function getMyProfile(): Promise<MyProfile | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const admin = getSupabaseAdmin();
+  if (!admin) return { ...user, avatarUrl: null, recoveryEmail: null, emailNotifications: false };
+  const { data } = await admin
+    .from("profiles")
+    .select("avatar_url, recovery_email, email_notifications")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return {
+    ...user,
+    avatarUrl: (data?.avatar_url as string | null) ?? null,
+    recoveryEmail: (data?.recovery_email as string | null) ?? null,
+    emailNotifications: Boolean(data?.email_notifications),
+  };
+}
+
+/** Cambia la foto de perfil (o la quita, con `url: null`). */
+export async function updateAvatar(userId: string, url: string | null): Promise<boolean> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return false;
+  const { error } = await admin.from("profiles").update({ avatar_url: url }).eq("user_id", userId);
+  return !error;
+}
+
+/** Cambia (o agrega) el correo de recuperación. Si antes no tenía correo (solo
+ *  el sintético interno), este pasa a ser también el correo de acceso — hay
+ *  que mantener sincronizado el correo real en Supabase Auth (`updateUserById`)
+ *  y en `profiles.login_email`, o el próximo `signInWithPassword` fallaría. El
+ *  usuario sigue entrando con su NOMBRE DE USUARIO siempre, esto es interno. */
+export async function updateRecoveryEmail(userId: string, email: string | null): Promise<boolean> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return false;
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("username")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!prof) return false;
+  const newLoginEmail = email || synthEmail(prof.username as string);
+  const { error: authErr } = await admin.auth.admin.updateUserById(userId, { email: newLoginEmail });
+  if (authErr) return false;
+  const { error } = await admin
+    .from("profiles")
+    .update({ recovery_email: email, login_email: newLoginEmail })
+    .eq("user_id", userId);
+  return !error;
+}
+
+/** Prende/apaga los avisos por correo (requiere tener un correo registrado). */
+export async function updateEmailNotifications(userId: string, value: boolean): Promise<boolean> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return false;
+  const { error } = await admin
+    .from("profiles")
+    .update({ email_notifications: value })
+    .eq("user_id", userId);
+  return !error;
+}
+
+/** Cambia la contraseña DESDE la sesión activa (a diferencia de `updatePassword`,
+ *  que es para el enlace de recuperación por correo): re-verifica la contraseña
+ *  actual antes de aceptar la nueva, para que nadie con la sesión abierta en un
+ *  dispositivo compartido pueda cambiarla sin saber la clave real. */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<AuthResult> {
+  const sb = await getSupabaseServer();
+  const admin = getSupabaseAdmin();
+  if (!sb || !admin) return { ok: false, error: "No disponible en modo demostración." };
+  const { data: userData } = await sb.auth.getUser();
+  if (!userData.user) return { ok: false, error: "Sesión no válida." };
+
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("login_email, username")
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  if (!prof) return { ok: false, error: "No se pudo verificar tu cuenta." };
+
+  // Re-verifica la clave actual con un cliente aparte (no toca la sesión real).
+  const { error: verifyErr } = await admin.auth.signInWithPassword({
+    email: prof.login_email as string,
+    password: currentPassword,
+  });
+  if (verifyErr) return { ok: false, error: "La contraseña actual no es correcta." };
+
+  const { error } = await sb.auth.updateUser({ password: newPassword });
+  if (error) return { ok: false, error: "No se pudo cambiar la contraseña. Intenta de nuevo." };
+  return { ok: true, username: prof.username as string };
+}
+
+/** Elimina la cuenta (con verificación de contraseña + nombre de usuario
+ *  tecleado, para que no sea un solo clic accidental). Las publicaciones NO se
+ *  borran: `user_id` queda en null (ya está así en el esquema, `on delete set
+ *  null`) — se desvinculan de la cuenta, pero el registro sigue público. */
+export async function deleteAccount(
+  password: string,
+  confirmUsername: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const sb = await getSupabaseServer();
+  const admin = getSupabaseAdmin();
+  if (!sb || !admin) return { ok: false, error: "No disponible en modo demostración." };
+  const { data: userData } = await sb.auth.getUser();
+  if (!userData.user) return { ok: false, error: "Sesión no válida." };
+
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("login_email, username")
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  if (!prof) return { ok: false, error: "No se pudo verificar tu cuenta." };
+
+  if (confirmUsername.trim().toLowerCase() !== (prof.username as string).toLowerCase()) {
+    return { ok: false, error: "El nombre de usuario no coincide." };
+  }
+  const { error: verifyErr } = await admin.auth.signInWithPassword({
+    email: prof.login_email as string,
+    password,
+  });
+  if (verifyErr) return { ok: false, error: "La contraseña no es correcta." };
+
+  const { error } = await admin.auth.admin.deleteUser(userData.user.id);
+  if (error) return { ok: false, error: "No se pudo eliminar la cuenta. Intenta de nuevo." };
+  await sb.auth.signOut();
+  return { ok: true };
+}
