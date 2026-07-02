@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 import { isAdmin, signInAdmin, signOutAdmin } from "@/lib/admin";
 import { findUserByUsername } from "@/lib/auth";
 import {
+  addAppRole,
   addResourceManager,
   createNewsItem,
   deleteComplaint,
   deleteHero,
   deleteNewsItem,
   dismissReport,
+  removeAppRole,
   removeResourceManager,
   setAidPointVerified,
   setHeroVerified,
@@ -18,8 +20,8 @@ import {
   setPostPinned,
   verifyAndApplyReport,
 } from "@/lib/data";
-import type { ManagedEntity } from "@/lib/types";
-import { managerAssignSchema, newsItemSchema } from "@/lib/validation";
+import type { ManagedEntity, AppRole } from "@/lib/types";
+import { managerAssignSchema, newsItemSchema, roleAssignSchema } from "@/lib/validation";
 
 export async function loginAdminAction(form: FormData): Promise<{ ok: boolean; error?: string }> {
   const password = String(form.get("password") ?? "");
@@ -198,6 +200,36 @@ export async function removeManagerAction(
 ): Promise<{ ok: boolean }> {
   if (!(await isAdmin())) return { ok: false };
   await removeResourceManager(entityType, entityId, userId);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+// ── Roles globales (admin por cuenta, moderador de hospitales/ayuda) ────────
+/** Asigna un rol global a un usuario (por nombre de usuario). */
+export async function assignRoleAction(
+  form: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: "No autorizado." };
+  const parsed = roleAssignSchema.safeParse({
+    role: String(form.get("role") ?? ""),
+    username: String(form.get("username") ?? ""),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Revisa el nombre de usuario." };
+  }
+  const user = await findUserByUsername(parsed.data.username);
+  if (!user) {
+    return { ok: false, error: "No existe una cuenta con ese nombre de usuario." };
+  }
+  await addAppRole(user.id, user.username, parsed.data.role, "admin");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Quita un rol global a un usuario. */
+export async function removeRoleAction(userId: string, role: AppRole): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await removeAppRole(userId, role);
   revalidatePath("/admin");
   return { ok: true };
 }

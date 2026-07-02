@@ -178,54 +178,42 @@ existe para héroes falsos). La denuncia sigue sin poder editarse ni
 borrarse por su autor — solo el admin puede eliminarla, y solo debería
 hacerlo cuando sea comprobadamente falsa o inapropiada.
 
-### 4.2 Sistema de roles más flexible (esto es grande)
-Hoy el sistema de permisos tiene **dos niveles nada más**:
-- **Admin único**: una sola contraseña compartida (`ADMIN_TOKEN`) que da
-  acceso a TODO el panel — no hay forma de darle a alguien un admin
-  "parcial".
-- **Gestor por recurso**: se le puede asignar a una cuenta el manejo de UN
-  punto de ayuda o UN hospital específico (tabla `resource_managers`), pero
-  nada más granular que eso.
+### 4.2 Sistema de roles más flexible — ✅ Construido (2026-07-01)
+Confirmaste "arquitectura completa desde ya" y que el `ADMIN_TOKEN` se
+mantiene como llave maestra de respaldo (no se reemplaza). Se construyó:
 
-Lo que describiste es un salto más grande: **roles con alcance definido por
-categoría**, no por recurso individual. Ejemplos que diste:
-- Alguien (médico) que pueda declarar el estado de **cualquier** hospital
-  (lleno/no lleno), sin ser dueño de un hospital en particular.
-- Alguien encargado de un punto de acopio que declare si tiene o no comida
-  — esto ya existe (gestor de ESE punto), pero lo mencionas junto a lo
-  demás así que lo incluyo para que quede completo.
-- Compañeros tuyos con **rol de admin completo** (como tú, pero sin
-  compartir tu misma contraseña — cada quien con su propio acceso).
-- Un médico con permiso para decir "esta persona está/no está en este
-  hospital" (eso es la lista de pacientes — hoy cualquiera puede agregar
-  un paciente sin permiso especial, ver `docs/INFORME-SEGURIDAD.md` — es
-  un caso más para el sistema de roles: quizás agregar pacientes también
-  debería requerir un rol, no estar abierto a cualquiera).
+- Nueva tabla `app_roles` (`supabase/schema.sql`): roles GLOBALES por cuenta,
+  no atados a un recurso — `admin`, `hospital_moderator`,
+  `aid_point_moderator`. Sin lectura pública, igual que `resource_managers`.
+- `isAdmin()` ahora reconoce DOS caminos: el `ADMIN_TOKEN` de siempre, O una
+  cuenta con el rol `admin` asignado. Cualquiera de los dos basta.
+- Nueva sección **"Colaboradores"** en `/admin` (arriba del todo): asigna o
+  quita cualquiera de los 3 roles a una cuenta por su nombre de usuario.
+- `canManageHospital` / `canManageAidPoint` (y por lo tanto
+  `updateHospitalStatusAction`, `ownerSetAidAvailabilityAction`, el enlace
+  "Gestionar" en la ficha) ahora también aceptan al moderador de la
+  categoría completa, no solo al gestor de ESE recurso específico.
+- **Cerrado el hueco de seguridad que ya habíamos marcado**: agregar un
+  paciente a un hospital (`addHospitalPatientAction`) ahora EXIGE ser admin,
+  autor, gestor de ese hospital, o moderador de hospitales — antes estaba
+  abierto a cualquier visitante sin sesión. El botón "Agregar persona" en la
+  ficha del hospital solo aparece si tienes el permiso.
 
-**Esto implica un cambio de arquitectura**, no un ajuste chico:
-1. Reemplazar (o complementar) el `ADMIN_TOKEN` compartido por **cuentas de
-   admin individuales** — cada colaborador con su propio usuario/contraseña
-   (ya existe el sistema de cuentas de Supabase Auth, se puede construir
-   sobre eso).
-2. Una tabla nueva de **roles con alcance** (ej. `admin_full`,
-   `hospital_moderator`, `aid_point_moderator`, etc.), y que cada Server
-   Action sensible (cambiar estado de hospital, agregar paciente, verificar
-   punto de ayuda...) revise el rol correspondiente en vez de solo
-   `isAdmin()`.
-3. Una pantalla en `/admin` para que tú asignes esos roles a cuentas
-   existentes (buscando por nombre de usuario, como ya se hace hoy para
-   gestores de recursos, pero eligiendo el TIPO de rol, no solo el
-   recurso).
+**Tu rol sigue siendo el de mayor alcance**: el `ADMIN_TOKEN` no se tocó, así
+que tu acceso actual no cambia en nada — sigue siendo superset de cualquier
+rol que le des a alguien más.
 
-**Importante, lo dijiste explícitamente**: tu propio rol de admin "tiene
-que tener bastante alcance y función" — es decir, cuando se construya este
-sistema de roles más granular, **tu cuenta debe seguir siendo la que más
-alcance tiene de todas** (superset de cualquier rol parcial que le des a
-alguien más), no quedar limitada por accidente al introducir roles más
-finos para otros.
+⚠️ **Pendiente de tu parte**: correr de nuevo `supabase/schema.sql` completo
+en el SQL Editor de Supabase (es idempotente) para que se cree la tabla
+`app_roles` en producción — sin eso, la sección "Colaboradores" no podrá
+asignar roles reales todavía.
 
-Es una pieza de trabajo real (varios días, no horas) — vale la pena que lo
-discutan como proyecto aparte, no mezclado con lo del Tinder.
+**Lo que sigue, si quieres continuar con esto más adelante**:
+- Extender el mismo patrón a "agregar pacientes" ya cerrado arriba; quedaría
+  ver si otras acciones deberían exigir un rol específico en vez de solo
+  cuenta+admin (ej. verificar puntos de ayuda/hospitales — hoy solo admin).
+- Página dedicada de "gestión de colaboradores" si la lista crece mucho (hoy
+  vive en una sola sección compacta del panel, suficiente para pocos roles).
 
 ### 4.3 Campanita, perfil y configuración (esquina superior derecha)
 - **Campanita de notificaciones**: **ya existe y funciona** (`NotificationBell.tsx`)
@@ -272,24 +260,58 @@ una sola línea.
 
 ---
 
+### 4.5 Hallazgo suelto, ya corregido: bug de hidratación en "Compartir por WhatsApp"
+Revisando el panel en vivo apareció un warning de React en el botón
+"Compartir por WhatsApp" del pie de página (aparece en TODAS las páginas):
+la URL se calculaba distinto en el servidor que en el navegador, así que el
+enlace que se generaba al cargar la página no coincidía con el que quedaba
+tras hidratar. No rompía nada visible, pero es un bug real (React lo marca
+en consola). Ya corregido en `src/components/ShareWhatsApp.tsx`: arranca
+igual en ambos lados y solo cambia a la URL real del navegador después de
+montar.
+
 ## 5) Resumen para decidir
 
-**Para mandar a hacer ya** (autocontenido, bajo riesgo, alto impacto):
+**✅ Ya hecho** (probado en vivo donde aplicaba):
 1. Arreglo del conjunto de datos en el Tinder (🔴, bloqueante).
-2. Bug del botón ℹ️.
+2. Bug del botón ℹ️ (no se reprodujo tras el arreglo #1).
 3. Ocultar widgets en "¿La reconoces?".
 4. Admin puede borrar denuncias falsas.
+5. Sistema de roles con alcance — admin por cuenta, moderador de hospitales,
+   moderador de puntos de ayuda, y "agregar paciente" ya exige permiso.
+   **Pendiente de tu parte**: correr `supabase/schema.sql` en producción.
+6. (De paso) bug de hidratación en "Compartir por WhatsApp" del pie de página.
+7. **"Se busca" unificado**: ahora muestra a TODOS (con y sin información),
+   cada tarjeta con la etiqueta "👁️ Sin identificar" cuando corresponde
+   (`PersonCard.tsx`). "¿La reconoces?" muestra a todos EXCEPTO los ya
+   localizados/confirmados sin vida (nuevo filtro `unresolvedOnly` en
+   `data.ts`) — probado en vivo: la baraja pasó de 7 a 46 personas (ahora
+   incluye gente con nombre, además de los avistamientos), y los chips de
+   estado ahí ya no ofrecen "Localizado"/"Confirmado sin vida" (no
+   aplican, esos casos no aparecen en esa pestaña).
+
+   **Alcance de lo que NO se tocó en esta pasada**: los carruseles
+   "Secciones destacadas" (por edad) y "Localizados recientemente" en la
+   portada de "Se busca" siguen mostrando SOLO gente con información — no
+   se mezclaron con avistamientos sin identificar. Como esos carruseles son
+   lo que se ve por defecto (sin ningún filtro activo), alguien sin
+   identificar solo aparece en "Se busca" en cuanto se aplica algún filtro
+   (edad, orden, etc.) o se busca algo — la lista completa "Todos los
+   registros" ya lo trae, pero la portada limpia todavía no. Si quieres que
+   también se unifiquen los carruseles, dímelo y lo hago aparte (toca
+   `FeaturedSections.tsx`/`RecentlyLocated.tsx`, decisiones de diseño
+   propias: ¿tiene sentido un carrusel "por edad" para alguien de quien no
+   se sabe la edad?).
 
 **Para planear como proyecto propio** (más grande, necesita diseño):
-5. Modal de foto con comentarios + comentar desde la tarjeta.
-6. Deshacer/volver en la baraja.
-7. Extender la baraja a "Se busca".
-8. Sistema de roles con alcance (arquitectura nueva).
-9. Perfil con foto + página de configuración (falta que definas el alcance
-   de "configuración").
+- Modal de foto con comentarios + comentar desde la tarjeta (elegiste: modal
+  completo con comentarios).
+- Deshacer/volver en la baraja (elegiste: botón fijo ↺).
+- Perfil con foto + página de configuración (falta que definas el alcance
+  de "configuración" — te propuse una lista de opciones para que elijas).
 
 **A futuro, sin tocar todavía**:
-10. Multi-país.
+- Multi-país.
 
 ---
 

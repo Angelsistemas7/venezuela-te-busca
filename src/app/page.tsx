@@ -76,13 +76,13 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         : null;
 
   const baseQuery = {
-    // "Se busca" (excludeUnidentified): personas de las que se tiene información.
-    // "¿La reconoces?" (unidentifiedOnly): avistamientos sin identificar —
-    // justo el caso contrario. Antes esta consulta traía siempre "Se busca"
-    // sin importar la pestaña, así que la baraja tipo Tinder nunca iba a
-    // mostrar un avistamiento real (ver docs/PLAN-TINDER-Y-ROLES.md §1).
-    excludeUnidentified: isReconoces ? undefined : true,
-    unidentifiedOnly: isReconoces ? true : undefined,
+    // "Se busca" muestra a TODOS (con y sin información, cada tarjeta
+    // etiquetada — ver PersonCard). "¿La reconoces?" muestra el mismo
+    // universo completo, pero solo los casos AÚN NO resueltos (no tiene
+    // sentido pedir que reconozcan a alguien que ya apareció). Diseño
+    // confirmado en docs/PLAN-TINDER-Y-ROLES.md §1 (antes cada pestaña
+    // filtraba por identidad; ya no).
+    unresolvedOnly: isReconoces ? true : undefined,
     search: str(sp.q),
     status,
     estado: str(sp.estado) ?? "all",

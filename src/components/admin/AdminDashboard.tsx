@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import type {
   AidPoint,
+  AppRole,
+  AppRoleGrant,
   Complaint,
   Hero,
   Hospital,
@@ -36,6 +38,7 @@ import type {
   StatusReport,
 } from "@/lib/types";
 import {
+  APP_ROLE_LABEL,
   COMPLAINT_CATEGORY_EMOJI,
   COMPLAINT_CATEGORY_LABEL,
   HERO_CATEGORY_EMOJI,
@@ -49,10 +52,12 @@ import { timeAgo } from "@/lib/utils";
 import {
   approveReportAction,
   assignManagerAction,
+  assignRoleAction,
   deleteComplaintAction,
   dismissReportAction,
   logoutAdminAction,
   removeManagerAction,
+  removeRoleAction,
   toggleAidPointVerifiedAction,
   toggleHeroVerifiedAction,
   deleteHeroAction,
@@ -72,6 +77,7 @@ export function AdminDashboard({
   posts,
   heroes,
   complaints,
+  roles,
   demoOpen,
 }: {
   reports: ReportWithName[];
@@ -82,6 +88,7 @@ export function AdminDashboard({
   posts: Post[];
   heroes: Hero[];
   complaints: Complaint[];
+  roles: AppRoleGrant[];
   demoOpen: boolean;
 }) {
   const router = useRouter();
@@ -135,6 +142,24 @@ export function AdminDashboard({
           {" "}Los gestores requieren cuentas reales (Supabase): en modo demostración no se pueden asignar.
         </div>
       )}
+
+      {/* Colaboradores: roles globales por cuenta (admin, moderador de
+          hospitales/ayuda). Tu ADMIN_TOKEN sigue funcionando como llave
+          maestra además de esto — no se reemplaza, es un segundo camino. */}
+      <section className="mb-10">
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-zinc-900">
+          <ShieldCheck className="h-4.5 w-4.5 text-zinc-500" />
+          Colaboradores
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-600">
+            {roles.length}
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Da acceso al panel o a moderar una categoría completa (todos los hospitales o todos los
+          puntos de ayuda) a una cuenta, sin compartir tu contraseña de admin.
+        </p>
+        <RoleGrants roles={roles} demoOpen={demoOpen} />
+      </section>
 
       {/* Cola de reportes por verificar */}
       <section className="mb-10">
@@ -698,6 +723,121 @@ function ManagerControls({
         </button>
       </div>
       {disabled && (
+        <p className="mt-1.5 text-xs text-zinc-400">
+          Disponible al conectar la base de datos (Supabase) con cuentas reales.
+        </p>
+      )}
+      {error && <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p>}
+    </div>
+  );
+}
+
+// ── Roles globales (admin por cuenta, moderador de hospitales/ayuda) ────────
+const ROLE_OPTIONS: AppRole[] = ["admin", "hospital_moderator", "aid_point_moderator"];
+
+function RoleGrants({ roles, demoOpen }: { roles: AppRoleGrant[]; demoOpen: boolean }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
+  const [role, setRole] = useState<AppRole>("admin");
+  const [error, setError] = useState<string | null>(null);
+
+  function add() {
+    const value = username.trim();
+    if (!value) return;
+    setError(null);
+    const form = new FormData();
+    form.set("username", value);
+    form.set("role", role);
+    startTransition(async () => {
+      const res = await assignRoleAction(form);
+      if (res.ok) {
+        setUsername("");
+        router.refresh();
+      } else {
+        setError(res.error ?? "No se pudo asignar.");
+      }
+    });
+  }
+
+  function remove(userId: string, r: AppRole) {
+    const key = `${userId}:${r}`;
+    setBusy(key);
+    startTransition(async () => {
+      await removeRoleAction(userId, r);
+      router.refresh();
+      setBusy(null);
+    });
+  }
+
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+      {roles.length > 0 ? (
+        <ul className="mb-3 flex flex-wrap gap-2">
+          {roles.map((r) => (
+            <li
+              key={`${r.userId}:${r.role}`}
+              className="flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              {r.username}
+              <span className="text-sky-400">·</span>
+              {APP_ROLE_LABEL[r.role]}
+              <button
+                onClick={() => remove(r.userId, r.role)}
+                disabled={pending && busy === `${r.userId}:${r.role}`}
+                title="Quitar rol"
+                className="press ml-0.5 rounded-full p-0.5 text-sky-500 hover:bg-sky-100 hover:text-sky-800 disabled:opacity-50"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mb-3 text-xs text-zinc-400">Sin colaboradores asignados todavía.</p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center overflow-hidden rounded-lg border border-zinc-300 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
+          <span className="pl-2.5 text-sm text-zinc-400">@</span>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add();
+              }
+            }}
+            disabled={demoOpen || pending}
+            placeholder="nombre de usuario"
+            className="w-44 px-1.5 py-1.5 text-sm outline-none disabled:bg-zinc-50"
+          />
+        </div>
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value as AppRole)}
+          disabled={demoOpen || pending}
+          className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:bg-zinc-50"
+        >
+          {ROLE_OPTIONS.map((r) => (
+            <option key={r} value={r}>
+              {APP_ROLE_LABEL[r]}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={add}
+          disabled={demoOpen || pending || !username.trim()}
+          className="press flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+        >
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Asignar rol
+        </button>
+      </div>
+      {demoOpen && (
         <p className="mt-1.5 text-xs text-zinc-400">
           Disponible al conectar la base de datos (Supabase) con cuentas reales.
         </p>

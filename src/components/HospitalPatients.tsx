@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Plus, Search, UserPlus } from "lucide-react";
 import {
@@ -8,7 +8,7 @@ import {
   type HospitalPatient,
   type PatientStatus,
 } from "@/lib/types";
-import { addHospitalPatientAction, type ActionResult } from "@/app/actions";
+import { addHospitalPatientAction, canManageHospitalAction, type ActionResult } from "@/app/actions";
 import { cn, timeAgo } from "@/lib/utils";
 import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
@@ -35,7 +35,16 @@ export function HospitalPatients({
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [canManage, setCanManage] = useState<boolean | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Solo personal autorizado (admin, autor, gestor o moderador de hospitales)
+  // puede agregar pacientes — antes estaba abierto a cualquiera sin sesión.
+  useEffect(() => {
+    canManageHospitalAction(hospitalId)
+      .then(setCanManage)
+      .catch(() => setCanManage(false));
+  }, [hospitalId]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -73,18 +82,20 @@ export function HospitalPatients({
         <h2 className="font-bold text-zinc-900">
           Personas atendidas <span className="text-sm font-normal text-zinc-400">({patients.length})</span>
         </h2>
-        <button
-          onClick={() => setOpen(true)}
-          className="press flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
-        >
-          <UserPlus className="h-4 w-4" />
-          Agregar persona
-        </button>
+        {canManage && (
+          <button
+            onClick={() => setOpen(true)}
+            className="press flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          >
+            <UserPlus className="h-4 w-4" />
+            Agregar persona
+          </button>
+        )}
       </div>
 
       <p className="mt-1 text-sm text-zinc-500">
-        Si buscas a un familiar, escribe su nombre o cédula. Esta lista la mantiene el personal y la
-        comunidad.
+        Si buscas a un familiar, escribe su nombre o cédula. Esta lista la mantiene el personal
+        autorizado del hospital.
       </p>
 
       <div className="relative mt-4">

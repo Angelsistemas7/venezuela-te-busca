@@ -1,8 +1,12 @@
 import { cookies, headers } from "next/headers";
+import { getCurrentUser } from "./auth";
+import { hasAppRole } from "./data";
 
-// Control de acceso del panel de moderación. Simple y suficiente: un token
-// secreto en ADMIN_TOKEN. Si no está configurado, el panel queda ABIERTO en
-// modo demostración (con aviso), para poder probarlo sin configurar nada.
+// Control de acceso del panel de moderación. Dos caminos, cualquiera basta:
+//   • ADMIN_TOKEN (llave maestra compartida, siempre disponible como respaldo)
+//   • cuenta con el rol global "admin" asignado desde el panel (ver AppRole)
+// Si ADMIN_TOKEN no está configurado, el panel queda ABIERTO en modo
+// demostración (con aviso), para poder probarlo sin configurar nada.
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 const COOKIE = "vtb_admin";
@@ -46,7 +50,12 @@ export async function isAdmin(): Promise<boolean> {
   // dejar la moderación expuesta si se olvida configurar el secreto.
   if (!ADMIN_TOKEN) return process.env.NODE_ENV !== "production";
   const store = await cookies();
-  return store.get(COOKIE)?.value === ADMIN_TOKEN;
+  if (store.get(COOKIE)?.value === ADMIN_TOKEN) return true;
+  // Segundo camino: cuenta propia con el rol "admin" asignado (sin compartir
+  // la contraseña maestra). El token sigue funcionando como respaldo.
+  const user = await getCurrentUser();
+  if (!user) return false;
+  return hasAppRole(user.id, "admin");
 }
 
 export async function signInAdmin(password: string): Promise<boolean> {

@@ -20,6 +20,8 @@ import {
 import type {
   AidPoint,
   AidPointType,
+  AppRole,
+  AppRoleGrant,
   Comment,
   Complaint,
   ComplaintCategory,
@@ -81,6 +83,10 @@ export interface PersonQuery {
   dateTo?: string;
   unidentifiedOnly?: boolean;
   excludeUnidentified?: boolean;
+  /** Solo casos aún no resueltos (excluye Localizado y Confirmado sin vida).
+   *  Usado en "¿La reconoces?": no tiene sentido pedirle a la gente que
+   *  reconozca a alguien que ya apareció. */
+  unresolvedOnly?: boolean;
   hospitalizedOnly?: boolean;
   sort?: PersonSort;
   page?: number;
@@ -116,6 +122,8 @@ const mem = {
   resourceOwners: [] as { entityType: ResourceOwnerEntity; entityId: string; token: string }[],
   // Gestores delegados que asigna el admin (hospital / punto de ayuda).
   resourceManagers: [] as ResourceManager[],
+  // Roles globales por cuenta (admin completo, moderador de hospitales/ayuda).
+  appRoles: [] as AppRoleGrant[],
   // Un voto de consenso por cuenta y recurso (clave `${tipo}:${id}:${userId}`):
   // evita que la misma cuenta infle el contador llamando la acción sin límite.
   consensusVotes: {} as Record<string, "available" | "depleted" | "yes" | "no">,
@@ -185,6 +193,8 @@ function queryMemoryPersons(q: PersonQuery): PersonResult {
 
   if (q.unidentifiedOnly) items = items.filter((p) => p.isUnidentified);
   if (q.excludeUnidentified) items = items.filter((p) => !p.isUnidentified);
+  if (q.unresolvedOnly)
+    items = items.filter((p) => p.status !== "localizado" && p.status !== "fallecido");
   if (q.status && q.status !== "all") items = items.filter((p) => p.status === q.status);
   if (q.hospitalizedOnly) items = items.filter((p) => p.status === "hospitalizado");
   if (q.estado && q.estado !== "all") items = items.filter((p) => p.estado === q.estado);
@@ -232,6 +242,7 @@ export async function getPersons(q: PersonQuery = {}): Promise<PersonResult> {
 
   if (q.unidentifiedOnly) query = query.eq("is_unidentified", true);
   if (q.excludeUnidentified) query = query.eq("is_unidentified", false);
+  if (q.unresolvedOnly) query = query.not("status", "in", "(localizado,fallecido)");
   if (q.status && q.status !== "all") query = query.eq("status", q.status);
   if (q.hospitalizedOnly) query = query.eq("status", "hospitalizado");
   if (q.estado && q.estado !== "all") query = query.eq("estado", q.estado);
@@ -606,18 +617,30 @@ async function sessionIsManager(entityType: ManagedEntity, entityId: string): Pr
   return Boolean(data);
 }
 
-/** ¿Puede la sesión actual gestionar este punto de ayuda? (autor por cuenta o
- *  gestor delegado). El autor por TOKEN se verifica aparte con verifyResourceOwner. */
-export async function canManageAidPoint(id: string): Promise<boolean> {
-  if (await sessionOwns("aid_points", id)) return true;
-  return sessionIsManager("aid_point", id);
+/** ¿La sesión actual tiene el rol de moderador de ESA categoría (cualquier
+ *  hospital / cualquier punto de ayuda), asignado por el admin? */
+async function sessionHasCategoryRole(role: AppRole): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user) return false;
+  return hasAppRole(user.id, role);
 }
 
-/** ¿Puede la sesión actual gestionar este hospital? (autor por cuenta o gestor
- *  delegado). Los hospitales no usan token: la gestión es por cuenta o admin. */
+/** ¿Puede la sesión actual gestionar este punto de ayuda? (autor por cuenta,
+ *  gestor delegado de ESE punto, o moderador de TODOS los puntos). El autor
+ *  por TOKEN se verifica aparte con verifyResourceOwner. */
+export async function canManageAidPoint(id: string): Promise<boolean> {
+  if (await sessionOwns("aid_points", id)) return true;
+  if (await sessionIsManager("aid_point", id)) return true;
+  return sessionHasCategoryRole("aid_point_moderator");
+}
+
+/** ¿Puede la sesión actual gestionar este hospital? (autor por cuenta, gestor
+ *  delegado de ESE hospital, o moderador de TODOS los hospitales). Los
+ *  hospitales no usan token: la gestión es por cuenta, rol o admin. */
 export async function canManageHospital(id: string): Promise<boolean> {
   if (await sessionOwns("hospitals", id)) return true;
-  return sessionIsManager("hospital", id);
+  if (await sessionIsManager("hospital", id)) return true;
+  return sessionHasCategoryRole("hospital_moderator");
 }
 
 /** Verifica que quien gestiona es el autor: por token privado o por su cuenta. */
@@ -838,8 +861,12 @@ export async function verifyResourceOwner(
           ? "pets"
           : "marches";
   if (await sessionOwns(table, entityId)) return true;
-  // Además del autor, un gestor delegado por el admin puede administrar el punto.
-  if (entityType === "aid_point" && (await sessionIsManager("aid_point", entityId))) return true;
+  // Además del autor, un gestor delegado por el admin (o un moderador de
+  // TODOS los puntos de ayuda, rol global) puede administrar el punto.
+  if (entityType === "aid_point") {
+    if (await sessionIsManager("aid_point", entityId)) return true;
+    if (await sessionHasCategoryRole("aid_point_moderator")) return true;
+  }
   return false;
 }
 
@@ -917,6 +944,80 @@ export async function removeResourceManager(
     .eq("entity_type", entityType)
     .eq("entity_id", entityId)
     .eq("user_id", userId);
+  if (error) throw error;
+}
+
+// ── Roles globales (admin por cuenta, moderador de hospitales/ayuda) ────────
+/** ¿Tiene esta cuenta el rol dado? Usado por `isAdmin()` y por los guardias de
+ *  las acciones de moderador (hospital/punto de ayuda), no por la UI. */
+export async function hasAppRole(userId: string, role: AppRole): Promise<boolean> {
+  if (!getSupabase()) return mem.appRoles.some((r) => r.userId === userId && r.role === role);
+  const sb = getSupabaseAdmin();
+  if (!sb) return false;
+  const { data } = await sb
+    .from("app_roles")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("role", role)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/** Todos los roles asignados, con su nombre de usuario, para el panel admin. */
+export async function getAllAppRoles(): Promise<AppRoleGrant[]> {
+  if (!getSupabase()) return mem.appRoles.slice();
+  const sb = getSupabaseAdmin();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("app_roles")
+    .select("user_id, role, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const rows = data ?? [];
+  const ids = [...new Set(rows.map((r) => r.user_id as string))];
+  const nameById: Record<string, string> = {};
+  if (ids.length > 0) {
+    const { data: profs } = await sb.from("profiles").select("user_id, username").in("user_id", ids);
+    for (const p of profs ?? []) nameById[p.user_id as string] = p.username as string;
+  }
+  return rows.map((r) => ({
+    userId: r.user_id as string,
+    username: nameById[r.user_id as string] ?? "Usuario",
+    role: r.role as AppRole,
+    createdAt: r.created_at as string,
+  }));
+}
+
+/** Asigna un rol global a una cuenta (admin). Idempotente. */
+export async function addAppRole(
+  userId: string,
+  username: string,
+  role: AppRole,
+  grantedBy: string,
+): Promise<void> {
+  const createdAt = new Date().toISOString();
+  if (!getSupabase()) {
+    const exists = mem.appRoles.some((r) => r.userId === userId && r.role === role);
+    if (!exists) mem.appRoles.push({ userId, username, role, createdAt });
+    return;
+  }
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
+  const { error } = await sb
+    .from("app_roles")
+    .upsert({ user_id: userId, role, granted_by: grantedBy }, { onConflict: "user_id,role" });
+  if (error) throw error;
+}
+
+/** Quita un rol global de una cuenta (admin). */
+export async function removeAppRole(userId: string, role: AppRole): Promise<void> {
+  if (!getSupabase()) {
+    mem.appRoles = mem.appRoles.filter((r) => !(r.userId === userId && r.role === role));
+    return;
+  }
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
+  const { error } = await sb.from("app_roles").delete().eq("user_id", userId).eq("role", role);
   if (error) throw error;
 }
 

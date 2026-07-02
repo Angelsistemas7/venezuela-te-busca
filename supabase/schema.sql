@@ -129,6 +129,24 @@ create table if not exists resource_managers (
 create index if not exists resource_managers_entity_idx on resource_managers (entity_type, entity_id);
 create index if not exists resource_managers_user_idx   on resource_managers (user_id);
 
+-- ── Roles globales (no atados a un recurso concreto) ─────────────────────────
+-- A diferencia de resource_managers (UN punto de ayuda u hospital), estos roles
+-- aplican a TODA una categoría (ej. "puede actualizar cualquier hospital") o dan
+-- el mismo alcance del ADMIN_TOKEN pero por cuenta individual. Tabla PRIVADA:
+-- solo el servidor (service role) la lee/escribe.
+create table if not exists app_roles (
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  role       text not null check (role in ('admin','hospital_moderator','aid_point_moderator')),
+  granted_by text,
+  created_at timestamptz not null default now(),
+  primary key (user_id, role)
+);
+create index if not exists app_roles_role_idx on app_roles (role);
+
+alter table app_roles enable row level security;
+-- Sin políticas a propósito: quién tiene qué rol no es público, y asignarlo
+-- requiere ya ser admin (se resuelve en el servidor con la service role).
+
 -- ── Reportes de cambio de estado (con verificación anti-abuso) ──────────────
 create table if not exists status_reports (
   id uuid primary key default uuid_generate_v4(),

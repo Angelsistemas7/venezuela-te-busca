@@ -222,6 +222,16 @@ export const managerAssignSchema = z.object({
 
 export type ManagerAssignInput = z.infer<typeof managerAssignSchema>;
 
+export const roleAssignSchema = z.object({
+  role: z.enum(["admin", "hospital_moderator", "aid_point_moderator"]),
+  username: z
+    .string()
+    .trim()
+    .regex(USERNAME_RE, "Nombre de usuario no válido."),
+});
+
+export type RoleAssignInput = z.infer<typeof roleAssignSchema>;
+
 // ── Denuncias de irregularidades ─────────────────────────────────────────────
 export const complaintSchema = z.object({
   category: z.enum([

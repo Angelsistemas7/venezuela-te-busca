@@ -61,9 +61,11 @@ const FILTER_FIELDS: FilterField[] = [
 ];
 
 export function SearchAndFilters({ unidentified = false }: { unidentified?: boolean } = {}) {
-  // En "¿La reconoces?" la persona ya fue vista/ubicada: "Por localizar" no aplica.
+  // En "¿La reconoces?" solo se listan casos AÚN NO resueltos (ver
+  // `unresolvedOnly` en data.ts): "Localizado" y "Confirmado sin vida" no
+  // aplican como filtro ahí, porque esos casos no aparecen en esa pestaña.
   const statusChips = unidentified
-    ? STATUS_CHIPS.filter((c) => c.value !== "por_localizar")
+    ? STATUS_CHIPS.filter((c) => c.value !== "localizado" && c.value !== "fallecido")
     : STATUS_CHIPS;
 
   const router = useRouter();
@@ -116,7 +118,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
           <input
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder={unidentified ? "Buscar por rasgos, ropa o lugar" : "Buscar nombre, cédula o ubicación"}
+            placeholder={unidentified ? "Buscar nombre, rasgos o lugar" : "Buscar nombre, cédula o ubicación"}
             className="w-full rounded-xl border border-zinc-300 bg-white py-2 pl-10 pr-9 text-base outline-none sm:text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
           {searchValue && (

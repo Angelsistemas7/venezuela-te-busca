@@ -304,6 +304,31 @@ export interface ResourceManager {
   createdAt: string;
 }
 
+/**
+ * Roles globales (no atados a un recurso concreto), asignados por el admin a
+ * una cuenta. Distinto de `ResourceManager` (que gestiona UN punto de ayuda u
+ * hospital específico): estos roles aplican a TODA una categoría.
+ *   • admin              → mismo alcance que el ADMIN_TOKEN, pero por cuenta.
+ *   • hospital_moderator → puede actualizar estado/insumos de CUALQUIER hospital.
+ *   • aid_point_moderator→ puede fijar disponible/agotado en CUALQUIER punto.
+ */
+export type AppRole = "admin" | "hospital_moderator" | "aid_point_moderator";
+
+export const APP_ROLE_LABEL: Record<AppRole, string> = {
+  admin: "Admin completo",
+  hospital_moderator: "Moderador de hospitales",
+  aid_point_moderator: "Moderador de puntos de ayuda",
+};
+
+/** Rol global asignado a una cuenta (ver `AppRole`). */
+export interface AppRoleGrant {
+  userId: string;
+  /** Nombre de usuario (desnormalizado para mostrarlo en el panel). */
+  username: string;
+  role: AppRole;
+  createdAt: string;
+}
+
 export type PatientStatus = "estable" | "critico" | "observacion" | "alta";
 
 export const PATIENT_STATUS_LABEL: Record<PatientStatus, string> = {

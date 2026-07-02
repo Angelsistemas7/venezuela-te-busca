@@ -1,6 +1,7 @@
 import { adminConfigured, isAdmin } from "@/lib/admin";
 import {
   getAidPoints,
+  getAllAppRoles,
   getAllResourceManagers,
   getComplaints,
   getHeroes,
@@ -20,7 +21,7 @@ export default async function AdminPage() {
     return <AdminLogin />;
   }
 
-  const [pending, persons, aidPoints, hospitals, managers, posts, heroes, complaintsPage] =
+  const [pending, persons, aidPoints, hospitals, managers, posts, heroes, complaintsPage, roles] =
     await Promise.all([
       getPendingReports(),
       getRecentPersons(30),
@@ -30,6 +31,7 @@ export default async function AdminPage() {
       getPosts({}),
       getHeroes({ includeUnverified: true }),
       getComplaints({}, 1, 25),
+      getAllAppRoles(),
     ]);
 
   // Enriquecemos cada reporte con el nombre de la persona (una sola consulta, no N+1).
@@ -57,6 +59,7 @@ export default async function AdminPage() {
       posts={posts.slice(0, 25)}
       heroes={heroes}
       complaints={complaintsPage.items}
+      roles={roles}
       demoOpen={!adminConfigured}
     />
   );

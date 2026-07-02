@@ -1221,6 +1221,17 @@ export async function updateHospitalStatusAction(
 }
 
 export async function addHospitalPatientAction(form: FormData): Promise<ActionResult> {
+  const hospitalId = getField(form, "hospitalId");
+  // Agregar un "paciente" (nombre + cédula real) exige permiso: admin, autor
+  // por cuenta, gestor delegado de ESE hospital, o moderador de hospitales.
+  // Antes estaba abierto a cualquier visitante sin sesión (ver INFORME-SEGURIDAD.md).
+  if (!(await isAdmin()) && !(await canManageHospital(hospitalId))) {
+    return {
+      ok: false,
+      error: "Solo el personal autorizado de este hospital puede agregar pacientes a la lista.",
+    };
+  }
+
   const token = getField(form, "cf-turnstile-response") || null;
   if (!(await verifyTurnstile(token))) {
     return { ok: false, error: "No se pudo verificar que eres una persona. Intenta de nuevo." };

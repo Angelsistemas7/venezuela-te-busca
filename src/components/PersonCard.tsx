@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, IdCard, Clock, BadgeCheck } from "lucide-react";
+import { MapPin, IdCard, Clock, BadgeCheck, Eye } from "lucide-react";
 import type { Person } from "@/lib/types";
 import { PERSON_STATUS_LABEL } from "@/lib/types";
 import { cn, statusStyle, timeAgo } from "@/lib/utils";
@@ -39,6 +39,15 @@ export function PersonCard({ person }: { person: Person }) {
           <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
           {PERSON_STATUS_LABEL[person.status]}
         </span>
+        {/* "Se busca" mezcla a quien tiene datos con avistamientos sin
+            identificar: esta etiqueta aclara cuál es cuál (ver
+            docs/PLAN-TINDER-Y-ROLES.md §1). */}
+        {person.isUnidentified && (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+            <Eye className="h-3 w-3" />
+            Sin identificar
+          </span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-4">

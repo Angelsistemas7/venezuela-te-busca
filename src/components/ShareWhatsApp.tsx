@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 
 const MESSAGE =
@@ -19,14 +19,14 @@ const MESSAGE =
   "📰 Noticias — prensa verificada, con su fuente\n\n" +
   "Entre más personas la vean, más vidas se pueden salvar. Compártela:";
 
-function siteUrl() {
-  if (typeof window !== "undefined") return window.location.origin;
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "";
-}
-
 export function ShareWhatsApp({ variant = "primary" }: { variant?: "primary" | "subtle" }) {
   const [copied, setCopied] = useState(false);
-  const url = siteUrl();
+  // El servidor no conoce el dominio real del navegador: arranca igual en
+  // ambos lados (NEXT_PUBLIC_SITE_URL o vacío) y solo cambia a
+  // `window.location.origin` DESPUÉS de montar, para no chocar con lo que ya
+  // renderizó el servidor (evita el warning de "hydration mismatch").
+  const [url, setUrl] = useState(() => process.env.NEXT_PUBLIC_SITE_URL ?? "");
+  useEffect(() => setUrl(window.location.origin), []);
   const waHref = `https://wa.me/?text=${encodeURIComponent(`${MESSAGE} ${url}`)}`;
 
   async function copy() {
