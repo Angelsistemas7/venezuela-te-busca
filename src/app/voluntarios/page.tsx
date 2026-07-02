@@ -142,7 +142,7 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
               key={f.value}
               href={typeHref(f.value)}
               className={cn(
-                "press whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
+                "press whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition",
                 type === f.value
                   ? "border-emerald-400 bg-emerald-50 text-emerald-700"
                   : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",

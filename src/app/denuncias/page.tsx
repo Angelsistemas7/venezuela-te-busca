@@ -114,7 +114,7 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
             key={f.value}
             href={catHref(f.value)}
             className={cn(
-              "press whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
+              "press whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition",
               category === f.value
                 ? "border-rose-300 bg-rose-50 text-rose-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",

@@ -155,9 +155,13 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           <div className="flex-1">
             <SearchAndFilters unidentified={isReconoces} />
           </div>
-          <div className="shrink-0">
-            <RegisterPersonButton />
-          </div>
+          {/* Publicar solo vive en "Se busca" — "¿La reconoces?" es una forma
+              de RECORRER lo ya publicado, no un lugar distinto para publicar. */}
+          {!isReconoces && (
+            <div className="shrink-0">
+              <RegisterPersonButton />
+            </div>
+          )}
         </div>
 
         {/* "¿La reconoces?": baraja de tarjetas (desliza para reconocer). */}
@@ -169,13 +173,11 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
         {!isReconoces && showAgeSections && (
           <div className="space-y-8 border-t border-zinc-100 pt-6">
-            {showBuscaExtras && (
-              <>
-                <RecentlyLocated persons={recentlyLocated} />
-                <EstadoChips />
-              </>
-            )}
+            {showBuscaExtras && <EstadoChips />}
             <FeaturedSections unidentified={false} />
+            {/* Al final de todo, después de "Adultos mayores" — antes iba
+                primero y quedaba antes de que la gente llegara a explorar. */}
+            {showBuscaExtras && <RecentlyLocated persons={recentlyLocated} />}
           </div>
         )}
 

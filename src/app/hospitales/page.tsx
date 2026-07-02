@@ -102,7 +102,7 @@ export default async function HospitalesPage({ searchParams }: { searchParams: S
             key={s}
             href={statusHref(s)}
             className={cn(
-              "w-24 shrink-0 rounded-xl border p-2 text-center transition sm:w-auto sm:p-3",
+              "w-24 shrink-0 rounded-xl border p-1.5 text-center transition sm:w-auto sm:p-2",
               status === s
                 ? "border-zinc-900 bg-zinc-900/[0.03] ring-1 ring-zinc-900"
                 : "border-zinc-200 bg-white hover:border-zinc-300",
@@ -110,9 +110,9 @@ export default async function HospitalesPage({ searchParams }: { searchParams: S
           >
             <div className="flex items-center justify-center gap-1.5">
               <span className={`h-2 w-2 rounded-full ${HOSPITAL_STATUS_STYLE[s].dot}`} />
-              <span className="text-base font-bold text-zinc-900 sm:text-xl">{byStatus(s)}</span>
+              <span className="text-base font-bold text-zinc-900 sm:text-lg">{byStatus(s)}</span>
             </div>
-            <div className="mt-0.5 text-[11px] text-zinc-500 sm:text-xs">{HOSPITAL_STATUS_LABEL[s]}</div>
+            <div className="mt-0.5 text-[11px] text-zinc-500">{HOSPITAL_STATUS_LABEL[s]}</div>
           </Link>
         ))}
       </div>

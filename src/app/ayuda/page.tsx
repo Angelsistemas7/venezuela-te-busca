@@ -126,7 +126,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
               key={c.value}
               href={chipHref(c.value)}
               className={cn(
-                "press whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+                "press whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition",
                 type === c.value
                   ? "border-brand-400 bg-brand-50 text-brand-700"
                   : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -139,7 +139,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
         <Link
           href={availHref()}
           className={cn(
-            "press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+            "press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition",
             availOnly
               ? "border-emerald-400 bg-emerald-50 text-emerald-700"
               : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",

@@ -6,6 +6,7 @@ import {
   canManageHospital,
   createAidPoint,
   createComment,
+  getComments,
   createComplaint,
   createHospital,
   createMarch,
@@ -912,6 +913,12 @@ export async function reactToPostAction(id: string, kind: ReactionKind): Promise
   } catch {
     return { ok: false };
   }
+}
+
+/** Comentarios de una persona, para el modal de info dentro de la baraja tipo
+ *  Tinder (no se cargan todos de una en el servidor: se piden al abrir). */
+export async function getPersonCommentsAction(personId: string) {
+  return getComments("person", personId);
 }
 
 export async function reactToPersonAction(

@@ -2,26 +2,36 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Check, Info, MapPin, RotateCcw, Search, X } from "lucide-react";
-import type { Person } from "@/lib/types";
+import { Check, Info, MapPin, RotateCcw, Search, Undo2, X } from "lucide-react";
+import type { Comment, Person } from "@/lib/types";
 import { PERSON_STATUS_LABEL } from "@/lib/types";
 import { cn, statusStyle } from "@/lib/utils";
+import { getPersonCommentsAction } from "@/app/actions";
 import { PersonPhoto } from "./PersonPhoto";
+import { Modal } from "./Modal";
+import { CommentSection } from "./CommentSection";
 
-// Baraja tipo "Tinder" para "¿La reconoces?": muestra una persona sin
-// identificar a la vez, en una tarjeta grande con su foto y rasgos. Se desliza:
+// Baraja tipo "Tinder" para "¿La reconoces?": muestra una persona a la vez, en
+// una tarjeta grande con su foto y rasgos. Se desliza:
 //   • derecha → "La reconozco": lleva a su ficha para dejar información.
 //   • izquierda → "Otra": pasa a la siguiente.
+// Además: tocar la foto la amplía; el botón ℹ️ abre sus datos y comentarios
+// SIN salir de la baraja; el botón ↺ deshace y vuelve a la tarjeta anterior.
 // También funciona con botones y con flechas del teclado (accesible).
 
 const THRESHOLD = 110;
+const TAP_SLOP = 6; // movimiento máximo (px) para que cuente como toque, no arrastre
 
 export function RecognizeDeck({ persons }: { persons: Person[] }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[] | null>(null);
+  const [commentsFor, setCommentsFor] = useState<string | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedRef = useRef(false);
 
   const current = persons[index];
   const upcoming = persons[index + 1];
@@ -29,7 +39,13 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
   const advance = useCallback(() => {
     setDrag({ x: 0, y: 0, active: false });
     startRef.current = null;
-    setIndex((i) => i + 1);
+    setIndex((i) => Math.min(i + 1, persons.length));
+  }, [persons.length]);
+
+  const undo = useCallback(() => {
+    setDrag({ x: 0, y: 0, active: false });
+    startRef.current = null;
+    setIndex((i) => Math.max(i - 1, 0));
   }, []);
 
   const recognize = useCallback(
@@ -39,30 +55,54 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
     [router],
   );
 
-  // Teclado: ← pasa, → reconozco.
+  function openInfo() {
+    if (!current) return;
+    setInfoOpen(true);
+    if (commentsFor !== current.id) {
+      setComments(null);
+      setCommentsFor(current.id);
+      getPersonCommentsAction(current.id)
+        .then(setComments)
+        .catch(() => setComments([]));
+    }
+  }
+
+  // Teclado: ← pasa, → reconozco, ↑ deshace.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (infoOpen || photoOpen) return;
       if (!current) return;
       if (e.key === "ArrowLeft") advance();
       else if (e.key === "ArrowRight") recognize(current);
+      else if (e.key === "ArrowUp") undo();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [current, advance, recognize]);
+  }, [current, advance, recognize, undo, infoOpen, photoOpen]);
 
   function onPointerDown(e: React.PointerEvent) {
     startRef.current = { x: e.clientX, y: e.clientY };
+    draggedRef.current = false;
     setDrag({ x: 0, y: 0, active: true });
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
   function onPointerMove(e: React.PointerEvent) {
     if (!startRef.current) return;
-    setDrag({ x: e.clientX - startRef.current.x, y: e.clientY - startRef.current.y, active: true });
+    const dx = e.clientX - startRef.current.x;
+    const dy = e.clientY - startRef.current.y;
+    if (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP) draggedRef.current = true;
+    setDrag({ x: dx, y: dy, active: true });
   }
   function onPointerUp() {
     if (!startRef.current) return;
     const dx = drag.x;
+    const wasTap = !draggedRef.current;
     startRef.current = null;
+    if (wasTap) {
+      setDrag({ x: 0, y: 0, active: false });
+      setPhotoOpen(true);
+      return;
+    }
     if (dx > THRESHOLD) recognize(current);
     else if (dx < -THRESHOLD) advance();
     setDrag({ x: 0, y: 0, active: false });
@@ -72,10 +112,10 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
     return (
       <div className="mx-auto max-w-sm rounded-3xl border border-zinc-200 bg-white p-8 text-center">
         <Search className="mx-auto h-8 w-8 text-zinc-300" />
-        <h3 className="mt-3 font-bold text-zinc-900">Nadie sin identificar por ahora</h3>
+        <h3 className="mt-3 font-bold text-zinc-900">Nadie por ahora</h3>
         <p className="mt-1 text-sm text-zinc-500">
-          Aquí aparecen las personas que alguien vio o encontró. ¿Viste a alguien? Publícalo para que
-          su familia la reconozca.
+          Aquí aparecen los casos aún sin resolver. ¿Reconoces a alguien? Publícalo para que su
+          familia lo sepa.
         </p>
       </div>
     );
@@ -90,24 +130,16 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
         <p className="mt-1 text-sm text-zinc-500">
           Gracias por mirar. Si reconociste a alguien, entra en su ficha y deja la información.
         </p>
-        <div className="mt-5 flex flex-col gap-2">
-          <button
-            onClick={() => {
-              setIndex(0);
-              setDrag({ x: 0, y: 0, active: false });
-            }}
-            className="press inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Volver a empezar
-          </button>
-          <Link
-            href="/?view=busca"
-            className="press inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            Ir a "Se busca"
-          </Link>
-        </div>
+        <button
+          onClick={() => {
+            setIndex(0);
+            setDrag({ x: 0, y: 0, active: false });
+          }}
+          className="press mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Volver a empezar
+        </button>
       </div>
     );
   }
@@ -115,6 +147,8 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
   const rot = drag.x / 18;
   const likeOpacity = Math.min(Math.max(drag.x / THRESHOLD, 0), 1);
   const passOpacity = Math.min(Math.max(-drag.x / THRESHOLD, 0), 1);
+  const fullName = `${current.firstName} ${current.lastName}`.trim();
+  const displayName = fullName || "Persona sin identificar";
 
   return (
     <div className="mx-auto w-full max-w-sm">
@@ -137,7 +171,15 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
       </div>
 
       {/* Controles */}
-      <div className="mt-5 flex items-center justify-center gap-6">
+      <div className="mt-5 flex items-center justify-center gap-4">
+        <button
+          onClick={undo}
+          disabled={index === 0}
+          aria-label="Deshacer, volver a la anterior"
+          className="press flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-400 shadow-sm transition hover:border-zinc-300 hover:text-zinc-700 disabled:opacity-40"
+        >
+          <Undo2 className="h-5 w-5" />
+        </button>
         <button
           onClick={advance}
           aria-label="Otra persona"
@@ -145,13 +187,13 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
         >
           <X className="h-7 w-7" />
         </button>
-        <Link
-          href={`/persona/${current.id}`}
-          aria-label="Ver ficha completa"
+        <button
+          onClick={openInfo}
+          aria-label="Ver datos y comentarios"
           className="press flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-brand-600 shadow-sm transition hover:border-brand-300"
         >
           <Info className="h-5 w-5" />
-        </Link>
+        </button>
         <button
           onClick={() => recognize(current)}
           aria-label="La reconozco"
@@ -162,9 +204,79 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
       </div>
 
       <p className="mt-3 text-center text-xs text-zinc-400">
-        Desliza <span className="font-semibold text-emerald-600">→ la reconozco</span> ·{" "}
-        <span className="font-semibold text-zinc-500">← otra</span> · {index + 1} de {persons.length}
+        Toca la foto para ampliarla · Desliza{" "}
+        <span className="font-semibold text-emerald-600">→ la reconozco</span> ·{" "}
+        <span className="font-semibold text-zinc-500">← otra</span> · {index + 1} de{" "}
+        {persons.length}
       </p>
+
+      {/* Foto ampliada: tocar en cualquier lado la cierra. */}
+      {photoOpen && (
+        <div
+          className="animate-backdrop fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4"
+          onClick={() => setPhotoOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Foto ampliada"
+        >
+          <button
+            onClick={() => setPhotoOpen(false)}
+            aria-label="Cerrar foto"
+            className="press absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <div className="animate-zoom max-h-[90dvh] w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="relative aspect-square w-full overflow-hidden rounded-2xl shadow-2xl">
+              <PersonPhoto
+                src={current.photoUrl}
+                firstName={current.firstName}
+                lastName={current.lastName}
+                isUnidentified={current.isUnidentified}
+                fallbackTextClass="text-7xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Datos + comentarios, sin salir de la baraja. */}
+      <Modal open={infoOpen} onClose={() => setInfoOpen(false)} title={displayName} subtitle={PERSON_STATUS_LABEL[current.status]}>
+        <div className="space-y-4">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-zinc-100">
+            <PersonPhoto
+              src={current.photoUrl}
+              firstName={current.firstName}
+              lastName={current.lastName}
+              isUnidentified={current.isUnidentified}
+              fallbackTextClass="text-6xl"
+            />
+          </div>
+          {current.locationText && (
+            <p className="flex items-center gap-1.5 text-sm text-zinc-600">
+              <MapPin className="h-4 w-4 shrink-0 text-zinc-400" />
+              {current.locationText}
+              {current.estado ? `, ${current.estado}` : ""}
+            </p>
+          )}
+          {current.description && (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+              {current.description}
+            </p>
+          )}
+          {comments === null ? (
+            <p className="py-4 text-center text-sm text-zinc-400">Cargando comentarios…</p>
+          ) : (
+            <CommentSection
+              entityType="person"
+              entityId={current.id}
+              initialComments={comments}
+              title="Información de la comunidad"
+              placeholder="¿La reconoces? ¿Sabes algo? Comparte de forma responsable."
+            />
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

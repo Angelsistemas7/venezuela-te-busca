@@ -138,7 +138,7 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
             key={f.value}
             href={statusHref(f.value)}
             className={cn(
-              "press whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition",
+              "press whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition",
               status === f.value
                 ? "border-brand-400 bg-brand-50 text-brand-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",

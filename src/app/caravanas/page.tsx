@@ -93,7 +93,7 @@ export default async function CaravanasPage({ searchParams }: { searchParams: Se
               key={c.value}
               href={showHref(c.value)}
               className={cn(
-                "press whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
+                "press whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition",
                 show === c.value
                   ? "border-brand-400 bg-brand-50 text-brand-700"
                   : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",

@@ -17,12 +17,14 @@ export function RecentlyLocated({ persons }: { persons: Person[] }) {
       <p className="mt-1 text-sm text-emerald-700/80">
         Personas que estaban desaparecidas y ya fueron ubicadas. Toca para ver su ficha.
       </p>
-      <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Una sola fila que se desliza de lado — antes era una cuadrícula que se
+          partía en 1/2/3 columnas (varias filas) según el tamaño de pantalla. */}
+      <ul className="no-scrollbar mt-3 flex snap-x gap-2 overflow-x-auto pb-1">
         {persons.map((p) => {
           const name = `${p.firstName} ${p.lastName}`.trim() || "Persona sin identificar";
           const hospital = p.status === "hospitalizado";
           return (
-            <li key={p.id}>
+            <li key={p.id} className="w-64 shrink-0 snap-start">
               <Link
                 href={`/persona/${p.id}`}
                 className="press flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-white px-3 py-2.5 transition hover:border-emerald-300 hover:shadow-sm"
