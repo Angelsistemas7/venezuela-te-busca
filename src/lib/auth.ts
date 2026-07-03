@@ -1,6 +1,7 @@
 import "server-only";
 import { getSupabaseServer } from "./supabaseServer";
 import { getSupabaseAdmin } from "./supabase";
+import { isSafePhotoUrl } from "./validation";
 import type { SignupInput, LoginInput } from "./validation";
 
 // Cuentas con Supabase Auth. Diseño: usuario único + contraseña fuerte; correo
@@ -224,12 +225,29 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   };
 }
 
-/** Cambia la foto de perfil (o la quita, con `url: null`). */
+/** Cambia la foto de perfil (o la quita, con `url: null`). Borra la foto
+ *  ANTERIOR del bucket si había una — si no, cada vez que alguien cambia su
+ *  foto queda un archivo huérfano accesible para siempre en su URL vieja. */
 export async function updateAvatar(userId: string, url: string | null): Promise<boolean> {
   const admin = getSupabaseAdmin();
   if (!admin) return false;
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("avatar_url")
+    .eq("user_id", userId)
+    .maybeSingle();
   const { error } = await admin.from("profiles").update({ avatar_url: url }).eq("user_id", userId);
-  return !error;
+  if (error) return false;
+  const oldUrl = prof?.avatar_url as string | null;
+  if (oldUrl && oldUrl !== url && isSafePhotoUrl(oldUrl)) {
+    try {
+      const path = new URL(oldUrl).pathname.replace("/storage/v1/object/public/photos/", "");
+      if (path) await admin.storage.from("photos").remove([path]);
+    } catch {
+      /* mejor esfuerzo: no rompe el cambio de foto */
+    }
+  }
+  return true;
 }
 
 /** Cambia (o agrega) el correo de recuperación. Si antes no tenía correo (solo

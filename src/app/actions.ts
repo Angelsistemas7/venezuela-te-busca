@@ -553,14 +553,29 @@ export async function registerMarchAction(form: FormData): Promise<ActionResult>
 }
 
 // ── Comentario en el foro ────────────────────────────────────────────────────
+// Coincide EXACTO con el CHECK de `comments.entity_type` en schema.sql — el
+// campo llega en un <input hidden> del formulario, así que hay que
+// revalidarlo en el servidor como cualquier otro dato del cliente (antes
+// solo tenía un `as` de TypeScript, que no valida nada en tiempo de
+// ejecución: alguien podía mandar cualquier texto ahí).
+const COMMENT_ENTITY_TYPES: readonly CommentEntity[] = [
+  "person",
+  "aid_point",
+  "march",
+  "post",
+  "hospital",
+  "complaint",
+  "pet",
+  "hero",
+  "news_item",
+];
+
 export async function postCommentAction(form: FormData): Promise<ActionResult> {
-  const entityType = getField(form, "entityType") as
-    | "person"
-    | "aid_point"
-    | "march"
-    | "post"
-    | "hospital"
-    | "complaint";
+  const entityTypeRaw = getField(form, "entityType");
+  if (!COMMENT_ENTITY_TYPES.includes(entityTypeRaw as CommentEntity)) {
+    return { ok: false, error: "Tipo de publicación no válido." };
+  }
+  const entityType = entityTypeRaw as CommentEntity;
   const entityId = getField(form, "entityId");
   // Con sesión, el nombre del comentario es el de la cuenta (identidad verificada),
   // no lo que venga del formulario.

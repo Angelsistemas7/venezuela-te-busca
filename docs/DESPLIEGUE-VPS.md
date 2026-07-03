@@ -99,6 +99,7 @@ server {
     server_name elmundotebusca.com www.elmundotebusca.com;
 
     client_max_body_size 12M;   # subida de fotos
+    server_tokens off;          # no anunciar la versión exacta de nginx
 
     location / {
         proxy_pass http://127.0.0.1:3200;

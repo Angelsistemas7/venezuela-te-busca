@@ -63,6 +63,7 @@ import type {
   StatusReportInput,
   VolunteerInput,
 } from "./validation";
+import { isSafePhotoUrl } from "./validation";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Capa de acceso a datos. Una sola interfaz; dos implementaciones:
@@ -138,6 +139,24 @@ function newToken(): string {
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Borra el archivo del bucket "photos" cuando se elimina (o se reemplaza) el
+// registro que lo usaba — si no, la foto se queda accesible para siempre en
+// su URL pública aunque el registro ya no exista en el sitio. "Mejor esfuerzo"
+// a propósito: si falla (o la URL no es del bucket propio), NO debe tumbar la
+// operación principal (borrar la persona/publicación sí importa; que sobre un
+// archivo huérfano en Storage es un problema menor, de costo, no de seguridad).
+async function deleteStoragePhoto(url: string | null | undefined): Promise<void> {
+  if (!url || !isSafePhotoUrl(url)) return;
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
+  try {
+    const path = new URL(url).pathname.replace("/storage/v1/object/public/photos/", "");
+    if (path) await sb.storage.from("photos").remove([path]);
+  } catch {
+    /* mejor esfuerzo: no rompe el borrado del registro */
+  }
 }
 
 // ── Mapeo fila Supabase -> tipo de dominio ──────────────────────────────────
@@ -731,8 +750,10 @@ export async function deletePerson(id: string): Promise<void> {
     delete mem.ownerTokens[id];
     return;
   }
+  const { data } = await sb.from("persons").select("photo_url").eq("id", id).maybeSingle();
   const { error } = await sb.from("persons").delete().eq("id", id);
   if (error) throw error;
+  await deleteStoragePhoto(data?.photo_url as string | undefined);
 }
 
 /**
@@ -1254,9 +1275,11 @@ export async function deleteAidPoint(id: string): Promise<void> {
     await deleteResourceOwner("aid_point", id);
     return;
   }
+  const { data } = await sb.from("aid_points").select("photo_url").eq("id", id).maybeSingle();
   const { error } = await sb.from("aid_points").delete().eq("id", id);
   if (error) throw error;
   await deleteResourceOwner("aid_point", id);
+  await deleteStoragePhoto(data?.photo_url as string | undefined);
 }
 
 /** "Me gusta" a un punto de ayuda (comunidad). */
@@ -2313,9 +2336,11 @@ export async function deletePost(id: string): Promise<void> {
     await deleteResourceOwner("post", id);
     return;
   }
+  const { data } = await sb.from("posts").select("photo_url").eq("id", id).maybeSingle();
   const { error } = await sb.from("posts").delete().eq("id", id);
   if (error) throw error;
   await deleteResourceOwner("post", id);
+  await deleteStoragePhoto(data?.photo_url as string | undefined);
 }
 
 export async function reactToPost(id: string, kind: ReactionKind): Promise<void> {
@@ -2668,9 +2693,11 @@ export async function deletePet(id: string): Promise<void> {
     await deleteResourceOwner("pet", id);
     return;
   }
+  const { data } = await sb.from("pets").select("photo_url").eq("id", id).maybeSingle();
   const { error } = await sb.from("pets").delete().eq("id", id);
   if (error) throw error;
   await deleteResourceOwner("pet", id);
+  await deleteStoragePhoto(data?.photo_url as string | undefined);
 }
 
 /** ¿Puede la sesión actual gestionar esta mascota? (autor por cuenta; el token
@@ -2981,8 +3008,10 @@ export async function deleteHero(id: string): Promise<void> {
     mem.heroes = mem.heroes.filter((h) => h.id !== id);
     return;
   }
+  const { data } = await sb.from("heroes").select("photo_url").eq("id", id).maybeSingle();
   const { error } = await sb.from("heroes").delete().eq("id", id);
   if (error) throw error;
+  await deleteStoragePhoto(data?.photo_url as string | undefined);
 }
 
 // ── Noticias curadas (las agrega el equipo) ─────────────────────────────────
@@ -3076,8 +3105,10 @@ export async function deleteNewsItem(id: string): Promise<void> {
     mem.newsItems = mem.newsItems.filter((n) => n.id !== id);
     return;
   }
+  const { data } = await sb.from("news_items").select("photo_url").eq("id", id).maybeSingle();
   const { error } = await sb.from("news_items").delete().eq("id", id);
   if (error) throw error;
+  await deleteStoragePhoto(data?.photo_url as string | undefined);
 }
 
 // ── Hospitales ──────────────────────────────────────────────────────────────

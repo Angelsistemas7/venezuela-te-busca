@@ -326,6 +326,43 @@ Verificado con `npm run build` (verde) tras aplicar la corrección.
 
 ---
 
+## 11) Quinta ronda (2026-07-01) — auditoría de invariantes (no de vulnerabilidades "famosas")
+
+Última fase: en vez de buscar XSS/SQLi/SSRF (ya cubierto), se buscaron
+**estados imposibles** — bugs de lógica/integridad que no aparecen en
+ninguna checklist porque son específicos de cómo está armada esta app.
+Todo esto se revisó leyendo código (no requiere tráfico en vivo).
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | **Confianza excesiva en el cliente**: `postCommentAction` tomaba el campo oculto `entityType` del formulario con un `as` de TypeScript — que NO valida nada en tiempo de ejecución, solo cambia lo que ve el editor. Cualquiera podía mandar un `entityType` que no fuera ninguno de los 9 válidos. El `CHECK` de la base de datos lo detiene igual (no es explotable a fondo), pero es el patrón exacto que hay que evitar: nunca confiar en un campo oculto sin revalidarlo. | **Baja** (contenida por el `CHECK` de Postgres, pero mala práctica) | Nueva lista blanca en tiempo de ejecución (`COMMENT_ENTITY_TYPES`) que se revisa ANTES de usar el valor (`src/app/actions.ts`). |
+| 2 | **Fotos huérfanas en Storage**: al borrar una persona, publicación, punto de ayuda, mascota, héroe o noticia, la fila de la base se borraba pero **la foto se quedaba en el bucket para siempre**, accesible por su URL aunque el registro ya no existiera en el sitio. Lo mismo al cambiar la foto de perfil: la anterior nunca se borraba. No es una fuga masiva (los nombres de archivo son UUID, no se pueden adivinar/enumerar), pero si alguien guardó el enlace directo de una foto "eliminada", seguía viéndola. | **Media** | Nueva función `deleteStoragePhoto` (`src/lib/data.ts`) que borra el archivo del bucket al eliminar cada uno de esos 6 tipos de contenido; `updateAvatar` (`src/lib/auth.ts`) borra la foto de perfil anterior al reemplazarla. "Mejor esfuerzo" a propósito: si falla borrar el archivo, no bloquea el borrado del registro (lo importante). |
+| 3 | **Fuga de memoria lógica** en el freno de fuerza bruta de `/admin` (agregado en una ronda anterior de esta misma auditoría): cada IP que fallaba el login quedaba en un `Map` en memoria PARA SIEMPRE si nunca volvía a intentar — con el tráfico normal de bots que escanean cualquier servidor público, este mapa crece sin límite mientras viva el proceso de Node (PM2 no lo reinicia solo). | **Baja** | El mapa ahora se poda (quita entradas viejas cuyo bloqueo ya venció) en cuanto crece de 5.000 IPs distintas (`src/lib/admin.ts`). |
+
+**Revisado a fondo, sin hallazgos (invariantes correctas)**:
+- **TOCTOU en acciones "de autor"**: el patrón es siempre "verificar dueño → mutar" dentro de la MISMA función, sin ventana de tiempo entre medio donde algo externo pudiera cambiar el resultado del chequeo — no es el patrón "leer con una consulta, decidir en JS, escribir con otra" que sí sería explotable.
+- **RLS vs. lógica de la app**: aclaración importante para el equipo — **todas las escrituras del servidor usan `service_role`, que IGNORA RLS por diseño** (RLS solo protege contra quien golpee Supabase directo con la clave `anon`, saltándose la app). Eso significa que las verificaciones de la propia app (`verifyOwner`, `isAdmin`, `canManageX` — ya revisadas en la ronda anterior) son la ÚNICA barrera real para esas 56 Server Actions, no hay una "red de seguridad" extra de RLS por detrás. Ya estaban bien, pero es el modelo mental correcto para cualquiera que toque este código después.
+- **Invariantes de estado imposible**: `Person.status` es un único campo `enum` (no dos banderas independientes), así que "desaparecida Y encontrada a la vez" no es un estado que se pueda representar, ni por accidente ni a propósito.
+- **Canonicalización de usuario**: `username_lower` (con restricción única en la base) + `.trim().toLowerCase()` antes de cualquier comparación — "Admin"/"admin"/"ADMIN" siempre resuelven a la misma cuenta.
+- **Unicode invisible / homógrafos**: el usuario solo acepta `[a-zA-Z0-9_.]` (lista blanca, no lista negra) — eso excluye TODO lo demás de una vez: cirílico, caracteres invisibles (ZWJ/ZWNJ/BOM), todo.
+- **Transacciones multi-tabla**: `signUp()` ya tenía limpieza de compensación (si falla crear el perfil después de crear la cuenta, borra la cuenta) — patrón correcto donde no hay transacciones SQL reales de por medio.
+- **Huérfanos al borrar una cuenta**: revisadas las 20 relaciones a `auth.users` — cada una usa `cascade` o `set null` según corresponde (perfil/roles/guardados/votos se borran con la cuenta; publicaciones se desvinculan pero NO se borran) — consistente en toda la base.
+- **Código muerto / archivos sospechosos**: sin `*_old.ts`, `*.bak`, `backup.ts`, etc. Sin comentarios `TODO`/`FIXME`/`HACK` reales en el código (los únicos resultados eran la palabra "TODOS" en español).
+- **GET vs. POST con validación distinta**: solo existe UNA ruta HTTP real fuera de Server Actions (`/cuenta/confirmar`, el enlace de recuperación) — ya revisada, con protección correcta contra open-redirect.
+
+**Anotado, no corregido (bajo impacto, ya alineado con hallazgos anteriores)**:
+- Colección sin límite: un usuario con sesión puede comentar sin límite de
+  cantidad (Turnstile solo aplica a comentarios anónimos) — mismo tema que
+  el "me gusta" sin límite ya anotado en rondas previas.
+- El contador de `consensus_votes` puede quedar levemente desincronizado si
+  se borra una cuenta que había votado (el voto se borra en cascada, pero
+  el contador denormalizado en `aid_points`/`hospitals` no se recalcula
+  solo) — mismo origen que la imprecisión de conteo ya documentada.
+
+Verificado con `npm run build` (verde) tras aplicar las tres correcciones.
+
+---
+
 *Este informe cubre el código de la aplicación y su configuración conocida.
 No sustituye una revisión de la configuración real de Supabase (políticas de
 bucket, RLS aplicado tal cual en producción) ni del servidor VPS en vivo —

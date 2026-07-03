@@ -16,9 +16,26 @@ export const adminConfigured = Boolean(ADMIN_TOKEN);
 // Freno de fuerza bruta contra el login de /admin: 5 intentos fallidos por IP
 // bloquean esa IP 15 minutos. En memoria (un solo proceso en el VPS con PM2);
 // se reinicia si el proceso reinicia, lo cual es aceptable para este alcance.
+//
+// IMPORTANTE: `registerSuccess` solo borra la entrada de quien SÍ acierta la
+// contraseña — cualquiera que falle y nunca vuelva a intentar (un bot que
+// prueba una vez y se va, algo que pasa constantemente en cualquier servidor
+// público) se queda en este mapa PARA SIEMPRE mientras el proceso viva, sin
+// límite. Con suficiente tráfico de internet, esto crece sin parar (fuga de
+// memoria lógica). Por eso se poda cuando crece demasiado: quita entradas
+// viejas que ya no aportan nada (su bloqueo, si lo hubo, ya venció hace rato).
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
-const attempts = new Map<string, { count: number; lockedUntil: number }>();
+const MAX_TRACKED_IPS = 5000;
+const attempts = new Map<string, { count: number; lockedUntil: number; lastAttemptAt: number }>();
+
+function pruneAttempts(): void {
+  if (attempts.size < MAX_TRACKED_IPS) return;
+  const now = Date.now();
+  for (const [ip, entry] of attempts) {
+    if (now - entry.lastAttemptAt > LOCKOUT_MS) attempts.delete(ip);
+  }
+}
 
 async function clientIp(): Promise<string> {
   const h = await headers();
@@ -32,8 +49,10 @@ function isLocked(ip: string): boolean {
 }
 
 function registerFailure(ip: string): void {
-  const entry = attempts.get(ip) ?? { count: 0, lockedUntil: 0 };
+  pruneAttempts();
+  const entry = attempts.get(ip) ?? { count: 0, lockedUntil: 0, lastAttemptAt: 0 };
   entry.count += 1;
+  entry.lastAttemptAt = Date.now();
   if (entry.count >= MAX_ATTEMPTS) {
     entry.lockedUntil = Date.now() + LOCKOUT_MS;
     entry.count = 0;
