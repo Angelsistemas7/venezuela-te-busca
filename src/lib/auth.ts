@@ -1,5 +1,4 @@
 import "server-only";
-import { headers } from "next/headers";
 import { getSupabaseServer } from "./supabaseServer";
 import { getSupabaseAdmin } from "./supabase";
 import type { SignupInput, LoginInput } from "./validation";
@@ -148,13 +147,20 @@ export async function signOut(): Promise<void> {
 }
 
 // ── Recuperar contraseña (solo si el usuario dio un correo) ──────────────────
-async function siteOrigin(): Promise<string> {
+// NUNCA se arma con cabeceras de la petición (Host/X-Forwarded-Host): esas las
+// controla quien hace la petición, no el servidor. Si nginx no tiene un
+// "default_server" que rechace hosts desconocidos (no es el caso aquí), esas
+// cabeceras se pueden falsear apuntando directo a la IP del VPS — y si este
+// enlace se armara con ellas, se podría mandar un correo de "recuperar
+// contraseña" con el enlace apuntando a un dominio del atacante (phishing /
+// robo del token de recuperación). Por eso: SOLO `NEXT_PUBLIC_SITE_URL`, o
+// nada (mejor no mandar el correo que mandarlo con un enlace falseable).
+function siteOrigin(): string | null {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL;
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+  // Único caso donde sí vale una URL fija de desarrollo: no hay despliegue real.
+  if (process.env.NODE_ENV !== "production") return "http://localhost:3000";
+  return null;
 }
 
 /** Envía un enlace de recuperación al correo del usuario, si dio uno al registrarse.
@@ -163,13 +169,14 @@ export async function requestPasswordReset(username: string): Promise<void> {
   const admin = getSupabaseAdmin();
   const sb = await getSupabaseServer();
   if (!admin || !sb) return;
+  const origin = siteOrigin();
+  if (!origin) return; // sin NEXT_PUBLIC_SITE_URL en producción: no arriesgar un enlace falseable
   const { data: prof } = await admin
     .from("profiles")
     .select("login_email, recovery_email")
     .eq("username_lower", username.trim().toLowerCase())
     .maybeSingle();
   if (!prof || !prof.recovery_email) return; // sin correo: no hay a dónde enviar
-  const origin = await siteOrigin();
   await sb.auth.resetPasswordForEmail(prof.login_email as string, {
     redirectTo: `${origin}/cuenta/confirmar`,
   });

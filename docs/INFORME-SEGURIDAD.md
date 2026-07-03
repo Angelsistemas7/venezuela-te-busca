@@ -220,6 +220,112 @@ Verificado con `npm run build` (verde) tras aplicar ambas correcciones.
 
 ---
 
+## 9) Tercera ronda (2026-07-01) — motivada por un ataque real a una plataforma similar
+
+El dueño reportó que otra plataforma parecida (ayuda a Venezuela) fue
+atacada y se filtraron datos de sus voluntarios. Se hizo una revisión de
+emergencia enfocada en exposición de datos personales, más un barrido
+amplio contra categorías conocidas de ataque (reconocimiento, inyección,
+control de acceso, SSRF, cabeceras, etc.) — triado según qué aplica de
+verdad a este stack (Next.js + Supabase, sin Docker/Java/PHP/GraphQL/XML,
+sin backend propio más allá de Server Actions).
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | **El mapa (`/mapa`) mostraba la coordenada GPS EXACTA de cada voluntario** (la que su teléfono reportó al registrarse), junto a su nombre completo y un enlace directo de WhatsApp — visible para cualquiera, sin sesión. A diferencia de puntos de ayuda/hospitales (lugares físicos que SÍ deben mostrarse exactos, es su propósito), un voluntario es una persona privada: esto revelaba dónde vive/está exactamente. Coincide con el patrón típico de estas fugas ("se veían los datos de los voluntarios"). | **Alta** | Los voluntarios en el mapa ahora usan siempre una ubicación aproximada (mismo sector/estado + variación aleatoria, la misma función `geocode()` que ya se usaba para el resto quien no daba coordenada exacta) — nunca la coordenada precisa (`src/app/mapa/page.tsx`). Personas/puntos de ayuda/hospitales se revisaron y están bien: mostrar su ubicación exacta ahí sí es el propósito. |
+| 2 | **Inyección de cabecera `Host`** en el enlace de recuperación de contraseña: si `NEXT_PUBLIC_SITE_URL` llegara a faltar en producción (ya pasó con otras 3 variables en este proyecto), la función arma el enlace del correo con las cabeceras `Host`/`X-Forwarded-For` de la petición — que cualquiera puede falsear apuntando directo a la IP del VPS (sin pasar por Cloudflare/el dominio real), ya que el nginx documentado no tiene un bloque `default_server` que rechace hosts desconocidos. Permitiría mandar un correo real de "recuperar contraseña" con el enlace apuntando a un dominio del atacante (phishing / robo del token). Hoy no es explotable porque esa variable SÍ está configurada, pero es una trampa lista para el día que no lo esté. | **Media** (latente, no explotable hoy) | `siteOrigin()` (`src/lib/auth.ts`) ya NO confía en cabeceras de la petición — solo usa `NEXT_PUBLIC_SITE_URL`, o `localhost` en desarrollo; si falta en producción, simplemente no manda el correo (mejor que mandarlo con un enlace falseable). Se documentó además un bloque `default_server { return 444; }` para nginx (`docs/DESPLIEGUE-VPS.md`) que corta esas peticiones en el borde, antes de que lleguen a la app. |
+
+**Re-verificado a fondo, sin hallazgos nuevos** (ya lo cubría la ronda anterior,
+se repitió con lupa por la alarma):
+- **RLS**: las 20 tablas de `supabase/schema.sql` tienen Row Level Security
+  activado; ninguna política permite `INSERT`/`UPDATE`/`DELETE` con la clave
+  pública (`anon`) — las dos únicas que lo harían están comentadas a
+  propósito. Es justo el patrón de fuga más común encontrado al investigar
+  incidentes reales de Supabase en 2026 (tablas sin RLS ⇒ la clave pública
+  se vuelve "llave maestra" por accidente) — no es el caso aquí.
+- **Next.js 15.5.19** (versión instalada) ya incluye el parche de mayo 2026
+  para la denegación de servicio de Server Components (CVE-2026-23869).
+- SSRF: revisado también el generador de imágenes para compartir
+  (`src/lib/ogImage.ts`, ya blindado en la ronda anterior) y los feeds de
+  noticias (`src/lib/news.ts`, `src/lib/usgs.ts`) — URLs fijas, sin
+  influencia de datos de usuario.
+- XXE: no aplica — el "parseo" de RSS de noticias es con expresiones
+  regulares simples, no un parser XML real que pudiera procesar entidades
+  externas.
+- Cabeceras/CORS: sin `Access-Control-Allow-*` en ningún lado (no hace
+  falta, todo es mismo-origen); páginas de error (`error.tsx`,
+  `global-error.tsx`) no exponen el mensaje técnico, solo lo registran en
+  consola del servidor.
+- Funciones nuevas de esta sesión (cambiar contraseña, correo de
+  recuperación, eliminar cuenta, foto de perfil): todas derivan el usuario
+  de la sesión verificada en el servidor (`getCurrentUser()`), nunca de un
+  ID que mande el cliente — sin IDOR posible ahí. `changePassword`/
+  `deleteAccount` re-verifican la contraseña actual antes de actuar.
+
+**Encontrado, de severidad baja, sin corregir (anotado para más adelante)**:
+- Los contadores de "voto de consenso" (`votes_available`/`votes_depleted`
+  en `aid_points`, insumos de hospitales) se leen-y-escriben sin bloqueo —
+  bajo peticiones simultáneas MUY rápidas de la misma cuenta, el conteo
+  numérico puede desincronizarse ligeramente (típico "TOCTOU"/race
+  condition). No es explotable como fuga ni como bypass real: la tabla
+  `consensus_votes` sigue garantizando un solo voto por cuenta gracias a su
+  restricción única, así que como mucho el NÚMERO mostrado queda un poco
+  impreciso, no falso a voluntad. Arreglarlo bien requeriría un incremento
+  atómico en la base de datos (función SQL/RPC) — cambio más grande, no
+  urgente dado el impacto real.
+
+Verificado con `npm run build` (verde) tras aplicar las dos correcciones.
+
+---
+
+## 10) Cuarta ronda (2026-07-01) — modelo de amenazas específico del stack
+
+A propuesta del dueño: en vez de seguir una checklist genérica de OWASP (gran
+parte no aplica — sin Docker/Kubernetes expuesto, sin Java/PHP/XML/GraphQL,
+sin backend propio más allá de Server Actions), se hizo un modelo de amenazas
+acotado a lo que este stack (Next.js 15 + Supabase + nginx) puede tener de
+verdad, priorizado así: control de acceso → lógica de negocio → subida de
+archivos → Server Actions/API → denegación de servicio.
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | **El EXIF de las fotos podía sobrevivir la subida** — `compressImage` (`src/lib/image.ts`) recomprime toda foto en un `<canvas>` antes de subirla, lo cual borra metadatos como sido efecto colateral (los canvas no los guardan) — **pero** si la versión comprimida salía más pesada que la original (pasa con fotos ya optimizadas, ej. capturas de pantalla), la función devolvía el archivo **original sin tocar**, con su EXIF completo — que en una foto tomada con el celular casi siempre incluye la coordenada GPS **exacta** de dónde se tomó. Cualquier foto subida al sitio (persona, mascota, punto de ayuda, foto de perfil) podía filtrar la ubicación precisa de quien la subió, sin que lo supiera. | **Alta** | Se quitó el atajo: ahora siempre se sube la versión recomprimida (sin metadatos), nunca el archivo original — aunque pese un poco más. Confirmado que las 3 rutas de subida de fotos del sitio pasan por esta función. |
+
+**Control de acceso (IDOR/BOLA/escalada) — revisado función por función, sin hallazgos nuevos**:
+- Las 14 acciones "de autor" (`owner*Action` en `src/app/actions.ts`) y las
+  15 acciones de `src/app/admin/actions.ts` verifican permiso (token de
+  dueño, `canManageX`, o `isAdmin()`) como una de las primeras líneas,
+  siempre antes de mutar — confirmado con un barrido automatizado de las 56
+  Server Actions del archivo.
+- **Mass Assignment**: ningún esquema `zod` usa `.passthrough()`/`.any()`;
+  el código siempre extrae campo por campo (`getField(form, "x")`), nunca
+  esparce el `FormData` completo hacia la base de datos.
+- **Sesión/JWT**: `getCurrentUser()` usa `auth.getUser()` (revalida contra
+  el servidor de Supabase) y no `auth.getSession()` (que solo decodifica la
+  cookie sin confirmar con el servidor) — la diferencia importa para no
+  confiar en un JWT que el cliente pudiera manipular.
+- **RPC/funciones SQL**: solo existe una función en toda la base
+  (`touch_updated_at`, un trigger de fecha) — sin `SECURITY DEFINER` ni SQL
+  dinámico en ningún lado.
+
+**Denegación de servicio y otros, revisados sin hallazgos que ameriten
+corrección inmediata**:
+- Paginación: `clampPageSize` usa lista blanca explícita (10/20/50);
+  `pageSize=999999` es imposible, no solo "poco probable".
+- `_next/image` no se puede usar como proxy hacia dominios externos
+  (`remotePatterns` restringido a Supabase).
+- `sharp` en versión reciente (0.34.5), sin CVEs conocidas aplicables.
+- **Pendiente de bajo impacto, sin tocar**: los campos de búsqueda (`?q=`)
+  no tienen límite explícito de longitud. Riesgo real bajo (la búsqueda de
+  texto de Postgres no es vulnerable a un patrón tipo ReDoS como sí lo
+  sería un regex mal escrito), pero sería una mejora barata de defensa en
+  profundidad — tocaría bastantes archivos (cada página con buscador), se
+  dejó pendiente por ser bajo impacto frente al resto de esta ronda.
+
+Verificado con `npm run build` (verde) tras aplicar la corrección.
+
+---
+
 *Este informe cubre el código de la aplicación y su configuración conocida.
 No sustituye una revisión de la configuración real de Supabase (políticas de
 bucket, RLS aplicado tal cual en producción) ni del servidor VPS en vivo —

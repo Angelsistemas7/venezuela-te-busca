@@ -76,8 +76,24 @@ Comandos útiles: `pm2 status`, `pm2 logs elmundotebusca`, `pm2 reload elmundote
 
 ## 3) nginx (reverse proxy) + SSL
 
+> ⚠️ **Seguridad**: agrega el bloque `server { ... default_server ... return 444; }`
+> de abajo ANTES del bloque real. Sin él, nginx acepta cualquier `Host` que
+> alguien mande directo a la IP del VPS (saltándose Cloudflare y el dominio
+> real) y lo reenvía igual a la app — la app ya no confía en esa cabecera
+> para nada sensible (se corrigió en el código), pero es mejor cortarlo aquí,
+> en el borde, para que ni siquiera le llegue a la app.
+
 Crea `/etc/nginx/sites-available/elmundotebusca` :
 ```nginx
+# Rechaza cualquier petición con un Host desconocido (IP directa, dominio
+# ajeno) ANTES de que llegue a la app. Sin esto, este bloque sería el que
+# nginx usa "por defecto" para hosts que no reconoce.
+server {
+    listen 80 default_server;
+    server_name _;
+    return 444;   # cierra la conexión sin responder nada
+}
+
 server {
     listen 80;
     server_name elmundotebusca.com www.elmundotebusca.com;

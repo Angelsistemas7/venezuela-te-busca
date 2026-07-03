@@ -182,8 +182,13 @@ export default async function MapaPage() {
   // Capa "Puedo ayudar": voluntarios + publicaciones tipo `ofrezco`, con ubicación.
   const helps: HelpMarker[] = [
     ...volunteers.map((v) => {
-      const coord: [number, number] | null =
-        v.lat != null && v.lng != null ? [v.lat, v.lng] : geocode(v.locationText, v.estado, v.id);
+      // A diferencia de puntos de ayuda/hospitales (lugares físicos que la
+      // gente PUBLICA para que los encuentren exacto), un voluntario es una
+      // PERSONA privada — mostrar su GPS exacto en el mapa público filtraría
+      // dónde vive/está exactamente, con su nombre y WhatsApp al lado.
+      // Siempre aproximado (mismo sector/estado, con variación aleatoria),
+      // nunca la coordenada exacta que haya dado al registrarse.
+      const coord = geocode(v.locationText, v.estado, v.id);
       if (!coord) return null;
       const detail = [v.skillsText, v.availabilityText].filter(Boolean).join(" · ");
       return {

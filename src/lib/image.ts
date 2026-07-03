@@ -3,12 +3,20 @@
 // Comprime y redimensiona una imagen en el navegador ANTES de subirla.
 // Una foto de ~2–5 MB baja a ~100–250 KB en WebP, sin pérdida visible. Esto
 // reduce drásticamente el costo de almacenamiento y de ancho de banda.
-
+//
+// Efecto de seguridad IMPORTANTE (no accidental, a propósito): dibujar la
+// imagen en un <canvas> y re-exportarla borra TODOS los metadatos EXIF —
+// incluida la coordenada GPS exacta donde se tomó la foto, que la cámara del
+// teléfono guarda ahí sin que la persona lo note. Por eso esta función SIEMPRE
+// devuelve la versión recomprimida cuando el navegador pudo procesarla, aunque
+// pese un poco más que el original — nunca hay que devolver el archivo
+// original tal cual si ya se pudo re-codificar, o se perdería esa limpieza.
 export async function compressImage(
   file: File,
   { maxDim = 1280, quality = 0.82 }: { maxDim?: number; quality?: number } = {},
 ): Promise<File> {
-  // Si no es imagen o el navegador no soporta canvas, devolvemos el original.
+  // Si no es imagen o el navegador no soporta canvas, no hay forma de limpiar
+  // metadatos aquí — se sube el original (caso raro: navegador muy viejo).
   if (!file.type.startsWith("image/")) return file;
 
   try {
@@ -29,9 +37,6 @@ export async function compressImage(
       canvas.toBlob(resolve, "image/webp", quality),
     );
     if (!blob) return file;
-
-    // Si por alguna razón quedó más grande que el original, usamos el original.
-    if (blob.size >= file.size) return file;
 
     const name = file.name.replace(/\.[^.]+$/, "") + ".webp";
     return new File([blob], name, { type: "image/webp" });
