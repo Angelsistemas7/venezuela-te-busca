@@ -549,6 +549,70 @@ auditoría externa con herramientas reales (Burp, ZAP, etc.).
 
 ---
 
+## 16) Cierre formal de la fase estática — veredicto
+
+Con nueve rondas encima, este es el veredicto de cierre, con el mismo
+lenguaje calibrado que se ha usado en todo el informe:
+
+**La fase de revisión estática del código está razonablemente agotada.** No
+porque sea imposible encontrar otro defecto leyendo más código, sino porque
+el retorno esperado de seguir haciéndolo ya es bajo frente al esfuerzo.
+
+Importa que los ocho hallazgos de esta fase no fueron cosméticos — fueron
+huecos reales, corregidos:
+
+| # | Hallazgo | Ronda |
+|---|---|---|
+| 1 | Confianza indebida en encabezados HTTP (`Host`, IP de cliente) | Frontera de confianza |
+| 2 | Metadatos EXIF (GPS) expuestos en fotos subidas | Invariantes de negocio |
+| 3 | Archivos huérfanos en Storage al borrar publicaciones | Invariantes de negocio |
+| 4 | `fetch()` sin timeout en `verifyTurnstile` (bloqueaba las 16+ acciones de publicar) | Supuestos implícitos |
+| 5 | Falta de índices trigram en búsquedas `ILIKE` (DoS lógico) | Base de datos |
+| 6 | Casts de TypeScript (`as`) que omitían validación real del tipo de entidad | Supuestos implícitos |
+| 7 | Canal lateral de tiempos en el login (username enumeration) | Técnicas avanzadas |
+| 8 | Normalización inconsistente de correo (username sí, recovery email no) | Técnicas avanzadas |
+
+**¿Queda alguna familia "secreta" de vulnerabilidades de foros o bug
+bounty?** No. Lo que existe es investigación *continua* — nuevas variantes
+de request smuggling y parser differentials, cache poisoning, fallos de
+HTTP/2-HTTP/3, bugs específicos de navegador, CVEs nuevos en dependencias,
+lógica de negocio particular de cada app — pero eso no es una lista cerrada
+que se agote leyendo un repositorio una vez más. Es vigilancia continua
+(`npm audit`, changelog de Next.js/Supabase), no una tarea que "se termina".
+
+**Si esto fuera una auditoría profesional, el informe diría:**
+
+> La revisión estática del código ha alcanzado una cobertura alta para el
+> stack analizado. Se identificaron y corrigieron múltiples vulnerabilidades
+> relevantes. No se identifican vulnerabilidades críticas evidentes
+> adicionales mediante análisis estático. Las actividades restantes con
+> mayor probabilidad de producir nuevos hallazgos corresponden a pruebas
+> dinámicas, revisión de infraestructura y evaluación operacional.
+
+**Siguiente fase recomendada** (en orden de lo más al alcance de este equipo
+a lo que requiere herramientas externas):
+
+1. **Auditoría de infraestructura en vivo** — Cloudflare (reglas, cache,
+   WAF), nginx (`default_server`, `server_tokens off` — ya documentado en
+   `docs/DESPLIEGUE-VPS.md`, falta confirmarlo aplicado), TLS, DNS,
+   configuración real de Supabase (bucket policies, RLS tal cual aplicado en
+   producción, no solo en `schema.sql`) y rotación de secretos. Esto sí lo
+   podemos hacer juntos, panel por panel, sin herramientas adicionales.
+2. **Pruebas dinámicas** — autenticadas y no autenticadas, con Burp Suite u
+   OWASP ZAP. Alcance ya preparado en `docs/BRIEF-AUDITORIA-EXTERNA.md`.
+3. **Pruebas de carga y concurrencia** — validar comportamiento bajo estrés
+   y condiciones de carrera reales (no solo razonadas), con k6 o similar.
+4. **Monitorización y respuesta** — registros útiles, alertas, rotación de
+   claves periódica, procedimiento de actualización de dependencias.
+
+Se cierra formalmente la fase estática. No porque el sistema se considere
+perfecto — ninguna auditoría puede afirmar eso — sino porque la siguiente
+etapa (infraestructura viva y pruebas dinámicas) es donde existe una
+probabilidad significativamente mayor de encontrar algo nuevo. Ese cambio de
+enfoque es el que siguen las auditorías profesionales maduras.
+
+---
+
 *Este informe cubre el código de la aplicación y su configuración conocida.
 No sustituye una revisión de la configuración real de Supabase (políticas de
 bucket, RLS aplicado tal cual en producción) ni del servidor VPS en vivo —
