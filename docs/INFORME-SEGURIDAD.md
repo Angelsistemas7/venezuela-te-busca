@@ -403,11 +403,39 @@ Verificado con `npm run build` (verde). Los índices nuevos no cambian
 comportamiento, solo rendimiento — se aplican solos al volver a correr
 `supabase/schema.sql` (es idempotente).
 
+---
+
+## 13) Séptima ronda (2026-07-03) — auditoría de "supuestos"
+
+Última fase de revisión estática: no el código en sí, sino todo lo que el
+código **asume** sin decirlo — variables de entorno con valores por defecto,
+`try/catch` que esconden fallos, casts sin validar, `fetch()` sin límite de
+tiempo, cachés que crecen sin límite, parsers, recursión.
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | **`verifyTurnstile` era el único `fetch()` del servidor sin timeout** — los demás (`news.ts`, `usgs.ts`, `ogImage.ts`) ya tenían `AbortSignal.timeout(...)`. Esta función se llama en las 16+ acciones de crear contenido del sitio entero: si el endpoint de Cloudflare alguna vez se cuelga o tarda de más, cada publicación del sitio se quedaría esperando indefinidamente, sin salida. | **Media** | `AbortSignal.timeout(6000)` agregado (`src/lib/turnstile.ts`), igual que en el resto de `fetch()` del proyecto. El `catch` ya fallaba cerrado (`return false`), eso ya estaba bien. |
+
+**Revisado a fondo, sin hallazgos nuevos**:
+- **Variables de entorno / fallbacks inseguros**: todo `process.env.X ?? / ||` revisado uno por uno — los únicos que cambian comportamiento por ausencia (`ADMIN_TOKEN`, `TURNSTILE_SECRET_KEY`, `siteOrigin`) ya fallan CERRADO en producción (ya corregido en rondas anteriores), abierto solo en desarrollo.
+- **`try/catch` que esconden fallos**: sin ningún `catch { return true }` ni `catch {}` completamente vacío en todo `src/` — los `catch` silenciosos que sí existen (localStorage, `compressImage`, fetches de terceros) todos devuelven un valor de *respaldo seguro*, no un "todo bien" falso.
+- **`as any` / casts sin validar**: 9 usos de `as any[]` en `data.ts`, todos inmediatamente encauzados por un mapeador (`rowToX`) que solo copia campos conocidos uno por uno — no hay forma de que un campo extra de la base "se cuele" al cliente por ahí. Cero *non-null assertions* (`!`) en todo el proyecto.
+- **`TODO`/`XXX`/`BUG`/`WORKAROUND`/`IGNORE`** y comentarios tipo "no validamos esto porque...": ninguno en el código.
+- **Regex dinámicas**: cero `new RegExp()` construidas con datos de usuario — todas las expresiones regulares del proyecto son literales fijas en el código, sin riesgo de ReDoS por esa vía.
+- **`JSON.parse`**: un solo uso, leyendo `localStorage` (dato del propio navegador, nunca de otro usuario), ya envuelto en `try/catch` con valor de respaldo.
+- **`new URL()`**: 6 usos, todos ya revisados en rondas anteriores (extracción de ruta de Storage, guardia de open-redirect, aviso de enlace externo, validación de foto).
+- **`Promise.all()`**: los 4 usos en `data.ts`/`actions.ts` son siempre lecturas en paralelo, nunca escrituras combinadas — no hay riesgo de que una falle y dañe la otra.
+- **Cachés/`Map`/`Set` a nivel de módulo**: revisados todos — `savedStore.ts` es una caché del NAVEGADOR (dura lo que dura la pestaña, un usuario), no del servidor. El único caso de caché de servidor sin límite (el freno de fuerza bruta de `/admin`) ya se corrigió en la ronda anterior.
+- **Recursión / parsers propios**: ninguna función se llama a sí misma en todo el proyecto; el único "parser" es el decodificador de RSS (expresiones simples, sin anidamiento, ya revisado).
+
+Verificado con `npm run build` (verde) tras aplicar la corrección.
+
 ## Nota final sobre el alcance de esta auditoría
 
-Seis rondas de revisión de código (control de acceso, subida de archivos,
-lógica de negocio/invariantes, y ahora la base de datos) cubren
-prácticamente todo lo que un análisis **estático** puede responder para este
+Siete rondas de revisión de código (control de acceso, subida de archivos,
+lógica de negocio/invariantes, base de datos, y ahora los supuestos
+implícitos del código) cubren prácticamente todo lo que un análisis
+**estático** puede responder para este
 stack. Eso es una afirmación distinta a "la aplicación no tiene
 vulnerabilidades" — nadie puede garantizar eso solo leyendo código. Lo que
 queda por delante requiere **pruebas dinámicas** contra el sitio desplegado:

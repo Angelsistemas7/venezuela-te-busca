@@ -19,7 +19,11 @@ export async function verifyTurnstile(token: string | null, ip?: string): Promis
     body.append("response", token);
     if (ip) body.append("remoteip", ip);
 
-    const res = await fetch(VERIFY_URL, { method: "POST", body });
+    // Sin timeout, si Cloudflare se cuelga o tarda, TODA acción de publicar
+    // del sitio (16+ tipos) se queda esperando indefinidamente — es el único
+    // `fetch()` del servidor que no tenía uno (los demás, en `news.ts`/
+    // `usgs.ts`/`ogImage.ts`, ya lo tenían).
+    const res = await fetch(VERIFY_URL, { method: "POST", body, signal: AbortSignal.timeout(6000) });
     const data = (await res.json()) as { success: boolean };
     return data.success === true;
   } catch {
