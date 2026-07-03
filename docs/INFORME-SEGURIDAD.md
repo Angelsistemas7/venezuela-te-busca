@@ -430,11 +430,44 @@ tiempo, cachés que crecen sin límite, parsers, recursión.
 
 Verificado con `npm run build` (verde) tras aplicar la corrección.
 
+---
+
+## 14) Octava ronda (2026-07-03) — fronteras de confianza (Trust Boundary Review)
+
+Última fase de revisión estática: no vulnerabilidades ni supuestos, sino
+**cada punto donde el sistema confía en algo externo** (cabeceras, cookies,
+query params, Turnstile, Storage, variables de entorno) — y comprobar que
+esa confianza está bien justificada en cada uno.
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | **La "IP" del freno de fuerza bruta de `/admin` era falseable.** `X-Forwarded-For` lo arma nginx AÑADIENDO la IP real al final de lo que el cliente ya mandó, sin reemplazarlo — cualquiera podía mandar su propio `X-Forwarded-For: 1.2.3.4` y el código tomaba ese valor falso (`split(",")[0]`), no el real. Bastaba con rotar ese encabezado en cada intento para saltarse por completo el bloqueo de 5 intentos/15 min. Además, con Cloudflare ahora por delante, la IP que nginx SÍ ve directamente (`$remote_addr`, usada en `X-Real-IP`) pasó a ser la del borde de Cloudflare, no la del visitante real — dos problemas del mismo origen: no quedaba claro en qué cabecera confiar para saber quién es quién. | **Media** | `clientIp()` ahora usa `CF-Connecting-IP` primero — la pone Cloudflare mismo y SOBRESCRIBE cualquier valor que el cliente haya mandado, no se puede falsear (mientras el `default_server` de nginx, ya documentado, siga bloqueando quien le pegue directo a la IP del VPS). El resto queda como respaldo para desarrollo local, sin Cloudflare. |
+
+**Trazado un flujo completo de extremo a extremo** (Registrar persona →
+publicar → mostrar → borrar), como pediste con el "Data Flow Review", para
+confirmar que no queda ningún salto de confianza sin verificar:
+`RegisterPersonButton` (foto: EXIF ya limpio, MIME validado) → Turnstile
+(con timeout) → `personSchema` de zod (límites en todos los campos) →
+`isSafePhotoUrl` (revalidada en el servidor, no solo en el cliente) →
+`createPerson` con `service_role` (el único punto con privilegio elevado,
+llega ahí ya con todo verificado) → se muestra públicamente por diseño (RLS
+de solo lectura) → borrar exige el token exacto (`verifyOwner`) → el borrado
+ahora también limpia la foto del bucket y el token (`on delete cascade`) —
+sin huecos en ningún eslabón.
+
+**Revisado, ya bien resuelto en rondas anteriores**: fail-secure de
+Turnstile/`ADMIN_TOKEN` (fallan cerrado en producción, abiertos solo en
+desarrollo); privilegio mínimo (todas las verificaciones de permiso ocurren
+ANTES de tocar `service_role`, nunca después); rotación/exposición de
+secretos (viven solo en el `.env` del VPS, nunca en git ni en el cliente).
+
+Verificado con `npm run build` (verde) tras aplicar la corrección.
+
 ## Nota final sobre el alcance de esta auditoría
 
-Siete rondas de revisión de código (control de acceso, subida de archivos,
-lógica de negocio/invariantes, base de datos, y ahora los supuestos
-implícitos del código) cubren prácticamente todo lo que un análisis
+Ocho rondas de revisión de código (control de acceso, subida de archivos,
+lógica de negocio/invariantes, base de datos, supuestos implícitos, y ahora
+fronteras de confianza) cubren prácticamente todo lo que un análisis
 **estático** puede responder para este
 stack. Eso es una afirmación distinta a "la aplicación no tiene
 vulnerabilidades" — nadie puede garantizar eso solo leyendo código. Lo que

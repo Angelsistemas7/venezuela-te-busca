@@ -37,8 +37,23 @@ function pruneAttempts(): void {
   }
 }
 
+// Frontera de confianza: ¿de dónde sale la IP en la que confiamos para el
+// freno de fuerza bruta? `X-Forwarded-For` lo pone nginx con
+// `$proxy_add_x_forwarded_for`, que AÑADE la IP real al final de lo que el
+// cliente ya mandó — no lo reemplaza. Cualquiera puede mandar su propio
+// "X-Forwarded-For: 1.2.3.4" y quedaría primero en la lista; tomar
+// `split(",")[0]` (como hacía antes) toma ese valor FALSEADO, no el real —
+// bastaba con rotar ese encabezado para saltarse el bloqueo de 5 intentos.
+// Con Cloudflare por delante, `CF-Connecting-IP` es la fuente correcta: la
+// pone Cloudflare mismo y SOBRESCRIBE cualquier valor que el cliente haya
+// mandado, así que no se puede falsear (mientras nadie le pegue directo a
+// la IP del VPS saltándose Cloudflare — para eso está el `default_server`
+// documentado en docs/DESPLIEGUE-VPS.md). Sin Cloudflare (desarrollo local),
+// se usa el resto como respaldo.
 async function clientIp(): Promise<string> {
   const h = await headers();
+  const cf = h.get("cf-connecting-ip");
+  if (cf) return cf.trim();
   const fwd = h.get("x-forwarded-for");
   return (fwd ? fwd.split(",")[0].trim() : null) || h.get("x-real-ip") || "unknown";
 }
