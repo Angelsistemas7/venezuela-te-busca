@@ -89,6 +89,27 @@ create index if not exists persons_created_idx       on persons (created_at desc
 create index if not exists persons_search_idx        on persons using gin (search_doc);
 create index if not exists persons_name_trgm_idx     on persons using gin ((first_name || ' ' || last_name) gin_trgm_ops);
 
+-- Migración para bases ya creadas: `posts`, `complaints`, `pets` y
+-- `volunteers` buscan con `ILIKE '%texto%'` en varias columnas (comunidad,
+-- denuncias, mascotas, voluntarios) SIN ningún índice que lo respalde —
+-- a diferencia de `persons` (arriba). Sin índice, cada búsqueda escanea la
+-- tabla entera fila por fila; sin límite de peticiones, es una forma barata
+-- de generar carga cara en la base a medida que estas tablas crezcan. Un
+-- índice `gin_trgm_ops` por columna deja que Postgres combine los que hagan
+-- falta (`BitmapOr`) en vez de recorrer todo.
+create index if not exists posts_body_trgm_idx          on posts using gin (body gin_trgm_ops);
+create index if not exists posts_location_trgm_idx      on posts using gin (location_text gin_trgm_ops);
+create index if not exists posts_author_trgm_idx         on posts using gin (author_name gin_trgm_ops);
+create index if not exists complaints_body_trgm_idx      on complaints using gin (body gin_trgm_ops);
+create index if not exists complaints_location_trgm_idx  on complaints using gin (location_text gin_trgm_ops);
+create index if not exists complaints_author_trgm_idx    on complaints using gin (author_name gin_trgm_ops);
+create index if not exists pets_name_trgm_idx            on pets using gin (name gin_trgm_ops);
+create index if not exists pets_description_trgm_idx     on pets using gin (description gin_trgm_ops);
+create index if not exists pets_location_trgm_idx        on pets using gin (location_text gin_trgm_ops);
+create index if not exists volunteers_name_trgm_idx      on volunteers using gin (name gin_trgm_ops);
+create index if not exists volunteers_skills_trgm_idx    on volunteers using gin (skills_text gin_trgm_ops);
+create index if not exists volunteers_location_trgm_idx  on volunteers using gin (location_text gin_trgm_ops);
+
 -- ── Propietario de la publicación (token privado de gestión) ────────────────
 -- Tabla aparte y SIN lectura pública: el token es secreto. Solo el servidor
 -- (service role) lo lee para verificar al autor. Permite que quien publicó

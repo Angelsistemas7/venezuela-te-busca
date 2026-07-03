@@ -363,6 +363,63 @@ Verificado con `npm run build` (verde) tras aplicar las tres correcciones.
 
 ---
 
+## 12) Sexta ronda (2026-07-01) — base de datos: constraints, índices, migraciones
+
+Última fase de revisión estática: no el código de la app, sino
+`supabase/schema.sql` en sí — constraints, índices, historial de migraciones,
+funciones/triggers, cron jobs.
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | **Búsquedas sin índice en 4 tablas** (`posts`, `complaints`, `pets`, `volunteers`): buscan con `ILIKE '%texto%'` en varias columnas a la vez, sin ningún índice que lo respalde — a diferencia de `persons`, que ya tenía índices `GIN`/trigram para esto. Sin índice, cada búsqueda escanea la tabla completa fila por fila; combinado con que no hay límite de peticiones de búsqueda, es una forma barata de generar carga cara en la base a medida que esas tablas crezcan (justo el patrón "10 ms → 8.000 ms" de una consulta sin índice). | **Media** (crece con el tiempo, no es explotable "ahora" con pocos datos, pero sí lo será) | 12 índices `gin_trgm_ops` nuevos, uno por columna buscada en esas 4 tablas (`supabase/schema.sql`) — mismo patrón que ya usaba `persons`. |
+
+**Revisado a fondo, sin hallazgos (invariantes de base de datos correctas)**:
+- **Historial de migraciones**: revisado con `git log -p` sobre todo el
+  historial de `schema.sql` — RLS nunca se desactivó en ningún punto, no
+  hay policies "temporales" tipo `for all using (true)` que hayan quedado
+  activas u olvidadas.
+- **Constraints**: cada `CHECK` de enum coincide exactamente con lo que
+  valida `zod` en el servidor (doble verificación, no contradictoria).
+  Cada `FOREIGN KEY` de la base tiene un `ON DELETE` explícito (`cascade` o
+  `set null`) — ninguna se dejó en el valor por defecto de Postgres
+  (`RESTRICT`, que bloquearía el borrado en vez de resolverlo).
+- **UNIQUE/PRIMARY KEY**: `person_owners`/`resource_owners` (los tokens de
+  gestión) tienen como llave primaria exactamente `(person_id)` /
+  `(entity_type, entity_id)` — un solo token posible por recurso, no puede
+  haber ambigüedad. `app_roles`/`resource_managers`/`consensus_votes` igual,
+  sin duplicados posibles.
+- **Cron jobs / triggers / funciones SQL**: sin `pg_cron`. Solo existe una
+  función en toda la base (`touch_updated_at`, un trigger de fecha, sin
+  `SECURITY DEFINER` ni SQL dinámico — ya revisado en una ronda anterior).
+- **Valores numéricos extremos**: `age`/`lat`/`lng` en `zod` siempre tienen
+  `.min()`/`.max()` explícitos — `Infinity`, `-Infinity` y valores fuera de
+  rango se rechazan solos (Zod los excluye del rango numérico), no hay forma
+  de colar un valor absurdo en esas columnas.
+- **Zonas horarias**: todo timestamp en el esquema es `timestamptz`
+  (con zona horaria, gestionado por Postgres) — no hay aritmética manual de
+  fechas en el código que pudiera desincronizarse.
+
+Verificado con `npm run build` (verde). Los índices nuevos no cambian
+comportamiento, solo rendimiento — se aplican solos al volver a correr
+`supabase/schema.sql` (es idempotente).
+
+## Nota final sobre el alcance de esta auditoría
+
+Seis rondas de revisión de código (control de acceso, subida de archivos,
+lógica de negocio/invariantes, y ahora la base de datos) cubren
+prácticamente todo lo que un análisis **estático** puede responder para este
+stack. Eso es una afirmación distinta a "la aplicación no tiene
+vulnerabilidades" — nadie puede garantizar eso solo leyendo código. Lo que
+queda por delante requiere **pruebas dinámicas** contra el sitio desplegado:
+concurrencia real (no solo razonada), fuzzing, comportamiento HTTP
+(smuggling, slowloris), resistencia real a carga, y una revisión de la
+configuración de Supabase/VPS tal como está funcionando en producción, no
+solo como está descrita en este repositorio. Esa es la siguiente fase
+recomendada — ver `docs/BRIEF-AUDITORIA-EXTERNA.md` para el alcance de una
+auditoría externa con herramientas reales (Burp, ZAP, etc.).
+
+---
+
 *Este informe cubre el código de la aplicación y su configuración conocida.
 No sustituye una revisión de la configuración real de Supabase (políticas de
 bucket, RLS aplicado tal cual en producción) ni del servidor VPS en vivo —
