@@ -463,19 +463,87 @@ secretos (viven solo en el `.env` del VPS, nunca en git ni en el cliente).
 
 Verificado con `npm run build` (verde) tras aplicar la corrección.
 
+---
+
+## 15) Novena ronda (2026-07-03) — técnicas de investigación avanzadas (bug bounty / PortSwigger)
+
+Última pasada: líneas de investigación de los últimos años (James Kettle,
+PortSwigger Web Security Research) que casi nunca aparecen en checklists
+tradicionales — diferencias entre parsers, canales de tiempo, confusión de
+cabeceras/cookies, máquinas de estado. Triado explícito: la mitad de esta
+lista compara cómo interpretan bytes sistemas DISTINTOS (Cloudflare, nginx,
+Node) — eso, por definición, no se puede determinar leyendo el código de
+uno solo de ellos. Lo demás sí se revisó en código.
+
+| # | Hallazgo | Severidad | Corrección aplicada |
+|---|---|---|---|
+| 1 | **Email Parser Attacks**: el correo de recuperación se guardaba tal cual lo escribiera la persona (`Juan@Gmail.com`), sin pasar a minúsculas — a diferencia del nombre de usuario, que sí. Supabase Auth normaliza internamente el correo; si `profiles.recovery_email`/`login_email` quedaban con mayúsculas mezcladas, la recuperación de contraseña (que busca por ese valor exacto) podía fallar en silencio para cualquiera que escribiera su correo con mayúsculas. | **Baja** (bug de funcionalidad con tinte de seguridad — cuenta que no se puede recuperar) | `email.trim().toLowerCase()` aplicado en `signUp()` y `updateRecoveryEmail()` (`src/lib/auth.ts`), igual que ya se hacía con el usuario. |
+| 2 | **Timing Side Channel en el login**: si el usuario NO existe, la función devolvía de inmediato tras una sola consulta; si SÍ existe, además llamaba a Supabase para comparar la contraseña (con bcrypt, deliberadamente lento) — esa diferencia de tiempo, medible con suficientes intentos, revela qué nombres de usuario existen aunque el mensaje de error sea siempre genérico. Es exactamente la técnica que ha popularizado James Kettle en los últimos años: más práctica hoy de lo que solía ser. | **Baja** (requiere medición estadística con muchos intentos; mitigado, no eliminado del todo — un canal de tiempo nunca se cierra al 100%) | Cuando el usuario no existe, ahora igual se hace un intento de login (con una clave que nunca puede ser válida) antes de responder, para parejar el tiempo de las dos rutas (`src/lib/auth.ts`). |
+
+**Revisado, no aplica a este stack (razones explícitas)**:
+- **Parser Differential Attacks / Header Confusion / Host Confusion /
+  Cookie Confusion / Duplicate Parameter Pollution / JSON Differential
+  Parsing** — todas comparan cómo interpretan los MISMOS bytes sistemas
+  DISTINTOS (Cloudflare, nginx, Node). Por definición no se puede responder
+  leyendo el código fuente de uno solo — hace falta mandar tráfico
+  deliberadamente ambiguo y observar qué hace cada capa. Ver recomendación
+  de fase dinámica abajo.
+- **Multi-layer Cache** — ya revisado en una ronda anterior desde el ángulo
+  de cache poisoning (sin `Cache-Control` manual en ningún lado); la parte
+  de "qué cachea Cloudflare de verdad" es configuración, no código.
+- **Prototype Pollution** — no se provoca en código propio (sin `merge`/
+  `Object.assign` con datos de usuario sin filtrar); si apareciera, vendría
+  de una dependencia de terceros — cubierto por `npm audit`, ya revisado.
+- **Request Tunneling / HTTP2 / Compression Oracle entre capas / Browser
+  Quirks** — todo esto es comportamiento de red y de navegador, no del
+  código de la aplicación.
+- **Edge Computing Bugs**: sin `export const runtime = "edge"` en ningún
+  archivo — todo corre en Node estándar, esa superficie no existe aquí.
+- **Hidden Parameter Mining**: revisado — sin `?debug=`, `?preview=`,
+  `?admin=`, `?internal=` ni nada similar en ningún `searchParams.get()`
+  o `form.get()` del proyecto.
+- **Serialization Bugs**: todas las fechas se guardan y pasan como texto
+  ISO (`createdAt: string`), nunca como objeto `Date` — evitado por diseño
+  desde el principio, no por casualidad.
+- **Hydration Attacks**: ya se encontró y corrigió un caso EXACTO de esto
+  en una ronda anterior (`ShareWhatsApp.tsx`, la URL calculada distinto en
+  servidor y navegador) — categoría ya cazada una vez, sin otra instancia
+  encontrada al revisar de nuevo.
+- **Service Boundary (Storage → CDN → navegador)**: ya revisado — el bucket
+  es público de lectura a propósito (por diseño: las fotos deben verse sin
+  sesión), y la única entrada (subida) exige política `insert` explícita,
+  ya confirmada.
+- **Feature Interaction**: revisada la combinación que mencionaste de
+  ejemplo (Búsqueda + Compartir + Storage) — la búsqueda nunca expone más
+  campos de los que ya son públicos, y compartir solo usa fotos ya
+  validadas — no se encontró una fuga por la combinación de ambas.
+- **State Machine Bugs**: el estado de una persona (`por_localizar` →
+  `localizado`/`hospitalizado`/`fallecido`) puede moverse en CUALQUIER
+  dirección, incluso "hacia atrás" — pero eso es a propósito: el
+  autor/admin necesita poder corregir un error (ej. alguien marcado
+  "Confirmado sin vida" por una confusión). Esa transición libre está bien
+  porque solo la puede hacer quien ya está autorizado (`verifyOwner`/
+  `isAdmin`, revisado a fondo en la ronda de control de acceso) — nadie sin
+  autorización puede forzar ningún estado.
+
+Verificado con `npm run build` (verde) tras aplicar las dos correcciones.
+
 ## Nota final sobre el alcance de esta auditoría
 
-Ocho rondas de revisión de código (control de acceso, subida de archivos,
-lógica de negocio/invariantes, base de datos, supuestos implícitos, y ahora
-fronteras de confianza) cubren prácticamente todo lo que un análisis
-**estático** puede responder para este
-stack. Eso es una afirmación distinta a "la aplicación no tiene
-vulnerabilidades" — nadie puede garantizar eso solo leyendo código. Lo que
-queda por delante requiere **pruebas dinámicas** contra el sitio desplegado:
-concurrencia real (no solo razonada), fuzzing, comportamiento HTTP
-(smuggling, slowloris), resistencia real a carga, y una revisión de la
-configuración de Supabase/VPS tal como está funcionando en producción, no
-solo como está descrita en este repositorio. Esa es la siguiente fase
+Nueve rondas de revisión de código (control de acceso, subida de archivos,
+lógica de negocio/invariantes, base de datos, supuestos implícitos,
+fronteras de confianza, y ahora técnicas de investigación avanzadas de bug
+bounty) cubren prácticamente todo lo que un análisis **estático** puede
+responder para este stack. Eso es una afirmación distinta a "la aplicación
+no tiene vulnerabilidades" — nadie puede garantizar eso solo leyendo código.
+Lo que queda por delante requiere **pruebas dinámicas** contra el sitio
+desplegado: diferencias de interpretación entre Cloudflare/nginx/Node
+(parser differentials — la familia que originó el request smuggling
+moderno), concurrencia real (no solo razonada), fuzzing, comportamiento
+HTTP (smuggling, slowloris), resistencia real a carga, canales de tiempo
+medidos (no solo mitigados a ciegas), y una revisión de la configuración de
+Supabase/VPS tal como está funcionando en producción, no solo como está
+descrita en este repositorio. Esa es la siguiente fase
 recomendada — ver `docs/BRIEF-AUDITORIA-EXTERNA.md` para el alcance de una
 auditoría externa con herramientas reales (Burp, ZAP, etc.).
 

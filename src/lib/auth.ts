@@ -70,7 +70,13 @@ export async function signUp(input: SignupInput): Promise<AuthResult> {
   }
 
   const username = input.username.trim();
-  const email = (input.email ?? "").trim();
+  // En minúsculas SIEMPRE (igual que el nombre de usuario): Supabase Auth ya
+  // normaliza el correo internamente, así que si aquí se guardara tal cual
+  // lo escribió la persona (mayúsculas mezcladas), `profiles.recovery_email`
+  // podría quedar desincronizado de lo que Supabase realmente tiene — y la
+  // recuperación de contraseña, que busca por ese valor exacto, fallaría en
+  // silencio para cualquiera que haya escrito su correo con mayúsculas.
+  const email = (input.email ?? "").trim().toLowerCase();
 
   if (await isUsernameTaken(username)) {
     return { ok: false, error: "Ese nombre de usuario ya está en uso. Elige otro." };
@@ -130,8 +136,18 @@ export async function signIn(input: LoginInput): Promise<AuthResult> {
     .select("login_email, username")
     .eq("username_lower", input.username.trim().toLowerCase())
     .maybeSingle();
-  // Mensaje genérico: no revelamos si el usuario existe.
-  if (!prof) return { ok: false, error: "Usuario o contraseña incorrectos." };
+  // Mensaje genérico: no revelamos si el usuario existe. Pero el mensaje NO
+  // es la única forma de filtrar eso — si el usuario no existe, devolver de
+  // inmediato es MÁS RÁPIDO que si existe (ahí sí se llega a comparar la
+  // contraseña, que Supabase hace a propósito lento con bcrypt). Esa
+  // diferencia de tiempo, medida con suficientes intentos, ya revela cuáles
+  // nombres de usuario existen sin necesitar que el mensaje lo diga. Por eso,
+  // si no existe, igual se intenta un login (con una clave que nunca puede
+  // ser válida) para gastar un tiempo parecido antes de responder.
+  if (!prof) {
+    await sb.auth.signInWithPassword({ email: synthEmail("__no_such_user__"), password: input.password });
+    return { ok: false, error: "Usuario o contraseña incorrectos." };
+  }
 
   const { error } = await sb.auth.signInWithPassword({
     email: prof.login_email as string,
@@ -258,18 +274,19 @@ export async function updateAvatar(userId: string, url: string | null): Promise<
 export async function updateRecoveryEmail(userId: string, email: string | null): Promise<boolean> {
   const admin = getSupabaseAdmin();
   if (!admin) return false;
+  const normalizedEmail = email ? email.trim().toLowerCase() : null;
   const { data: prof } = await admin
     .from("profiles")
     .select("username")
     .eq("user_id", userId)
     .maybeSingle();
   if (!prof) return false;
-  const newLoginEmail = email || synthEmail(prof.username as string);
+  const newLoginEmail = normalizedEmail || synthEmail(prof.username as string);
   const { error: authErr } = await admin.auth.admin.updateUserById(userId, { email: newLoginEmail });
   if (authErr) return false;
   const { error } = await admin
     .from("profiles")
-    .update({ recovery_email: email, login_email: newLoginEmail })
+    .update({ recovery_email: normalizedEmail, login_email: newLoginEmail })
     .eq("user_id", userId);
   return !error;
 }
