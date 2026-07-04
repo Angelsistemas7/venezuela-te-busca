@@ -2188,8 +2188,18 @@ export async function createPost(
 
 // Publicaciones ligadas a una cuenta (para "Mis publicaciones" cross-device).
 // Solo aplica con Supabase; en demo no hay sesión, así que devuelve [].
+//
+// IMPORTANTE: esta lista se quedó desactualizada — `hospitals`, `complaints` y
+// `pets` ganaron su columna `user_id` en migraciones posteriores (ver
+// supabase/schema.sql), pero esta función nunca se extendió para incluirlas.
+// Resultado real: alguien que registra un hospital, una denuncia o una
+// mascota con su cuenta NUNCA las veía en "Mis publicaciones" (/perfil) NI
+// recibía avisos de comentarios nuevos en ellas (la campanita depende de
+// esta misma función). El perfil ya tenía listos los enlaces/etiquetas para
+// estos tres tipos (`PUBLIC_PATH`/`TYPE_LABEL` en app/perfil/page.tsx) —
+// solo faltaba traerlos aquí.
 export type MyPublication = {
-  type: "person" | "post" | "aid_point" | "march";
+  type: "person" | "post" | "aid_point" | "march" | "hospital" | "complaint" | "pet";
   id: string;
   title: string;
   createdAt: string;
@@ -2198,11 +2208,14 @@ export type MyPublication = {
 export async function getMyPublications(userId: string): Promise<MyPublication[]> {
   const sb = getSupabaseAdmin() ?? getSupabase();
   if (!sb) return [];
-  const [persons, posts, aids, marches] = await Promise.all([
+  const [persons, posts, aids, marches, hospitals, complaints, pets] = await Promise.all([
     sb.from("persons").select("id, first_name, last_name, created_at").eq("user_id", userId),
     sb.from("posts").select("id, body, created_at").eq("user_id", userId),
     sb.from("aid_points").select("id, name, created_at").eq("user_id", userId),
     sb.from("marches").select("id, title, created_at").eq("user_id", userId),
+    sb.from("hospitals").select("id, name, created_at").eq("user_id", userId),
+    sb.from("complaints").select("id, body, created_at").eq("user_id", userId),
+    sb.from("pets").select("id, name, created_at").eq("user_id", userId),
   ]);
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const out: MyPublication[] = [];
@@ -2222,6 +2235,15 @@ export async function getMyPublications(userId: string): Promise<MyPublication[]
   }
   for (const r of (marches.data ?? []) as any[]) {
     out.push({ type: "march", id: r.id, title: r.title || "Caravana", createdAt: r.created_at });
+  }
+  for (const r of (hospitals.data ?? []) as any[]) {
+    out.push({ type: "hospital", id: r.id, title: r.name || "Hospital", createdAt: r.created_at });
+  }
+  for (const r of (complaints.data ?? []) as any[]) {
+    out.push({ type: "complaint", id: r.id, title: String(r.body ?? "").slice(0, 40) || "Denuncia", createdAt: r.created_at });
+  }
+  for (const r of (pets.data ?? []) as any[]) {
+    out.push({ type: "pet", id: r.id, title: r.name || "Mascota", createdAt: r.created_at });
   }
   /* eslint-enable @typescript-eslint/no-explicit-any */
   out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));

@@ -21,6 +21,7 @@ import {
   supportComplaint,
   getCommentsForEntities,
   getMyPublications,
+  type MyPublication,
   getReportCountsForPersons,
   getSavedItems,
   getSavedKeys,
@@ -266,9 +267,7 @@ export async function deleteAccountAction(
 }
 
 /** Publicaciones ligadas a la cuenta con sesión (cross-device). [] sin login. */
-export async function getMyPublicationsAction(): Promise<
-  { type: "person" | "post" | "aid_point" | "march"; id: string; title: string; createdAt: string }[]
-> {
+export async function getMyPublicationsAction(): Promise<MyPublication[]> {
   const user = await getCurrentUser();
   if (!user) return [];
   return getMyPublications(user.id);
