@@ -7,6 +7,9 @@ import { getLogoDataUrl, PLATFORM_BLURB, toEmbeddablePhoto } from "@/lib/ogImage
 // Mismo formato que la de una persona: foto real + estado + descripción.
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+// Ver la nota en persona/[id]/opengraph-image.tsx: sin esto se regenera
+// (BD + descarga de foto + sharp) en cada petición de WhatsApp/redes.
+export const revalidate = 3600;
 
 const STATUS_COLOR: Record<PetStatus, string> = {
   perdida: "#f43f5e",

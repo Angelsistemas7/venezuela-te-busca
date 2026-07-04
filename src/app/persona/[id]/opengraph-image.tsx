@@ -9,6 +9,14 @@ import { getLogoDataUrl, PLATFORM_BLURB, toEmbeddablePhoto } from "@/lib/ogImage
 // el logo. Sin acentos: la fuente por defecto de ImageResponse no los trae.
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+// Sin esto, esta imagen se regenera desde cero (consulta a la BD + descarga
+// de la foto + reconversión con sharp) en CADA petición — y WhatsApp/
+// Telegram/Facebook vuelven a pedirla cada vez que alguien reenvía el
+// enlace. Con la página compartiéndose activamente, eso compite por CPU con
+// el único proceso Node que atiende a todos los visitantes (ver
+// ecosystem.config.cjs: instances 1, fork). Una vista previa de compartir no
+// necesita ser al segundo: se cachea 1 hora.
+export const revalidate = 3600;
 
 const STATUS_COLOR: Record<PersonStatus, string> = {
   por_localizar: "#f43f5e",
