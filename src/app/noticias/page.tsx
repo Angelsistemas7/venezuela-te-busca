@@ -25,11 +25,11 @@ export default async function NoticiasPage() {
     getNewsItems("noticia").catch(() => []),
     isAdmin(),
   ]);
-  const heroComments = await getCommentsForEntities("hero", heroes.map((h) => h.id));
-  const newsComments = await getCommentsForEntities(
-    "news_item",
-    [...curatedAyuda, ...curatedNoticia].map((n) => n.id),
-  );
+  // Independientes entre sí: en paralelo en vez de una detrás de otra.
+  const [heroComments, newsComments] = await Promise.all([
+    getCommentsForEntities("hero", heroes.map((h) => h.id)),
+    getCommentsForEntities("news_item", [...curatedAyuda, ...curatedNoticia].map((n) => n.id)),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
