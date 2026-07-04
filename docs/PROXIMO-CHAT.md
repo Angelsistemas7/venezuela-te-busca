@@ -346,11 +346,57 @@ no hay cuentas en modo demostración).
   puede agregar `deleteMarchAction`/`deletePetAction` al panel más
   adelante.
 
+## Ronda nueva (2026-07-04): Perfil, Configuración, Notificaciones, roles
+Todo lo construido DESPUÉS de que la cola original de 10 secciones se cerró
+(Perfil, Configuración, campanita de notificaciones, roles/Colaboradores,
+rediseño de "¿La reconoces?") nunca pasó por este repaso. Se auditó y
+corrigió lo siguiente:
+
+- **Fix real de rendimiento en "¿La reconoces?"**: la baraja repetía a quien
+  ya se había marcado "no lo conozco"/"la reconozco" al recargar o volver con
+  el botón "atrás" (el avance vivía solo en memoria del componente). Ahora se
+  guarda por dispositivo en localStorage (mismo patrón que votos/"me gusta").
+  Se agregó también un apartado "Reconocidos" para revisar o deshacer marcas.
+- **Fix real de rendimiento**: las imágenes de vista previa de WhatsApp
+  (`/persona/[id]/opengraph-image`, `/mascotas/[id]/opengraph-image`) se
+  regeneraban con `sharp` en CADA petición sin caché — con la página
+  compartiéndose activamente, competía por CPU con el único proceso Node
+  (`ecosystem.config.cjs`: `instances:1`). Ahora `revalidate = 3600`.
+- **Fix real**: `ProfileMenu` volvía a pedir la sesión con
+  `getSessionUserAction()` aunque `AuthMenu` (su padre) ya la había pedido —
+  segunda ida y vuelta al servidor de más en cada carga, para cualquiera con
+  sesión iniciada. Ahora la recibe como prop.
+- **Bug real de hidratación (confirmado en consola)**: `FieldVolunteerBar`
+  tenía una variable mutable a nivel de MÓDULO (`shownThisLoad`) leída y
+  mutada durante el render, no en un `useEffect`. Como el servidor es un
+  proceso Node de PM2 que vive corriendo (no serverless por petición), esa
+  variable quedaba compartida entre visitantes distintos — el primero la
+  ponía en `true` para todos los que llegaran después, mientras cada pestaña
+  del navegador arranca su propio módulo desde cero: error de hidratación en
+  cada carga. Se movió la lógica a un `useEffect` (mismo tipo de bug que ya
+  se había corregido una vez en `ShareWhatsApp.tsx`; se revisó el resto de
+  `components/` y no hay otra variable mutable a nivel de módulo).
+- **Revisado, sin bugs**: `Perfil`, `Configuración`/`AccountSettings`,
+  `AvatarUpload`, `AccountBanner`, `SafetyBanner` — todos con `.press`,
+  estado inicial servido por el servidor (sin refetch redundante), sin
+  enlaces rotos (verificado contra las rutas reales de `src/app`).
+- **Pendiente, no se tocó**: `useNotifications()` (la campanita, en TODAS
+  las páginas) hace 2-3 llamadas de red en cada carga incluso para
+  visitantes anónimos sin publicaciones ni cuenta — el guard existente evita
+  la más cara (`getActivityForEntities`) cuando no hay nada que mostrar, pero
+  las dos primeras (`getMyPublicationsAction`/`getSavedItemsAction`) siempre
+  se disparan. Arreglarlo de raíz requeriría pasar el estado de sesión desde
+  un Server Component en vez de que cada componente cliente pregunte por su
+  cuenta — se intentó pasar la sesión desde `layout.tsx` para `AuthMenu` pero
+  se revirtió: convertía TODO el sitio de estático a dinámico (rompía el fix
+  ya documentado de Emergencias). Si se quiere resolver esto bien, hace falta
+  un enfoque que no toque el layout raíz.
+
 ## Siguiente en la cola
-**Ninguna — la auditoría profunda sección por sección terminó** (las 10
-secciones de la cola original están revisadas: Se busca, ¿La reconoces?,
-Comunidad, Mapa, Fichas de persona, Emergencias, Noticias, Hospitales,
-Voluntarios/Ayuda/Mascotas/Caravanas/Denuncias/Recursos, y ahora Admin).
+**Ninguna sección nueva pendiente** de la cola original (las 10 secciones
+están revisadas: Se busca, ¿La reconoces?, Comunidad, Mapa, Fichas de
+persona, Emergencias, Noticias, Hospitales,
+Voluntarios/Ayuda/Mascotas/Caravanas/Denuncias/Recursos, y Admin).
 Queda pendiente aplicar `FilterModal` a Voluntarios/Caravanas/Denuncias/
 Hospitales/Puntos de ayuda/Mascotas si no se hizo ya (revisar más arriba en
 este documento, ya se fue aplicando sección por sección) y los pendientes
