@@ -89,7 +89,7 @@ export function OwnerManagePanel({ person, token }: { person: Person; token: str
                 onClick={() => changeStatus(s)}
                 disabled={pending}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-60",
+                  "press flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-60",
                   active ? `${st.bg} ${st.text} border-transparent ring-2 ring-offset-1 ring-current` : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50",
                 )}
               >
@@ -109,7 +109,7 @@ export function OwnerManagePanel({ person, token }: { person: Person; token: str
           {!editing && (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+              className="press flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
             >
               <Pencil className="h-3.5 w-3.5" />
               Editar / corregir
@@ -171,10 +171,10 @@ export function OwnerManagePanel({ person, token }: { person: Person; token: str
             )}
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={() => setEditing(false)} className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+              <button type="button" onClick={() => setEditing(false)} className="press rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
                 Cancelar
               </button>
-              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60">
+              <button type="submit" disabled={saving} className="press flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 Guardar cambios
               </button>
@@ -195,7 +195,7 @@ export function OwnerManagePanel({ person, token }: { person: Person; token: str
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="mt-3 flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
+            className="press mt-3 flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
           >
             <Trash2 className="h-4 w-4" />
             Eliminar
@@ -203,10 +203,10 @@ export function OwnerManagePanel({ person, token }: { person: Person; token: str
         ) : (
           <div className="mt-3 flex items-center gap-3">
             <span className="text-sm font-medium text-rose-800">¿Seguro?</span>
-            <button onClick={remove} disabled={pending} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60">
+            <button onClick={remove} disabled={pending} className="press rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60">
               Sí, eliminar
             </button>
-            <button onClick={() => setConfirmDelete(false)} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white">
+            <button onClick={() => setConfirmDelete(false)} className="press rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white">
               Cancelar
             </button>
           </div>
