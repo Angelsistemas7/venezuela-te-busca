@@ -2407,7 +2407,13 @@ export interface ComplaintResult {
 // Antes traía hasta 200 denuncias de un tirón sin paginar. Ahora pagina de
 // verdad (10/20/50 a elegir), en vivo.
 export async function getComplaints(
-  filter: { category?: ComplaintCategory | "all"; search?: string } = {},
+  filter: {
+    category?: ComplaintCategory | "all";
+    search?: string;
+    estado?: string | "all";
+    dateFrom?: string;
+    dateTo?: string;
+  } = {},
   page = 1,
   pageSize = 10,
 ): Promise<ComplaintResult> {
@@ -2416,6 +2422,9 @@ export async function getComplaints(
     let items = mem.complaints.slice();
     if (filter.category && filter.category !== "all")
       items = items.filter((c) => c.category === filter.category);
+    if (filter.estado && filter.estado !== "all") items = items.filter((c) => c.estado === filter.estado);
+    if (filter.dateFrom) items = items.filter((c) => c.createdAt >= filter.dateFrom!);
+    if (filter.dateTo) items = items.filter((c) => c.createdAt <= `${filter.dateTo}T23:59:59.999Z`);
     if (filter.search) {
       const s = filter.search.toLowerCase().trim();
       items = items.filter((c) =>
@@ -2433,6 +2442,9 @@ export async function getComplaints(
   }
   let query = sb.from("complaints").select("*", { count: "exact" }).order("created_at", { ascending: false });
   if (filter.category && filter.category !== "all") query = query.eq("category", filter.category);
+  if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
+  if (filter.dateFrom) query = query.gte("created_at", filter.dateFrom);
+  if (filter.dateTo) query = query.lte("created_at", `${filter.dateTo}T23:59:59.999Z`);
   if (filter.search) {
     const s = filter.search.replace(/[,()*]/g, " ").trim();
     if (s) query = query.or(`body.ilike.%${s}%,location_text.ilike.%${s}%,author_name.ilike.%${s}%`);

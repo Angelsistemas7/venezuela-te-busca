@@ -4,6 +4,7 @@ import { getCommentsForEntities, getComplaints } from "@/lib/data";
 import {
   COMPLAINT_CATEGORY_EMOJI,
   COMPLAINT_CATEGORY_LABEL,
+  ESTADOS,
   type ComplaintCategory,
 } from "@/lib/types";
 import { cn, clampPageSize } from "@/lib/utils";
@@ -14,6 +15,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SwipeStaticRow } from "@/components/SwipeHint";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { FilterModal, type FilterField } from "@/components/FilterModal";
 
 export const dynamic = "force-dynamic";
 
@@ -33,24 +35,53 @@ const FILTERS: { value: ComplaintCategory | "all"; label: string }[] = [
   })),
 ];
 
+const FILTER_FIELDS: FilterField[] = [
+  {
+    kind: "select",
+    key: "estado",
+    label: "Estado (región)",
+    placeholder: "Todos",
+    options: ESTADOS.map((e) => ({ value: e, label: e })),
+  },
+  { kind: "dateRange", fromKey: "dateFrom", toKey: "dateTo", label: "Publicado entre" },
+];
+
 export default async function DenunciasPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const category = (str(sp.cat) as ComplaintCategory | "all") ?? "all";
   const q = str(sp.q);
+  const estado = str(sp.estado) ?? "all";
+  const dateFrom = str(sp.dateFrom);
+  const dateTo = str(sp.dateTo);
   const page = num(sp.page) ?? 1;
   const pageSize = clampPageSize(num(sp.pageSize));
 
-  const { items: complaints, total } = await getComplaints({ category, search: q }, page, pageSize);
+  const { items: complaints, total } = await getComplaints(
+    { category, search: q, estado, dateFrom, dateTo },
+    page,
+    pageSize,
+  );
   const commentsByComplaint = await getCommentsForEntities("complaint", complaints.map((c) => c.id));
 
   const catHref = (c: ComplaintCategory | "all") => {
     const params = new URLSearchParams();
     if (c !== "all") params.set("cat", c);
     if (q) params.set("q", q);
+    if (estado !== "all") params.set("estado", estado);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     if (pageSize !== 10) params.set("pageSize", String(pageSize));
     const qs = params.toString();
     return qs ? `/denuncias?${qs}` : "/denuncias";
   };
+
+  const currentParams: Record<string, string> = {};
+  if (category !== "all") currentParams.cat = category;
+  if (q) currentParams.q = q;
+  if (estado !== "all") currentParams.estado = estado;
+  if (dateFrom) currentParams.dateFrom = dateFrom;
+  if (dateTo) currentParams.dateTo = dateTo;
+  if (pageSize !== 10) currentParams.pageSize = String(pageSize);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -125,7 +156,8 @@ export default async function DenunciasPage({ searchParams }: { searchParams: Se
         ))}
       </SwipeStaticRow>
 
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <FilterModal basePath="/denuncias" currentParams={currentParams} fields={FILTER_FIELDS} />
         <PageSizeSelect value={pageSize} />
       </div>
 
