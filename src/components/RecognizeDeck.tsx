@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Info, MapPin, RotateCcw, Search, Undo2, X } from "lucide-react";
+import { Check, Info, MapPin, RotateCcw, Search, Trash2, Undo2, Users, X } from "lucide-react";
 import type { Comment, Person } from "@/lib/types";
 import { PERSON_STATUS_LABEL } from "@/lib/types";
 import { cn, statusStyle } from "@/lib/utils";
@@ -18,39 +19,110 @@ import { CommentSection } from "./CommentSection";
 // Además: tocar la foto la amplía; el botón ℹ️ abre sus datos y comentarios
 // SIN salir de la baraja; el botón ↺ deshace y vuelve a la tarjeta anterior.
 // También funciona con botones y con flechas del teclado (accesible).
+//
+// Persistencia: quién ya viste ("no lo conozco" / "la reconozco") se guarda
+// por DISPOSITIVO en localStorage (mismo patrón que los votos/"me gusta" del
+// resto del sitio, sin necesitar sesión) — así no vuelve a aparecer la misma
+// persona al recargar, volver con el botón "atrás" del navegador, o entrar de
+// nuevo más tarde. Sin esto, todo vivía solo en memoria del componente: al
+// desmontarse (p. ej. al navegar a la ficha de alguien y volver) se perdía y
+// la baraja empezaba de cero mostrando otra vez a quien ya se había pasado.
 
 const THRESHOLD = 110;
 const TAP_SLOP = 6; // movimiento máximo (px) para que cuente como toque, no arrastre
+const DECISION_KEY = (id: string) => `vtb_recognize_${id}`;
+type Decision = "pass" | "recognized";
 
 export function RecognizeDeck({ persons }: { persons: Person[] }) {
   const router = useRouter();
-  const [index, setIndex] = useState(0);
+  const [decided, setDecided] = useState<Map<string, Decision>>(new Map());
+  const [ready, setReady] = useState(false);
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
   const [photoOpen, setPhotoOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [recognizedOpen, setRecognizedOpen] = useState(false);
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]); // ids decididos en esta sesión, para poder deshacer
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const draggedRef = useRef(false);
 
-  const current = persons[index];
-  const upcoming = persons[index + 1];
+  // Carga las decisiones ya guardadas en este dispositivo (solo se puede leer
+  // localStorage en el cliente, de ahí el useEffect en vez de useState directo).
+  useEffect(() => {
+    const map = new Map<string, Decision>();
+    for (const p of persons) {
+      const v = localStorage.getItem(DECISION_KEY(p.id));
+      if (v === "pass" || v === "recognized") map.set(p.id, v);
+    }
+    setDecided(map);
+    setReady(true);
+  }, [persons]);
+
+  const queue = useMemo(() => persons.filter((p) => !decided.has(p.id)), [persons, decided]);
+  const recognizedList = useMemo(
+    () => persons.filter((p) => decided.get(p.id) === "recognized"),
+    [persons, decided],
+  );
+
+  const current = queue[0];
+  const upcoming = queue[1];
+
+  function decide(id: string, decision: Decision) {
+    localStorage.setItem(DECISION_KEY(id), decision);
+    setHistory((prev) => [...prev, id]);
+    setDecided((prev) => {
+      const next = new Map(prev);
+      next.set(id, decision);
+      return next;
+    });
+  }
 
   const advance = useCallback(() => {
     setDrag({ x: 0, y: 0, active: false });
     startRef.current = null;
-    setIndex((i) => Math.min(i + 1, persons.length));
-  }, [persons.length]);
+    if (current) decide(current.id, "pass");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current]);
 
   const undo = useCallback(() => {
     setDrag({ x: 0, y: 0, active: false });
     startRef.current = null;
-    setIndex((i) => Math.max(i - 1, 0));
+    setHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const lastId = prev[prev.length - 1];
+      localStorage.removeItem(DECISION_KEY(lastId));
+      setDecided((d) => {
+        const next = new Map(d);
+        next.delete(lastId);
+        return next;
+      });
+      return prev.slice(0, -1);
+    });
   }, []);
+
+  function resetAll() {
+    for (const p of persons) localStorage.removeItem(DECISION_KEY(p.id));
+    setDecided(new Map());
+    setHistory([]);
+    setDrag({ x: 0, y: 0, active: false });
+  }
+
+  function forgetRecognized(id: string) {
+    localStorage.removeItem(DECISION_KEY(id));
+    setDecided((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+    setHistory((prev) => prev.filter((h) => h !== id));
+  }
 
   const recognize = useCallback(
     (p: Person | undefined) => {
-      if (p) router.push(`/persona/${p.id}`);
+      if (!p) return;
+      decide(p.id, "recognized");
+      router.push(`/persona/${p.id}`);
     },
     [router],
   );
@@ -121,7 +193,14 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
     );
   }
 
-  // Fin de la baraja.
+  // Evita mostrar un instante la primera persona sin filtrar (antes de leer
+  // localStorage) para luego saltar a la que corresponde de verdad.
+  if (!ready) {
+    return <div className="mx-auto h-[54dvh] max-h-[560px] min-h-[380px] w-full max-w-sm" />;
+  }
+
+  // Fin de la baraja (de este lote). Las decisiones quedan guardadas en este
+  // dispositivo: recargar o volver con "atrás" no las repite.
   if (!current) {
     return (
       <div className="mx-auto max-w-sm rounded-3xl border border-zinc-200 bg-white p-8 text-center">
@@ -130,16 +209,28 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
         <p className="mt-1 text-sm text-zinc-500">
           Gracias por mirar. Si reconociste a alguien, entra en su ficha y deja la información.
         </p>
+        {recognizedList.length > 0 && (
+          <button
+            onClick={() => setRecognizedOpen(true)}
+            className="press mx-auto mt-4 flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:underline"
+          >
+            <Users className="h-4 w-4" />
+            Ver a quienes reconociste ({recognizedList.length})
+          </button>
+        )}
         <button
-          onClick={() => {
-            setIndex(0);
-            setDrag({ x: 0, y: 0, active: false });
-          }}
+          onClick={resetAll}
           className="press mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
         >
           <RotateCcw className="h-4 w-4" />
           Volver a empezar
         </button>
+        <RecognizedModal
+          open={recognizedOpen}
+          onClose={() => setRecognizedOpen(false)}
+          persons={recognizedList}
+          onForget={forgetRecognized}
+        />
       </div>
     );
   }
@@ -152,6 +243,17 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
 
   return (
     <div className="mx-auto w-full max-w-sm">
+      {recognizedList.length > 0 && (
+        <div className="mb-3 flex justify-end">
+          <button
+            onClick={() => setRecognizedOpen(true)}
+            className="press flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:underline"
+          >
+            <Users className="h-3.5 w-3.5" />
+            Reconocidos ({recognizedList.length})
+          </button>
+        </div>
+      )}
       <div className="relative h-[54dvh] max-h-[560px] min-h-[380px] w-full select-none">
         {upcoming && <DeckCard key={upcoming.id} person={upcoming} behind />}
         <DeckCard
@@ -174,7 +276,7 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
       <div className="mt-5 flex items-center justify-center gap-4">
         <button
           onClick={undo}
-          disabled={index === 0}
+          disabled={history.length === 0}
           aria-label="Deshacer, volver a la anterior"
           className="press flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-400 shadow-sm transition hover:border-zinc-300 hover:text-zinc-700 disabled:opacity-40"
         >
@@ -206,9 +308,15 @@ export function RecognizeDeck({ persons }: { persons: Person[] }) {
       <p className="mt-3 text-center text-xs text-zinc-400">
         Toca la foto para ampliarla · Desliza{" "}
         <span className="font-semibold text-emerald-600">→ la reconozco</span> ·{" "}
-        <span className="font-semibold text-zinc-500">← otra</span> · {index + 1} de{" "}
-        {persons.length}
+        <span className="font-semibold text-zinc-500">← otra</span> · quedan {queue.length}
       </p>
+
+      <RecognizedModal
+        open={recognizedOpen}
+        onClose={() => setRecognizedOpen(false)}
+        persons={recognizedList}
+        onForget={forgetRecognized}
+      />
 
       {/* Foto ampliada: tocar en cualquier lado la cierra. */}
       {photoOpen && (
@@ -370,5 +478,61 @@ function DeckCard({
         )}
       </div>
     </div>
+  );
+}
+
+// Lista de personas marcadas "la reconozco" en este dispositivo (guardada en
+// localStorage, no requiere sesión). Permite volver a su ficha o quitarlas de
+// la lista si fue un toque accidental.
+function RecognizedModal({
+  open,
+  onClose,
+  persons,
+  onForget,
+}: {
+  open: boolean;
+  onClose: () => void;
+  persons: Person[];
+  onForget: (id: string) => void;
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title="A quienes reconociste" subtitle="Guardado en este dispositivo">
+      {persons.length === 0 ? (
+        <p className="py-4 text-center text-sm text-zinc-400">Todavía no has marcado a nadie.</p>
+      ) : (
+        <ul className="space-y-2">
+          {persons.map((p) => {
+            const fullName = `${p.firstName} ${p.lastName}`.trim() || "Persona sin identificar";
+            return (
+              <li
+                key={p.id}
+                className="flex items-center gap-3 rounded-xl border border-zinc-200 p-2.5"
+              >
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+                  <PersonPhoto
+                    src={p.photoUrl}
+                    firstName={p.firstName}
+                    lastName={p.lastName}
+                    isUnidentified={p.isUnidentified}
+                    fallbackTextClass="text-lg"
+                  />
+                </div>
+                <Link href={`/persona/${p.id}`} onClick={onClose} className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-zinc-900">{fullName}</p>
+                  <p className="truncate text-xs text-zinc-500">{PERSON_STATUS_LABEL[p.status]}</p>
+                </Link>
+                <button
+                  onClick={() => onForget(p.id)}
+                  aria-label="Quitar de reconocidos"
+                  className="press flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-rose-50 hover:text-rose-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Modal>
   );
 }
