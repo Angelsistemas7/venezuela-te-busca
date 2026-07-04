@@ -80,7 +80,7 @@ export function HospitalStatusControl({
             key={s}
             onClick={() => setDraftStatus(s)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition",
+              "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition",
               draftStatus === s ? HOSPITAL_STATUS_STYLE[s].chip : "border-zinc-200 bg-white text-zinc-500",
             )}
           >

@@ -102,7 +102,7 @@ export default async function HospitalesPage({ searchParams }: { searchParams: S
             key={s}
             href={statusHref(s)}
             className={cn(
-              "w-24 shrink-0 rounded-xl border p-1.5 text-center transition sm:w-auto sm:p-2",
+              "press w-24 shrink-0 rounded-xl border p-1.5 text-center transition sm:w-auto sm:p-2",
               status === s
                 ? "border-zinc-900 bg-zinc-900/[0.03] ring-1 ring-zinc-900"
                 : "border-zinc-200 bg-white hover:border-zinc-300",
