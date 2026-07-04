@@ -110,7 +110,7 @@ export function PostManagePanel({ post, token }: { post: Post; token: string }) 
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="press flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Guardar cambios
@@ -131,7 +131,7 @@ export function PostManagePanel({ post, token }: { post: Post; token: string }) 
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="mt-3 flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
+            className="press mt-3 flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
           >
             <Trash2 className="h-4 w-4" />
             Eliminar
@@ -139,10 +139,10 @@ export function PostManagePanel({ post, token }: { post: Post; token: string }) 
         ) : (
           <div className="mt-3 flex items-center gap-3">
             <span className="text-sm font-medium text-rose-800">¿Seguro?</span>
-            <button onClick={remove} disabled={pending} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60">
+            <button onClick={remove} disabled={pending} className="press rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60">
               Sí, eliminar
             </button>
-            <button onClick={() => setConfirmDelete(false)} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white">
+            <button onClick={() => setConfirmDelete(false)} className="press rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white">
               Cancelar
             </button>
           </div>

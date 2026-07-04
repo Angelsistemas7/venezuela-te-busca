@@ -47,8 +47,8 @@ export function ShareWhatsApp({ variant = "primary" }: { variant?: "primary" | "
         rel="noopener noreferrer"
         className={
           variant === "primary"
-            ? "inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1ebe5b]"
-            : "inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+            ? "press inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1ebe5b]"
+            : "press inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
         }
       >
         <Share2 className="h-4 w-4" />
@@ -56,7 +56,7 @@ export function ShareWhatsApp({ variant = "primary" }: { variant?: "primary" | "
       </a>
       <button
         onClick={copy}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
+        className="press inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
       >
         {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
         {copied ? "Copiado" : "Copiar enlace"}

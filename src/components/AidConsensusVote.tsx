@@ -61,7 +61,7 @@ export function AidConsensusVote({
         onClick={() => vote("available")}
         disabled={!canVote}
         className={cn(
-          "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition disabled:cursor-default",
+          "press flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition disabled:cursor-default",
           voted === "available"
             ? "border-emerald-300 bg-emerald-50 text-emerald-700"
             : "border-zinc-200 text-zinc-600 enabled:hover:bg-emerald-50 enabled:hover:text-emerald-700 disabled:opacity-70",
@@ -73,7 +73,7 @@ export function AidConsensusVote({
         onClick={() => vote("depleted")}
         disabled={!canVote}
         className={cn(
-          "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition disabled:cursor-default",
+          "press flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition disabled:cursor-default",
           voted === "depleted"
             ? "border-rose-300 bg-rose-50 text-rose-700"
             : "border-zinc-200 text-zinc-600 enabled:hover:bg-rose-50 enabled:hover:text-rose-700 disabled:opacity-70",

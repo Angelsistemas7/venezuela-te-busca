@@ -79,7 +79,7 @@ export function Modal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+            className="press rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
             aria-label="Cerrar"
           >
             <X className="h-5 w-5" />

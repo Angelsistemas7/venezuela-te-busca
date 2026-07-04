@@ -40,14 +40,14 @@ export function AccountBanner() {
         <p className="flex-1">
           <span className="font-semibold">Crea tu cuenta (opcional):</span> no pierdas tus
           publicaciones aunque cambies de teléfono, y comenta más fácil.{" "}
-          <button onClick={openRegister} className="font-semibold underline underline-offset-2">
+          <button onClick={openRegister} className="press font-semibold underline underline-offset-2">
             Crear cuenta
           </button>
         </p>
         <button
           onClick={dismiss}
           aria-label="Ocultar aviso"
-          className="shrink-0 rounded-full p-1 text-brand-700 transition hover:bg-brand-100"
+          className="press shrink-0 rounded-full p-1 text-brand-700 transition hover:bg-brand-100"
         >
           <X className="h-4 w-4" />
         </button>

@@ -142,7 +142,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
             key={chip.value}
             onClick={() => setParams({ status: chip.value })}
             className={cn(
-              "whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition",
+              "press whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition",
               status === chip.value
                 ? "border-brand-400 bg-brand-50 text-brand-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -162,7 +162,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
               key={chip.label}
               onClick={() => setParams({ minAge: chip.min || null, maxAge: chip.max || null })}
               className={cn(
-                "whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition",
+                "press whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition",
                 active
                   ? "border-sky-400 bg-sky-50 text-sky-700"
                   : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
@@ -192,7 +192,7 @@ export function SearchAndFilters({ unidentified = false }: { unidentified?: bool
             key={e}
             onClick={() => setParams({ estado: e })}
             className={cn(
-              "whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition",
+              "press whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition",
               estado === e
                 ? "border-emerald-400 bg-emerald-50 text-emerald-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",

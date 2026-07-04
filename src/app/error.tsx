@@ -32,14 +32,14 @@ export default function Error({
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <button
           onClick={reset}
-          className="flex items-center gap-2 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300"
+          className="press flex items-center gap-2 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-brand-300"
         >
           <RotateCcw className="h-4 w-4" />
           Reintentar
         </button>
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+          className="press flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
         >
           <Home className="h-4 w-4" />
           Ir al inicio

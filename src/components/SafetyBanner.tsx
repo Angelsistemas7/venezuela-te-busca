@@ -31,7 +31,7 @@ export function SafetyBanner() {
         <button
           onClick={() => setHidden(true)}
           aria-label="Ocultar aviso"
-          className="-mr-1 rounded p-1 text-amber-700 hover:bg-amber-200 hover:text-amber-900"
+          className="press -mr-1 rounded p-1 text-amber-700 hover:bg-amber-200 hover:text-amber-900"
         >
           <X className="h-4 w-4" />
         </button>
