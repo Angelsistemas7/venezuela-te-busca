@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { HandHeart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,23 @@ import { cn } from "@/lib/utils";
 // RECARGAR la página. Así el aviso "sale" (y anima) solo una vez por carga y, si
 // se cierra, queda cerrado al navegar entre secciones — no vuelve a aparecer a
 // menos que recargues. Es justo lo que pidió el usuario.
+//
+// IMPORTANTE (`shownThisLoad`, el flag de animación): solo se lee/muta dentro
+// de un useEffect (nunca durante el render). El servidor de este sitio es un
+// proceso Node de PM2 que vive corriendo (no una función serverless que se
+// reinicia por petición) — si se mutara durante el render, el servidor la
+// compartiría entre visitantes DISTINTOS (el primero pondría "ya se mostró"
+// para todos los que llegaran después), mientras el cliente (que sí arranca
+// su propio módulo desde cero en cada pestaña) calcularía otra cosa al
+// hidratar: exactamente el mismo tipo de error de hidratación
+// servidor/cliente que ya se corrigió una vez en ShareWhatsApp.tsx. Por eso
+// el render en sí siempre arranca en `false` (determinista) y la animación
+// se activa después, ya en el cliente.
+//
+// `dismissedThisLoad` (cerrar el aviso) es distinto: solo lo toca `close()`,
+// un manejador de clic que NUNCA se ejecuta durante el renderizado en el
+// servidor — leerlo directo en el render es seguro, no hay nada que hidratar
+// mal (el servidor jamás lo pone en `true`).
 let shownThisLoad = false;
 let dismissedThisLoad = false;
 
@@ -18,12 +35,14 @@ let dismissedThisLoad = false;
 // seguir invitándola: no se muestra.
 export function FieldVolunteerBar({ alreadyVolunteered = false }: { alreadyVolunteered?: boolean }) {
   const [hidden, setHidden] = useState(dismissedThisLoad);
-  // Anima la entrada solo la primera vez que se muestra en esta carga.
-  const [animate] = useState(() => {
-    if (shownThisLoad) return false;
-    shownThisLoad = true;
-    return true;
-  });
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    if (!shownThisLoad) {
+      shownThisLoad = true;
+      setAnimate(true);
+    }
+  }, []);
 
   if (hidden || alreadyVolunteered) return null;
 

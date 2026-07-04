@@ -107,7 +107,7 @@ export function AuthMenu() {
   return (
     <>
       {user ? (
-        <ProfileMenu />
+        <ProfileMenu user={user} />
       ) : (
         <button
           onClick={openLogin}

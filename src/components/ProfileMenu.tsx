@@ -4,32 +4,30 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, UserCircle2, UserRound } from "lucide-react";
-import { getSessionUserAction, getMyProfileAction, signOutAction } from "@/app/actions";
+import { getMyProfileAction, signOutAction } from "@/app/actions";
 
-type Session = { id: string; username: string; avatarUrl?: string | null } | null;
+type BasicUser = { id: string; username: string };
 
 // Reemplaza el óvalo estático de "Fulano · Salir" por un menú desplegable con
 // accesos directos: perfil, configuración, salir. Igual patrón que la
 // campanita (NotificationBell): botón + panel flotante que se cierra al
 // tocar afuera o con Escape.
-export function ProfileMenu() {
+//
+// `user` lo pasa `AuthMenu`, que YA verificó la sesión para decidir si
+// mostrar este componente en vez del botón "Entrar" — pedirla otra vez aquí
+// sería una segunda ida y vuelta al servidor redundante en CADA carga de
+// página para cualquiera con sesión iniciada. Solo se pide aparte lo que
+// AuthMenu no tiene: la foto de perfil.
+export function ProfileMenu({ user }: { user: BasicUser }) {
   const router = useRouter();
-  const [session, setSession] = useState<Session>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    getSessionUserAction()
-      .then(async (u) => {
-        if (!u) return setSession(null);
-        try {
-          const full = await getMyProfileAction();
-          setSession({ id: u.id, username: u.username, avatarUrl: full?.avatarUrl ?? null });
-        } catch {
-          setSession(u);
-        }
-      })
-      .catch(() => setSession(null));
+    getMyProfileAction()
+      .then((full) => setAvatarUrl(full?.avatarUrl ?? null))
+      .catch(() => setAvatarUrl(null));
   }, []);
 
   useEffect(() => {
@@ -53,21 +51,19 @@ export function ProfileMenu() {
     window.location.reload();
   }
 
-  if (!session) return null;
-
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="press flex items-center gap-1.5 rounded-full bg-zinc-100 py-1 pl-1 pr-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-200"
       >
-        {session.avatarUrl ? (
+        {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={session.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+          <img src={avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
         ) : (
           <UserCircle2 className="h-7 w-7 text-zinc-500" />
         )}
-        <span className="hidden max-w-[9rem] truncate sm:inline">{session.username}</span>
+        <span className="hidden max-w-[9rem] truncate sm:inline">{user.username}</span>
       </button>
 
       {open && (
