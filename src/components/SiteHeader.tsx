@@ -1,29 +1,78 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, HeartHandshake, LayoutGrid, LifeBuoy, Map, Newspaper, PawPrint, Search, Users2 } from "lucide-react";
+import {
+  Building2,
+  ChevronDown,
+  HeartHandshake,
+  LayoutGrid,
+  LifeBuoy,
+  Map,
+  Newspaper,
+  PawPrint,
+  Search,
+  Users2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "./NotificationBell";
 import { AuthMenu } from "./AuthMenu";
 
-const NAV = [
+// Mismas 4 secciones que la barra inferior de móvil (MobileNav.tsx): la
+// navegación no debe cambiar de forma entre dispositivos. Antes las 9 vivían
+// en una sola fila que había que deslizar para ver completa; el resto ahora
+// va detrás de "Más" (menú desplegable aquí; hoja inferior en móvil).
+const PRIMARY = [
   { href: "/", label: "Se busca", icon: Search },
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
+  { href: "/mapa", label: "Mapa", icon: Map },
+  { href: "/emergencias", label: "Emergencias", icon: LifeBuoy },
+];
+
+const MORE = [
   { href: "/noticias", label: "Noticias", icon: Newspaper },
   { href: "/hospitales", label: "Hospitales", icon: Building2 },
   { href: "/ayuda", label: "Puntos de ayuda", icon: HeartHandshake },
   { href: "/mascotas", label: "Mascotas", icon: PawPrint },
-  { href: "/emergencias", label: "Emergencias", icon: LifeBuoy },
-  { href: "/mapa", label: "Mapa", icon: Map },
   { href: "/recursos", label: "Recursos", icon: LayoutGrid },
 ];
 
 // Sub-secciones que viven bajo la pestaña "Comunidad" (se resaltan con ella).
 const COMMUNITY_PATHS = ["/comunidad", "/voluntarios", "/caravanas", "/denuncias"];
 
+function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  if (href === "/comunidad") {
+    return COMMUNITY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  }
+  return pathname.startsWith(href);
+}
+
 export function SiteHeader() {
   const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const moreActive = MORE.some((t) => isActive(pathname, t.href));
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMoreOpen(false);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [moreOpen]);
+
+  // Cierra el desplegable al navegar a otra sección.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur">
@@ -41,31 +90,64 @@ export function SiteHeader() {
         </Link>
 
         <div className="flex min-w-0 items-center gap-2">
-          <nav className="no-scrollbar hidden min-w-0 items-center gap-1 overflow-x-auto md:flex">
-          {NAV.map(({ href, label, icon: Icon }) => {
-            const active =
-              href === "/"
-                ? pathname === "/"
-                : href === "/comunidad"
-                  ? COMMUNITY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
-                  : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? "page" : undefined}
+          <nav className="hidden min-w-0 items-center gap-1 md:flex">
+            {PRIMARY.map(({ href, label, icon: Icon }) => {
+              const active = isActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition",
+                    active
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              );
+            })}
+
+            <div className="relative" ref={moreRef}>
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-expanded={moreOpen}
                 className={cn(
-                  "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition",
-                  active
+                  "flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition",
+                  moreOpen || moreActive
                     ? "bg-zinc-900 text-white"
                     : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
                 )}
               >
-                <Icon className="h-4 w-4" />
-                <span className="hidden md:inline">{label}</span>
-              </Link>
-            );
-          })}
+                Más
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", moreOpen && "rotate-180")} />
+              </button>
+
+              {moreOpen && (
+                <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-2xl border border-zinc-200 bg-white py-1.5 shadow-xl">
+                  {MORE.map(({ href, label, icon: Icon }) => {
+                    const active = isActive(pathname, href);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition",
+                          active ? "bg-zinc-100 text-zinc-900" : "text-zinc-700 hover:bg-zinc-50",
+                        )}
+                      >
+                        <Icon className="h-4 w-4 text-zinc-400" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
           <NotificationBell />
           <AuthMenu />
