@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { CornerDownRight, Heart, ImagePlus, Loader2, MessageCircle, Reply, Send, X } from "lucide-react";
 import type { Comment, CommentEntity } from "@/lib/types";
-import { getSessionUserAction, likeCommentAction, postCommentAction } from "@/app/actions";
+import { getMyProfileAction, getSessionUserAction, likeCommentAction, postCommentAction } from "@/app/actions";
 import { uploadPhoto } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
 import { cn, timeAgo } from "@/lib/utils";
+import { Avatar } from "./Avatar";
 import { Turnstile } from "./Turnstile";
 import { PhotoView } from "./PhotoView";
 
@@ -31,6 +33,7 @@ export function CommentSection({
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [name, setName] = useState("");
   const [sessionName, setSessionName] = useState<string | null>(null);
+  const [sessionAvatar, setSessionAvatar] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +56,9 @@ export function CommentSection({
         if (u) {
           setSessionName(u.username);
           setName(u.username);
+          getMyProfileAction()
+            .then((p) => setSessionAvatar(p?.avatarUrl ?? null))
+            .catch(() => {});
         }
       })
       .catch(() => {});
@@ -135,6 +141,8 @@ export function CommentSection({
           photoUrl: photoUrl ?? preview,
           likes: 0,
           createdAt: new Date().toISOString(),
+          authorUsername: sessionName,
+          authorAvatarUrl: sessionAvatar,
         },
         ...prev,
       ]);
@@ -152,35 +160,44 @@ export function CommentSection({
   function renderComment(c: Comment, isReply: boolean) {
     const replies = isReply ? [] : repliesByParent.get(c.id) ?? [];
     return (
-      <li
-        key={c.id}
-        className={cn(isReply ? "" : "rounded-xl bg-zinc-50 p-3", c.id === justPostedId && "animate-rise")}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-zinc-800">{c.authorName}</span>
-          <span className="text-xs text-zinc-400">{timeAgo(c.createdAt)}</span>
-        </div>
-        {c.body && <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">{c.body}</p>}
-        {c.photoUrl && (
-          <PhotoView src={c.photoUrl} alt="Evidencia" className="mt-2 max-h-72 rounded-lg object-cover" />
-        )}
-        <div className="mt-1.5 flex items-center gap-4">
-          <CommentLike id={c.id} likes={c.likes} />
-          <button
-            type="button"
-            onClick={() => startReply(c)}
-            className="press inline-flex items-center gap-1 text-xs font-medium text-zinc-500 transition hover:text-brand-700"
-          >
-            <Reply className="h-3.5 w-3.5" />
-            Responder
-          </button>
-        </div>
+      <li key={c.id} className={cn("flex gap-2", c.id === justPostedId && "animate-rise")}>
+        <Avatar src={c.authorAvatarUrl} username={c.authorUsername} size="sm" className="mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <div className="rounded-xl bg-zinc-100 px-3 py-2">
+            {c.authorUsername ? (
+              <Link
+                href={`/perfil/publico/${c.authorUsername}`}
+                className="text-sm font-semibold text-zinc-800 hover:underline"
+              >
+                {c.authorName}
+              </Link>
+            ) : (
+              <span className="text-sm font-semibold text-zinc-800">{c.authorName}</span>
+            )}
+            {c.body && <p className="mt-0.5 whitespace-pre-wrap text-sm text-zinc-600">{c.body}</p>}
+            {c.photoUrl && (
+              <PhotoView src={c.photoUrl} alt="Evidencia" className="mt-2 max-h-72 rounded-lg object-cover" />
+            )}
+          </div>
+          <div className="mt-1 flex items-center gap-3 pl-1">
+            <span className="text-xs text-zinc-400">{timeAgo(c.createdAt)}</span>
+            <CommentLike id={c.id} likes={c.likes} />
+            <button
+              type="button"
+              onClick={() => startReply(c)}
+              className="press inline-flex items-center gap-1 text-xs font-medium text-zinc-500 transition hover:text-brand-700"
+            >
+              <Reply className="h-3.5 w-3.5" />
+              Responder
+            </button>
+          </div>
 
-        {replies.length > 0 && (
-          <ul className="mt-2 space-y-2.5 border-l-2 border-zinc-200 pl-3">
-            {replies.map((r) => renderComment(r, true))}
-          </ul>
-        )}
+          {replies.length > 0 && (
+            <ul className="mt-2 space-y-2.5 border-l-2 border-zinc-200 pl-3">
+              {replies.map((r) => renderComment(r, true))}
+            </ul>
+          )}
+        </div>
       </li>
     );
   }
@@ -226,6 +243,7 @@ export function CommentSection({
           />
         )}
         <div className="flex gap-2">
+          {sessionName && <Avatar src={sessionAvatar} size="sm" className="mt-1.5" />}
           <textarea
             ref={textareaRef}
             value={body}

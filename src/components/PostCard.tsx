@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ExternalLink, MapPin, MessageCircle, Pin } from "lucide-react";
 import type { Comment, Post, ReactionKind } from "@/lib/types";
 import { POST_TYPE_EMOJI, POST_TYPE_LABEL, REACTION_EMOJI } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { reactToPostAction } from "@/app/actions";
+import { Avatar } from "./Avatar";
 import { CommentSection } from "./CommentSection";
 import { ExternalLinkGuard } from "./ExternalLinkGuard";
 import { PhotoView } from "./PhotoView";
@@ -52,6 +54,7 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
   }
 
   const urgent = post.type === "rescate";
+  const totalReactions = REACTIONS.reduce((sum, k) => sum + (counts[k] ?? 0), 0);
 
   return (
     <article
@@ -60,24 +63,46 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
         urgent ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200",
       )}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        {post.pinned && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-            <Pin className="h-3.5 w-3.5" />
-            Fijado
-          </span>
-        )}
-        <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold", TYPE_STYLE[post.type])}>
-          <span>{POST_TYPE_EMOJI[post.type]}</span>
-          {POST_TYPE_LABEL[post.type]}
-        </span>
-        {(post.locationText || post.estado) && (
-          <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-            <MapPin className="h-3.5 w-3.5" />
-            {[post.locationText, post.estado].filter(Boolean).join(", ")}
-          </span>
-        )}
-        <span className="ml-auto text-xs text-zinc-400">{timeAgo(post.createdAt)}</span>
+      <div className="flex items-start gap-3">
+        <Avatar src={post.authorAvatarUrl} username={post.authorUsername} size="md" className="mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
+            {post.authorUsername ? (
+              <Link
+                href={`/perfil/publico/${post.authorUsername}`}
+                className="truncate text-sm font-semibold text-zinc-900 hover:underline"
+              >
+                {post.authorName}
+              </Link>
+            ) : (
+              <span className="truncate text-sm font-semibold text-zinc-900">{post.authorName}</span>
+            )}
+            <span className="text-xs text-zinc-400">· {timeAgo(post.createdAt)}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {post.pinned && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                <Pin className="h-3.5 w-3.5" />
+                Fijado
+              </span>
+            )}
+            <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold", TYPE_STYLE[post.type])}>
+              <span>{POST_TYPE_EMOJI[post.type]}</span>
+              {POST_TYPE_LABEL[post.type]}
+            </span>
+            {(post.locationText || post.estado) && (
+              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                <MapPin className="h-3.5 w-3.5" />
+                {[post.locationText, post.estado].filter(Boolean).join(", ")}
+              </span>
+            )}
+            {post.contactPhone && (
+              <a href={`tel:${post.contactPhone}`} className="text-xs font-medium text-brand-700 hover:underline">
+                {post.contactPhone}
+              </a>
+            )}
+          </div>
+        </div>
       </div>
 
       <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-zinc-800">{post.body}</p>
@@ -96,17 +121,16 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
         </ExternalLinkGuard>
       )}
 
-      <div className="mt-2 text-xs text-zinc-500">
-        Publicado por <span className="font-medium text-zinc-700">{post.authorName}</span>
-        {post.contactPhone && (
-          <>
-            {" · "}
-            <a href={`tel:${post.contactPhone}`} className="text-brand-700 hover:underline">
-              {post.contactPhone}
-            </a>
-          </>
-        )}
-      </div>
+      {totalReactions > 0 && (
+        <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-500">
+          <span className="tracking-tight">
+            {REACTIONS.filter((k) => counts[k] > 0)
+              .map((k) => REACTION_EMOJI[k])
+              .join(" ")}
+          </span>
+          <span>{totalReactions}</span>
+        </div>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
         {REACTIONS.map((k) => (

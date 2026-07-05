@@ -240,6 +240,10 @@ export interface Post {
   pinned: boolean;
   reactions: Record<ReactionKind, number>;
   createdAt: string;
+  /** Foto de perfil y usuario de quien publicó, SOLO si lo hizo con cuenta
+   *  (se enriquece aparte contra `profiles`; ausente = publicación anónima). */
+  authorAvatarUrl?: string | null;
+  authorUsername?: string | null;
 }
 
 // ── Hospitales ──────────────────────────────────────────────────────────────
@@ -606,6 +610,9 @@ export interface Comment {
   /** "Me gusta" de la comunidad al comentario (uno por dispositivo). */
   likes: number;
   createdAt: string;
+  /** Igual que en `Post`: foto de perfil y usuario si comentó con cuenta. */
+  authorAvatarUrl?: string | null;
+  authorUsername?: string | null;
 }
 
 export interface Stats {

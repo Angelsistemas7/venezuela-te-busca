@@ -1607,6 +1607,37 @@ export async function likeMarch(id: string): Promise<void> {
   if (updateError) throw updateError;
 }
 
+// ── Perfil del autor (avatar/usuario) en posts y comentarios ────────────────
+// `posts.user_id` / `comments.user_id` no tienen FK directa a `profiles` (ambas
+// apuntan a auth.users por separado), así que no hay join automático de
+// Supabase: se resuelve con una sola consulta por lote a `profiles`, igual que
+// `getReportCountsForPersons` evita el N+1 para reportes. Ausente = publicó
+// sin cuenta (anónimo), que sigue siendo válido en esta app.
+async function attachAuthorProfiles<T extends { authorAvatarUrl?: string | null; authorUsername?: string | null }>(
+  items: T[],
+  userIds: (string | null | undefined)[],
+): Promise<T[]> {
+  const ids = Array.from(new Set(userIds.filter((id): id is string => Boolean(id))));
+  if (ids.length === 0) return items;
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return items;
+  const { data } = await sb.from("profiles").select("user_id, username, avatar_url").in("user_id", ids);
+  if (!data || data.length === 0) return items;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const byId = new Map(
+    (data as any[]).map((p) => [
+      p.user_id as string,
+      { username: p.username as string, avatarUrl: (p.avatar_url as string | null) ?? null },
+    ]),
+  );
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+  return items.map((item, i) => {
+    const uid = userIds[i];
+    const profile = uid ? byId.get(uid) : undefined;
+    return profile ? { ...item, authorUsername: profile.username, authorAvatarUrl: profile.avatarUrl } : item;
+  });
+}
+
 // ── Comentarios (foro) ───────────────────────────────────────────────────────
 export async function getComments(entityType: Comment["entityType"], entityId: string): Promise<Comment[]> {
   const sb = getSupabase();
@@ -1622,7 +1653,8 @@ export async function getComments(entityType: Comment["entityType"], entityId: s
     .order("created_at", { ascending: false });
   if (error) throw error;
   /* eslint-disable @typescript-eslint/no-explicit-any */
-  return (data ?? []).map((r: any) => ({
+  const rows = (data ?? []) as any[];
+  const comments: Comment[] = rows.map((r) => ({
     id: r.id,
     entityType: r.entity_type,
     entityId: r.entity_id,
@@ -1634,6 +1666,7 @@ export async function getComments(entityType: Comment["entityType"], entityId: s
     createdAt: r.created_at,
   }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
+  return attachAuthorProfiles(comments, rows.map((r) => r.user_id ?? null));
 }
 
 // Comentarios de varias entidades del MISMO tipo en una sola consulta. Evita el
@@ -1660,21 +1693,21 @@ export async function getCommentsForEntities(
       .order("created_at", { ascending: false });
     if (error) throw error;
     /* eslint-disable @typescript-eslint/no-explicit-any */
-    for (const r of (data ?? []) as any[]) {
-      const c: Comment = {
-        id: r.id,
-        entityType: r.entity_type,
-        entityId: r.entity_id,
-        parentId: r.parent_id ?? null,
-        authorName: r.author_name,
-        body: r.body,
-        photoUrl: r.photo_url ?? null,
-        likes: r.likes ?? 0,
-        createdAt: r.created_at,
-      };
-      (out[c.entityId] ??= []).push(c);
-    }
+    const rows = (data ?? []) as any[];
+    const comments: Comment[] = rows.map((r) => ({
+      id: r.id,
+      entityType: r.entity_type,
+      entityId: r.entity_id,
+      parentId: r.parent_id ?? null,
+      authorName: r.author_name,
+      body: r.body,
+      photoUrl: r.photo_url ?? null,
+      likes: r.likes ?? 0,
+      createdAt: r.created_at,
+    }));
     /* eslint-enable @typescript-eslint/no-explicit-any */
+    const enriched = await attachAuthorProfiles(comments, rows.map((r) => r.user_id ?? null));
+    for (const c of enriched) (out[c.entityId] ??= []).push(c);
   }
   for (const arr of Object.values(out)) {
     arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -2025,7 +2058,8 @@ export async function getPosts(
   }
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map(rowToPost);
+  const rows = data ?? [];
+  return attachAuthorProfiles(rows.map(rowToPost), rows.map((r) => r.user_id ?? null));
 }
 
 export interface PostResult {
@@ -2108,7 +2142,9 @@ export async function getPostsPage(
   const start = (page - 1) * pageSize;
   const { data, error, count } = await query.range(start, start + pageSize - 1);
   if (error) throw error;
-  return { items: (data ?? []).map(rowToPost), total: count ?? 0, page, pageSize };
+  const rows = data ?? [];
+  const items = await attachAuthorProfiles(rows.map(rowToPost), rows.map((r) => r.user_id ?? null));
+  return { items, total: count ?? 0, page, pageSize };
 }
 
 /**
@@ -2128,8 +2164,9 @@ export async function getPostById(id: string): Promise<Post | null> {
   const sb = getSupabase();
   if (!sb) return mem.posts.find((p) => p.id === id) ?? null;
   const { data, error } = await sb.from("posts").select("*").eq("id", id).single();
-  if (error) return null;
-  return data ? rowToPost(data) : null;
+  if (error || !data) return null;
+  const [post] = await attachAuthorProfiles([rowToPost(data)], [data.user_id ?? null]);
+  return post;
 }
 
 export interface CreatePostResult {
