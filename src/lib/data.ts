@@ -2250,6 +2250,98 @@ export async function getMyPublications(userId: string): Promise<MyPublication[]
   return out;
 }
 
+// ── Estadísticas de "voluntario digital" (perfil) ───────────────────────────
+// Solo cifras REALES y verificables — nada estimado que no se pueda calcular
+// con lo que ya guarda la base de datos. "Reacciones recibidas" combina las
+// distintas formas en que cada tabla las guarda: `reactions` (jsonb, en
+// persons/posts), `likes` (int, en aid_points/marches/hospitals) y
+// `supports` (int, en complaints) — no hay una columna común a todas.
+export interface VolunteerStats {
+  publications: number;
+  commentsMade: number;
+  commentsReceived: number;
+  reactionsReceived: number;
+  savedByOthers: number;
+  savedByMe: number;
+}
+
+const EMPTY_VOLUNTEER_STATS: VolunteerStats = {
+  publications: 0,
+  commentsMade: 0,
+  commentsReceived: 0,
+  reactionsReceived: 0,
+  savedByOthers: 0,
+  savedByMe: 0,
+};
+
+export async function getDigitalVolunteerStats(userId: string): Promise<VolunteerStats> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) return EMPTY_VOLUNTEER_STATS;
+
+  const [pubs, commentsMadeRes, savedByMeRes] = await Promise.all([
+    getMyPublications(userId),
+    sb.from("comments").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    sb.from("saved_items").select("id", { count: "exact", head: true }).eq("user_id", userId),
+  ]);
+
+  const myIds = pubs.map((p) => p.id);
+  if (myIds.length === 0) {
+    return {
+      ...EMPTY_VOLUNTEER_STATS,
+      commentsMade: commentsMadeRes.count ?? 0,
+      savedByMe: savedByMeRes.count ?? 0,
+    };
+  }
+
+  const byType = (t: MyPublication["type"]) => pubs.filter((p) => p.type === t).map((p) => p.id);
+  const personIds = byType("person");
+  const postIds = byType("post");
+  const aidIds = byType("aid_point");
+  const marchIds = byType("march");
+  const hospIds = byType("hospital");
+  const complaintIds = byType("complaint");
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const sumJsonReactions = (rows: any[]) =>
+    rows.reduce((n, r) => {
+      const v = (r.reactions ?? {}) as Record<string, number>;
+      return n + Object.values(v).reduce((a, x) => a + (Number(x) || 0), 0);
+    }, 0);
+  const sumColumn = (rows: any[], col: string) => rows.reduce((n, r) => n + (Number(r[col]) || 0), 0);
+
+  const [commentsReceivedRes, savedByOthersRes, personsRes, postsRes, aidRes, marchRes, hospRes, complaintsRes] =
+    await Promise.all([
+      sb.from("comments").select("id", { count: "exact", head: true }).in("entity_id", myIds),
+      sb.from("saved_items").select("id", { count: "exact", head: true }).in("entity_id", myIds),
+      personIds.length ? sb.from("persons").select("reactions").in("id", personIds) : Promise.resolve({ data: [] as any[] }),
+      postIds.length ? sb.from("posts").select("reactions").in("id", postIds) : Promise.resolve({ data: [] as any[] }),
+      aidIds.length ? sb.from("aid_points").select("likes").in("id", aidIds) : Promise.resolve({ data: [] as any[] }),
+      marchIds.length ? sb.from("marches").select("likes").in("id", marchIds) : Promise.resolve({ data: [] as any[] }),
+      hospIds.length ? sb.from("hospitals").select("likes").in("id", hospIds) : Promise.resolve({ data: [] as any[] }),
+      complaintIds.length
+        ? sb.from("complaints").select("supports").in("id", complaintIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+  const reactionsReceived =
+    sumJsonReactions(personsRes.data ?? []) +
+    sumJsonReactions(postsRes.data ?? []) +
+    sumColumn(aidRes.data ?? [], "likes") +
+    sumColumn(marchRes.data ?? [], "likes") +
+    sumColumn(hospRes.data ?? [], "likes") +
+    sumColumn(complaintsRes.data ?? [], "supports");
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  return {
+    publications: pubs.length,
+    commentsMade: commentsMadeRes.count ?? 0,
+    commentsReceived: commentsReceivedRes.count ?? 0,
+    reactionsReceived,
+    savedByOthers: savedByOthersRes.count ?? 0,
+    savedByMe: savedByMeRes.count ?? 0,
+  };
+}
+
 // ── Guardar / seguir publicaciones (requiere cuenta) ─────────────────────────
 // Account-only: en modo demostración (sin Supabase) no hay sesión, así que estas
 // funciones devuelven vacío / no hacen nada. Todo se filtra por user_id.

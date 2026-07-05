@@ -60,6 +60,28 @@ export async function findUserByUsername(
   return { id: data.user_id as string, username: data.username as string };
 }
 
+/** Datos PÚBLICOS de una cuenta por su username, para la ficha compartible de
+ *  "voluntario digital" (`/perfil/publico/[username]`) — sin sesión, cualquiera
+ *  con el enlace la ve. Solo username + foto, ambos ya públicos en el resto del
+ *  sitio (comentarios, avatar); nada de correo ni datos privados. */
+export async function getPublicProfileByUsername(
+  username: string,
+): Promise<{ id: string; username: string; avatarUrl: string | null } | null> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return null;
+  const { data } = await admin
+    .from("profiles")
+    .select("user_id, username, avatar_url")
+    .eq("username_lower", username.trim().toLowerCase())
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.user_id as string,
+    username: data.username as string,
+    avatarUrl: (data.avatar_url as string | null) ?? null,
+  };
+}
+
 export type AuthResult = { ok: true; username: string } | { ok: false; error: string };
 
 export async function signUp(input: SignupInput): Promise<AuthResult> {

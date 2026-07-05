@@ -2,9 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bookmark, FileText, Settings, UserRound } from "lucide-react";
 import { getMyProfile } from "@/lib/auth";
-import { getMyPublications, getSavedItems } from "@/lib/data";
+import { getDigitalVolunteerStats, getMyPublications, getSavedItems } from "@/lib/data";
 import { timeAgo } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { DigitalVolunteerCard } from "@/components/DigitalVolunteerCard";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,10 @@ export default async function PerfilPage() {
   const profile = await getMyProfile();
   if (!profile) redirect("/");
 
-  const [publications, saved] = await Promise.all([
+  const [publications, saved, volunteerStats] = await Promise.all([
     getMyPublications(profile.id),
     getSavedItems(profile.id),
+    getDigitalVolunteerStats(profile.id),
   ]);
 
   return (
@@ -64,6 +66,8 @@ export default async function PerfilPage() {
           </Link>
         </div>
       </section>
+
+      <DigitalVolunteerCard username={profile.username} stats={volunteerStats} />
 
       <section className="mt-6">
         <h2 className="mb-3 flex items-center gap-2 font-bold text-zinc-900">
