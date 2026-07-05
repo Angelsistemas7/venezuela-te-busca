@@ -22,6 +22,8 @@ import {
   getCommentsForEntities,
   getMyPublications,
   type MyPublication,
+  getPostsPage,
+  type PostSort,
   getReportCountsForPersons,
   getSavedItems,
   getSavedKeys,
@@ -69,11 +71,14 @@ import {
 import { isAdmin } from "@/lib/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
 import type {
+  Comment,
   CommentEntity,
   HospitalStatus,
   PersonReaction,
   PersonStatus,
   PetStatus,
+  Post,
+  PostType,
   ReactionKind,
   SavedEntity,
   SavedItem,
@@ -659,6 +664,22 @@ export async function likeHospitalAction(id: string): Promise<{ ok: boolean }> {
 }
 
 // ── Comunidad / Feed ─────────────────────────────────────────────────────────
+/** Siguiente tanda del muro para el scroll infinito (mismo filtro/orden que
+ *  cargó la página inicialmente). Devuelve cada post ya con sus comentarios
+ *  (una sola consulta por lote) para que `PostCard` no tenga que pedirlos aparte. */
+export async function getMorePostsAction(
+  filter: { type?: PostType | "all"; search?: string; estado?: string | "all"; dateFrom?: string; dateTo?: string },
+  page: number,
+  pageSize: number,
+  sort: PostSort,
+): Promise<{ items: (Post & { comments: Comment[] })[]; hasMore: boolean }> {
+  const pageResult = await getPostsPage(filter, page, pageSize, sort);
+  const commentsByPost = await getCommentsForEntities("post", pageResult.items.map((p) => p.id));
+  const items = pageResult.items.map((post) => ({ ...post, comments: commentsByPost[post.id] ?? [] }));
+  const hasMore = page * pageSize < pageResult.total;
+  return { items, hasMore };
+}
+
 export async function createPostAction(form: FormData): Promise<ActionResult> {
   const token = getField(form, "cf-turnstile-response") || null;
   if (!(await verifyTurnstile(token))) {

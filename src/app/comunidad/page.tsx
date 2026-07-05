@@ -6,9 +6,8 @@ import { cn, clampPageSize } from "@/lib/utils";
 import { CreatePostButton } from "@/components/CreatePostButton";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { EmptyState } from "@/components/EmptyState";
+import { InfiniteFeed } from "@/components/InfiniteFeed";
 import { PinnedPostCard } from "@/components/PinnedPostCard";
-import { PostCard } from "@/components/PostCard";
-import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { SwipeStaticRow } from "@/components/SwipeHint";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
@@ -118,22 +117,21 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <CommunityTabs />
-      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
-            <Users2 className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Comunidad</h1>
-            <p className="mt-1 text-zinc-500">
-              El muro de la emergencia: pide y ofrece ayuda, reporta rescates, convoca caravanas y
-              mantén a todos informados. Toda información cuenta.
-            </p>
-          </div>
+      <div className="mb-5 flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
+          <Users2 className="h-5 w-5" />
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Comunidad</h1>
+          <p className="mt-1 text-zinc-500">
+            El muro de la emergencia: pide y ofrece ayuda, reporta rescates, convoca caravanas y
+            mantén a todos informados. Toda información cuenta.
+          </p>
         </div>
-        <div className="shrink-0">
-          <CreatePostButton />
-        </div>
+      </div>
+
+      <div className="mb-5">
+        <CreatePostButton variant="bar" />
       </div>
 
       <form action="/comunidad" className="mb-3 flex gap-2">
@@ -216,17 +214,16 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
             </section>
           )}
 
-          {restPosts.length > 0 && (
-            <div className="animate-rise space-y-4">
-              {withComments(restPosts).map((post) => (
-                <PostCard key={post.id} post={post} comments={post.comments} />
-              ))}
-            </div>
-          )}
-
-          <div className="mt-6">
-            <Pagination page={pageResult.page} pageSize={pageResult.pageSize} total={pageResult.total} />
-          </div>
+          <InfiniteFeed
+            key={`${type}-${sort}-${estado}-${dateFrom ?? ""}-${dateTo ?? ""}-${q ?? ""}-${pageSize}-${page}`}
+            initialItems={withComments(restPosts)}
+            initialPage={page}
+            pageSize={pageSize}
+            hasMoreInitially={page * pageSize < pageResult.total}
+            filter={{ type, search: q, estado, dateFrom, dateTo }}
+            sort={sort}
+            excludeIds={Array.from(pinnedIds)}
+          />
         </>
       )}
     </div>

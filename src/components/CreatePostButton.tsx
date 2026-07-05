@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ImagePlus, Loader2, PenLine } from "lucide-react";
 import { ESTADOS, POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
-import { createPostAction, type ActionResult } from "@/app/actions";
+import { createPostAction, getMyProfileAction, type ActionResult } from "@/app/actions";
 import { uploadPhoto } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
+import { Avatar } from "./Avatar";
 import { Modal } from "./Modal";
 import { Field, Input, Select, Textarea } from "./FormControls";
 import { Turnstile } from "./Turnstile";
@@ -14,15 +15,25 @@ import { ManageLinkBox } from "./ManageLinkBox";
 
 const TYPES = Object.keys(POST_TYPE_LABEL) as PostType[];
 
-export function CreatePostButton() {
+export function CreatePostButton({ variant = "button" }: { variant?: "button" | "bar" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileRef = useRef<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Solo hace falta para la barra compositora (muestra tu foto, como en
+  // Facebook); el botón simple no la necesita.
+  useEffect(() => {
+    if (variant !== "bar") return;
+    getMyProfileAction()
+      .then((p) => setAvatarUrl(p?.avatarUrl ?? null))
+      .catch(() => {});
+  }, [variant]);
 
   function close() {
     setOpen(false);
@@ -64,13 +75,24 @@ export function CreatePostButton() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="press flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-3 text-base font-bold text-zinc-900 shadow-sm transition hover:bg-brand-300"
-      >
-        <PenLine className="h-5 w-5" />
-        Publicar
-      </button>
+      {variant === "bar" ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="press flex w-full items-center gap-3 rounded-full border border-zinc-200 bg-white px-4 py-3 text-left shadow-sm transition hover:bg-zinc-50"
+        >
+          <Avatar src={avatarUrl} size="md" />
+          <span className="flex-1 text-sm text-zinc-500">¿Qué necesitas o qué ofreces?</span>
+          <PenLine className="h-4 w-4 shrink-0 text-zinc-400" />
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="press flex items-center gap-2 rounded-xl bg-brand-400 px-5 py-3 text-base font-bold text-zinc-900 shadow-sm transition hover:bg-brand-300"
+        >
+          <PenLine className="h-5 w-5" />
+          Publicar
+        </button>
+      )}
 
       <Modal
         open={open}
