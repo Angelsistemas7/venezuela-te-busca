@@ -64,29 +64,48 @@ export function CommentSection({
       .catch(() => {});
   }, []);
 
-  // Hilos de un nivel: comentarios raíz (más recientes arriba) + respuestas por
-  // raíz (en orden cronológico, para que la conversación se lea de arriba abajo).
-  const { roots, repliesByParent } = useMemo(() => {
+  // Profundidad de respuesta SIN límite (parent_id ya admite cualquier
+  // comentario como padre, no solo la raíz) pero con UN SOLO nivel de sangría
+  // visual: todo lo que cuelga de una raíz —sin importar cuántos niveles de
+  // "respuesta a una respuesta" tenga— se aplana en una sola lista cronológica
+  // bajo esa raíz. Cuando el padre directo de un comentario no es la raíz (una
+  // respuesta a otra respuesta), se aclara a quién responde con una etiqueta,
+  // en vez de seguir indentando y dejar el texto sin espacio en móvil.
+  const { roots, threadByRoot, byId } = useMemo(() => {
+    const byId = new Map(comments.map((c) => [c.id, c]));
+    const childrenOf = new Map<string, Comment[]>();
+    for (const c of comments) {
+      if (!c.parentId) continue;
+      const arr = childrenOf.get(c.parentId) ?? [];
+      arr.push(c);
+      childrenOf.set(c.parentId, arr);
+    }
     const roots = comments
       .filter((c) => !c.parentId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const repliesByParent = new Map<string, Comment[]>();
-    for (const c of comments) {
-      if (!c.parentId) continue;
-      const arr = repliesByParent.get(c.parentId) ?? [];
-      arr.push(c);
-      repliesByParent.set(c.parentId, arr);
+
+    function collectDescendants(rootId: string): Comment[] {
+      const out: Comment[] = [];
+      const queue = [...(childrenOf.get(rootId) ?? [])];
+      while (queue.length > 0) {
+        const c = queue.shift()!;
+        out.push(c);
+        const kids = childrenOf.get(c.id);
+        if (kids) queue.push(...kids);
+      }
+      return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     }
-    for (const arr of repliesByParent.values()) {
-      arr.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-    }
-    return { roots, repliesByParent };
+
+    const threadByRoot = new Map<string, Comment[]>();
+    for (const r of roots) threadByRoot.set(r.id, collectDescendants(r.id));
+
+    return { roots, threadByRoot, byId };
   }, [comments]);
 
   function startReply(c: Comment) {
-    // Si responden a una respuesta, el hilo se mantiene en un solo nivel:
-    // cuelga de la raíz, pero se menciona a quién se responde.
-    setReplyTo({ id: c.parentId ?? c.id, authorName: c.authorName });
+    // Responde al comentario exacto que se tocó (root o respuesta): el padre
+    // real se conserva, aunque visualmente todo se muestre al mismo nivel.
+    setReplyTo({ id: c.id, authorName: c.authorName });
     textareaRef.current?.focus();
   }
 
@@ -157,13 +176,22 @@ export function CommentSection({
     setSubmitting(false);
   }
 
-  function renderComment(c: Comment, isReply: boolean) {
-    const replies = isReply ? [] : repliesByParent.get(c.id) ?? [];
+  // Avatar + burbuja (nombre+texto) + fila de acciones. `replyToName` solo se
+  // pinta cuando el padre real NO es la raíz del hilo (una respuesta a otra
+  // respuesta) — como todo se ve al mismo nivel, sin la etiqueta se perdería
+  // a quién le estaban respondiendo.
+  function renderCommentBody(c: Comment, replyToName?: string) {
     return (
-      <li key={c.id} className={cn("flex gap-2", c.id === justPostedId && "animate-rise")}>
+      <div className="flex gap-2">
         <Avatar src={c.authorAvatarUrl} username={c.authorUsername} size="sm" className="mt-0.5" />
         <div className="min-w-0 flex-1">
           <div className="rounded-xl bg-zinc-100 px-3 py-2">
+            {replyToName && (
+              <p className="mb-0.5 flex items-center gap-1 text-xs font-medium text-zinc-400">
+                <CornerDownRight className="h-3 w-3" />
+                Respondiendo a {replyToName}
+              </p>
+            )}
             {c.authorUsername ? (
               <Link
                 href={`/perfil/publico/${c.authorUsername}`}
@@ -191,13 +219,32 @@ export function CommentSection({
               Responder
             </button>
           </div>
-
-          {replies.length > 0 && (
-            <ul className="mt-2 space-y-2.5 border-l-2 border-zinc-200 pl-3">
-              {replies.map((r) => renderComment(r, true))}
-            </ul>
-          )}
         </div>
+      </div>
+    );
+  }
+
+  // Una raíz + TODO su hilo (cualquier profundidad) aplanado en una sola
+  // lista cronológica, con un único nivel de sangría.
+  function renderRoot(root: Comment) {
+    const thread = threadByRoot.get(root.id) ?? [];
+    return (
+      <li key={root.id} className={cn(root.id === justPostedId && "animate-rise")}>
+        {renderCommentBody(root)}
+
+        {thread.length > 0 && (
+          <ul className="mt-2 space-y-2.5 border-l-2 border-zinc-200 pl-3">
+            {thread.map((c) => {
+              const parent = c.parentId ? byId.get(c.parentId) : undefined;
+              const replyToName = parent && parent.id !== root.id ? parent.authorName : undefined;
+              return (
+                <li key={c.id} className={cn(c.id === justPostedId && "animate-rise")}>
+                  {renderCommentBody(c, replyToName)}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </li>
     );
   }
@@ -306,7 +353,7 @@ export function CommentSection({
             Aún no hay comentarios. Sé el primero en aportar información.
           </li>
         )}
-        {roots.map((c) => renderComment(c, false))}
+        {roots.map((c) => renderRoot(c))}
       </ul>
     </section>
   );
