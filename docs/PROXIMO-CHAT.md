@@ -346,6 +346,43 @@ no hay cuentas en modo demostración).
   puede agregar `deleteMarchAction`/`deletePetAction` al panel más
   adelante.
 
+## Ronda nueva (2026-07-04, segunda parte): re-auditoría por sección completa
+El dueño pidió repetir la auditoría por sección, esta vez sobre las 10
+secciones YA revisadas antes (no solo lo nuevo) para atrapar cualquier
+regresión o hueco que se escapara. Se hizo sección por sección con commits
+propios en cada una. Hallazgos reales:
+
+- **Bug real y significativo**: `getMyPublications()` (alimenta "Mis
+  publicaciones" en `/perfil` Y la campanita de notificaciones) se había
+  quedado desactualizada — nunca se extendió cuando `hospitals`,
+  `complaints` y `pets` ganaron su columna `user_id` en migraciones
+  posteriores. Alguien que registra un hospital, una denuncia o una mascota
+  con su cuenta NUNCA las veía en su perfil ni recibía avisos de comentarios
+  nuevos ahí. Corregido: las 3 tablas ahora se consultan igual que las 4
+  originales (persons/posts/aid_points/marches).
+- **Barrido sistemático de tap feedback** (comparando cantidad de
+  `<button>`/`<Link>` contra uso de `.press`/`.tap-card`/`active:scale` en
+  TODO `components/`, `components/admin/`, `components/map/` y `app/`, en
+  vez de revisar archivo por archivo al azar): encontrados y corregidos 13
+  archivos con botones sin ningún tap feedback, entre ellos **`Modal.tsx`**
+  (el botón de CERRAR que usa cada modal del sitio) y **`SearchAndFilters.tsx`**
+  (los 4 chips de filtro de "Se busca"/"¿La reconoces?", la página de más
+  tráfico) — los de mayor alcance. También `OwnerManagePanel.tsx` y
+  `PostManagePanel.tsx` (paneles de gestión de personas y comunidad, a
+  diferencia de ayuda/mascotas/caravanas que sí lo tenían),
+  `AidConsensusVote.tsx`/`HospitalSuppliesVote.tsx` (botones de consenso),
+  y varios botones sueltos de copiar/compartir/cerrar avisos.
+- **Feature completada**: Denuncias era la única de las 6 secciones en cola
+  para `FilterModal` (ver ronda anterior más abajo) que se quedó sin
+  aplicar — ahora tiene filtro de estado/región y rango de fechas, igual
+  que Voluntarios/Caravanas/Hospitales/Ayuda/Mascotas. `getComplaints()`
+  ahora acepta `estado`/`dateFrom`/`dateTo`.
+- **Rendimiento**: en `/noticias`, dos consultas de comentarios
+  independientes corrían una detrás de otra en vez de en paralelo.
+- Se busca/inicio, Comunidad, Mapa, Emergencias, Voluntarios, Ayuda,
+  Mascotas, Caravanas y Recursos: revisados a fondo, sin hallazgos nuevos
+  más allá de lo de arriba (ya estaban bien desde rondas anteriores).
+
 ## Ronda nueva (2026-07-04): Perfil, Configuración, Notificaciones, roles
 Todo lo construido DESPUÉS de que la cola original de 10 secciones se cerró
 (Perfil, Configuración, campanita de notificaciones, roles/Colaboradores,
