@@ -103,7 +103,13 @@ export function ReportStatusButton({
               <Field label="Tu nombre" htmlFor="reporterName" required error={fieldErrors?.reporterName}>
                 <Input id="reporterName" name="reporterName" placeholder="Nombre y apellido" />
               </Field>
-              <Field label="Tu teléfono" htmlFor="reporterPhone" required error={fieldErrors?.reporterPhone}>
+              <Field
+                label="Tu teléfono"
+                htmlFor="reporterPhone"
+                required
+                error={fieldErrors?.reporterPhone}
+                hint="Con el código de tu país si no es +58."
+              >
                 <Input id="reporterPhone" name="reporterPhone" placeholder="+58 424 0000000" />
               </Field>
             </div>

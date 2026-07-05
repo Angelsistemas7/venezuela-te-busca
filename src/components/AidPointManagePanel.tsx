@@ -118,7 +118,13 @@ export function AidPointManagePanel({ point, token }: { point: AidPoint; token: 
             <Field label="Responsable / organización" htmlFor="contactName">
               <Input id="contactName" name="contactName" defaultValue={point.contactName ?? ""} />
             </Field>
-            <Field label="Teléfono de contacto" htmlFor="contactPhone" required error={fieldErrors?.contactPhone}>
+            <Field
+              label="Teléfono de contacto"
+              htmlFor="contactPhone"
+              required
+              error={fieldErrors?.contactPhone}
+              hint="Con el código de tu país si no es +58."
+            >
               <Input id="contactPhone" name="contactPhone" defaultValue={point.contactPhone ?? ""} />
             </Field>
           </div>

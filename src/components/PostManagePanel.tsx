@@ -94,7 +94,12 @@ export function PostManagePanel({ post, token }: { post: Post; token: string }) 
             <Field label="Tu nombre" htmlFor="authorName" required error={fieldErrors?.authorName}>
               <Input id="authorName" name="authorName" defaultValue={post.authorName} />
             </Field>
-            <Field label="Teléfono (opcional)" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>
+            <Field
+              label="Teléfono (opcional)"
+              htmlFor="contactPhone"
+              error={fieldErrors?.contactPhone}
+              hint="Con el código de tu país si no es +58."
+            >
               <Input id="contactPhone" name="contactPhone" defaultValue={post.contactPhone ?? ""} />
             </Field>
           </div>

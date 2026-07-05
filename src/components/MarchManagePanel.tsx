@@ -82,7 +82,13 @@ export function MarchManagePanel({ march, token }: { march: March; token: string
             <Field label="Organiza" htmlFor="organizerName" required error={fieldErrors?.organizerName}>
               <Input id="organizerName" name="organizerName" defaultValue={march.organizerName} />
             </Field>
-            <Field label="Teléfono de contacto" htmlFor="organizerPhone" required error={fieldErrors?.organizerPhone}>
+            <Field
+              label="Teléfono de contacto"
+              htmlFor="organizerPhone"
+              required
+              error={fieldErrors?.organizerPhone}
+              hint="Con el código de tu país si no es +58."
+            >
               <Input id="organizerPhone" name="organizerPhone" defaultValue={march.organizerPhone} />
             </Field>
           </div>

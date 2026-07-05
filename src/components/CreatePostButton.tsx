@@ -164,7 +164,12 @@ export function CreatePostButton() {
               <Field label="Tu nombre" htmlFor="authorName" required error={fieldErrors?.authorName}>
                 <Input id="authorName" name="authorName" placeholder="Nombre o colectivo" />
               </Field>
-              <Field label="Teléfono (opcional)" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>
+              <Field
+                label="Teléfono (opcional)"
+                htmlFor="contactPhone"
+                error={fieldErrors?.contactPhone}
+                hint="Con el código de tu país si no es +58."
+              >
                 <Input id="contactPhone" name="contactPhone" placeholder="+58 412 0000000" />
               </Field>
             </div>

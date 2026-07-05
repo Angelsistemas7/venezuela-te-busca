@@ -323,7 +323,12 @@ export function RegisterPersonButton() {
               <Field label="Nombre de contacto" htmlFor="contactName">
                 <Input id="contactName" name="contactName" placeholder="Nombre completo" />
               </Field>
-              <Field label="Teléfono" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>
+              <Field
+                label="Teléfono"
+                htmlFor="contactPhone"
+                error={fieldErrors?.contactPhone}
+                hint="Con el código de tu país si no es +58."
+              >
                 <Input id="contactPhone" name="contactPhone" placeholder="+58 424 0000000" />
               </Field>
               <Field label="Correo (opcional)" htmlFor="contactEmail" error={fieldErrors?.contactEmail}>

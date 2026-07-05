@@ -158,7 +158,12 @@ export function OwnerManagePanel({ person, token }: { person: Person; token: str
               <Field label="Nombre de contacto" htmlFor="contactName">
                 <Input id="contactName" name="contactName" defaultValue={person.contactName ?? ""} />
               </Field>
-              <Field label="Teléfono" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>
+              <Field
+                label="Teléfono"
+                htmlFor="contactPhone"
+                error={fieldErrors?.contactPhone}
+                hint="Con el código de tu país si no es +58."
+              >
                 <Input id="contactPhone" name="contactPhone" defaultValue={person.contactPhone ?? ""} />
               </Field>
               <Field label="Correo" htmlFor="contactEmail" error={fieldErrors?.contactEmail}>

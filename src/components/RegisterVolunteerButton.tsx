@@ -157,7 +157,12 @@ export function RegisterVolunteerButton() {
             </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Teléfono (opcional)" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>
+              <Field
+                label="Teléfono (opcional)"
+                htmlFor="contactPhone"
+                error={fieldErrors?.contactPhone}
+                hint="Con el código de tu país si no es +58."
+              >
                 <Input id="contactPhone" name="contactPhone" placeholder="+58 424 0000000" />
               </Field>
               <Field label="Correo (opcional)" htmlFor="contactEmail" error={fieldErrors?.contactEmail}>

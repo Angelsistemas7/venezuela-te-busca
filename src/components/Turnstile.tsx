@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { RotateCcw } from "lucide-react";
 
 // Widget de Cloudflare Turnstile. Si no hay site key configurada, renderiza
 // una nota discreta y el formulario sigue funcionando (modo desarrollo).
@@ -10,6 +11,7 @@ declare global {
     turnstile?: {
       render: (el: HTMLElement, opts: Record<string, unknown>) => string;
       remove: (id: string) => void;
+      reset: (id: string) => void;
     };
   }
 }
@@ -20,6 +22,14 @@ export function Turnstile() {
   const ref = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  // El token de Turnstile vale unos 5 minutos. Sin esto, alguien que se
+  // demora escribiendo el formulario ve el ✓ verde de siempre (el widget no
+  // avisa solo) pero el token ya venció por dentro — el error "no se pudo
+  // verificar que eres humano" solo aparece al final, al publicar, sin
+  // ninguna pista de qué pasó. Ahora se detecta la expiración y se avisa
+  // aquí mismo, con un botón para volver a verificar sin perder el resto del
+  // formulario ya escrito.
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     if (!siteKey || !ref.current) return;
@@ -27,7 +37,13 @@ export function Turnstile() {
 
     function renderWidget() {
       if (!window.turnstile || !el) return;
-      widgetId.current = window.turnstile.render(el, { sitekey: siteKey });
+      widgetId.current = window.turnstile.render(el, {
+        sitekey: siteKey,
+        "refresh-expired": "auto",
+        callback: () => setExpired(false),
+        "expired-callback": () => setExpired(true),
+        "error-callback": () => setExpired(true),
+      });
     }
 
     if (window.turnstile) {
@@ -68,5 +84,26 @@ export function Turnstile() {
     );
   }
 
-  return <div ref={ref} className="min-h-[65px]" />;
+  function retry() {
+    if (widgetId.current && window.turnstile) {
+      window.turnstile.reset(widgetId.current);
+      setExpired(false);
+    }
+  }
+
+  return (
+    <div>
+      <div ref={ref} className="min-h-[65px]" />
+      {expired && (
+        <button
+          type="button"
+          onClick={retry}
+          className="press mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:underline"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          La verificación expiró por el tiempo — vuelve a marcarla
+        </button>
+      )}
+    </div>
+  );
 }

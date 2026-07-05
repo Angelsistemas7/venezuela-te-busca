@@ -134,7 +134,12 @@ export function PetManagePanel({ pet, token }: { pet: Pet; token: string }) {
             </Field>
           </div>
 
-          <Field label="Teléfono de contacto" htmlFor="contactPhone" error={fieldErrors?.contactPhone}>
+          <Field
+            label="Teléfono de contacto"
+            htmlFor="contactPhone"
+            error={fieldErrors?.contactPhone}
+            hint="Con el código de tu país si no es +58."
+          >
             <Input id="contactPhone" name="contactPhone" defaultValue={pet.contactPhone ?? ""} />
           </Field>
 
