@@ -98,9 +98,9 @@ export function RegisterPersonButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="press flex items-center gap-1.5 rounded-xl bg-brand-400 px-3.5 py-2 text-xs font-semibold text-zinc-900 shadow-sm transition hover:bg-brand-300 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
+        className="press flex items-center gap-1.5 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-bold text-zinc-900 shadow-sm transition hover:bg-brand-300 sm:gap-2 sm:px-5 sm:py-3 sm:text-base"
       >
-        <Plus className="h-4 w-4" />
+        <Plus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
         Publicar persona
       </button>
 

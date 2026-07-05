@@ -25,8 +25,8 @@ export function PersonShareButton({
     const url = typeof window !== "undefined" ? window.location.href : "";
     const who = unidentified && !name ? "esta persona" : name;
     const text = unidentified
-      ? `¿La reconoces? Alguien vio a ${who} y no se sabe quién es. El Mundo Te Busca.`
-      : `Ayúdanos a localizar a ${who}. Sus familiares esperan verlo pronto. El Mundo Te Busca.`;
+      ? `Necesitamos voluntarios digitales que puedan ayudar en esta tragedia. ¿La reconoces? Alguien vio a ${who} y no se sabe quién es. Una iniciativa sin fines de lucro de El Mundo Te Busca.`
+      : `Necesitamos voluntarios digitales que puedan ayudar en esta tragedia. Ayúdanos a localizar a ${who}. Sus familiares esperan verlo pronto. Una iniciativa sin fines de lucro de El Mundo Te Busca.`;
 
     reactToPersonAction(personId, "difundir").catch(() => {});
 

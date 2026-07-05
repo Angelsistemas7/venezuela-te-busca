@@ -53,7 +53,8 @@ export function SiteFooter() {
           </Link>
 
           <p className="mt-4 text-sm font-medium text-zinc-700">
-            Ayúdanos a difundir: entre más personas vean esta página, más personas pueden estar a salvo.
+            Sé un voluntario digital: solo necesitas un momento para impactar. Comparte esta
+            página — puede salvar vidas.
           </p>
           <div className="mt-2">
             <ShareWhatsApp variant="subtle" />
