@@ -46,11 +46,21 @@ jobs:
           NEXT_PUBLIC_SITE_URL: https://elmundotebusca.com
 
       - name: Empaquetar salida standalone
-        # El standalone no incluye estáticos ni /public: hay que copiarlos.
+        # El standalone no incluye estáticos, /public, ni scripts/ sueltos
+        # (fetch-social-posts.mjs corre por cron en el VPS, fuera de Next): hay
+        # que copiarlos a mano.
         run: |
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
           cp ecosystem.config.cjs .next/standalone/
+          cp -r scripts .next/standalone/scripts
+
+      - name: Dependencias del script de ingesta (separadas del recorte de Next)
+        # El "tracing" de Next para standalone solo copia lo que las rutas de
+        # la app usan en tiempo de ejecución, y NO incluye @supabase/supabase-js
+        # para este script suelto (confirmado: falta en .next/standalone/node_modules).
+        # Se instala aparte, en su propia carpeta node_modules junto al script.
+        run: npm install --omit=dev --no-audit --no-fund --prefix .next/standalone/scripts
 
       - name: Preparar SSH
         env:

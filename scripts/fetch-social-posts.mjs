@@ -36,16 +36,23 @@ import { createClient } from "@supabase/supabase-js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
-// ── Carga manual de .env.local (igual que scripts/import-data.mjs) ─────────
+// ── Carga manual de variables de entorno ────────────────────────────────────
+// En local usamos `.env.local` (igual que scripts/import-data.mjs). En el VPS
+// el archivo real es `.env` (el mismo que carga PM2 con --env-file=.env; ver
+// ecosystem.config.cjs) — cron no hereda esas variables por su cuenta, así
+// que el script las carga él mismo. Prueba ambos nombres, en ese orden.
 function loadEnv() {
-  try {
-    const raw = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
-    for (const line of raw.split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  for (const name of ["../.env.local", "../.env"]) {
+    try {
+      const raw = readFileSync(new URL(name, import.meta.url), "utf8");
+      for (const line of raw.split("\n")) {
+        const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+        if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+      }
+      return;
+    } catch {
+      /* prueba el siguiente nombre */
     }
-  } catch {
-    /* sin .env.local: se usan variables de entorno del sistema */
   }
 }
 loadEnv();

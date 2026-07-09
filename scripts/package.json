@@ -1,0 +1,8 @@
+{
+  "name": "fetch-social-posts-deps",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
