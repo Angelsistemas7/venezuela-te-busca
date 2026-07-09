@@ -33,6 +33,11 @@
 
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+// Node 20 no trae WebSocket global nativo; supabase-js igual intenta montar
+// su cliente de Realtime al crear el cliente (aunque este script solo hace
+// upserts REST, nunca se suscribe a nada). Sin esto, createClient() revienta
+// con "Node.js 20 detected without native WebSocket support".
+import ws from "ws";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -206,7 +211,10 @@ async function main() {
     );
     process.exit(1);
   }
-  const sb = createClient(URL_SB, SERVICE_KEY, { auth: { persistSession: false } });
+  const sb = createClient(URL_SB, SERVICE_KEY, {
+    auth: { persistSession: false },
+    realtime: { transport: ws },
+  });
 
   const payload = rows.map((r) => ({
     type: "info",
