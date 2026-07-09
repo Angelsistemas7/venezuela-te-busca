@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fetch:social": "node scripts/fetch-social-posts.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

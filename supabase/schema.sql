@@ -293,6 +293,24 @@ create index if not exists posts_created_idx   on posts (created_at desc);
 create index if not exists posts_pinned_idx    on posts (pinned);
 create index if not exists posts_reactions_idx on posts (reactions_total desc);
 
+-- Migración: ingesta automática de publicaciones de otras redes (Bluesky,
+-- Mastodon) por hashtag. Nunca se publican directas: nacen `pending` y solo
+-- se ven en /comunidad tras el visto bueno de un moderador en /admin (mismo
+-- filtro en la capa de aplicación que usan personas sin verificar/denuncias,
+-- ver `getPosts`/`getPostsPage` en `src/lib/data.ts`).
+alter table posts add column if not exists origin text not null default 'community'
+  check (origin in ('community','bluesky','mastodon'));
+alter table posts add column if not exists moderation_status text not null default 'approved'
+  check (moderation_status in ('pending','approved','rejected'));
+-- Clave de deduplicación entre corridas del script de ingesta (p. ej.
+-- "bluesky:at://did:.../app.bsky.feed.post/xyz"); las publicaciones de la
+-- comunidad la dejan NULL (un índice único normal permite múltiples NULL,
+-- así que no hace falta que sea parcial — y así el "on conflict" que hace
+-- el .upsert() de PostgREST puede usarlo como árbitro sin restricciones raras).
+alter table posts add column if not exists external_id text;
+create unique index if not exists posts_external_id_idx on posts (external_id);
+create index if not exists posts_moderation_status_idx on posts (moderation_status, created_at);
+
 -- ── Denuncias de irregularidades ────────────────────────────────────────────
 -- Reportes ciudadanos de irregularidades. Publicar requiere sesión (la app lo
 -- exige); por eso `user_id` no es opcional en la práctica. La comunidad "Apoya".

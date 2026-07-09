@@ -162,8 +162,13 @@ export function CreatePostButton({ variant = "button" }: { variant?: "button" | 
               />
             </label>
 
-            <Field label="Enlace a video o red social (opcional)" htmlFor="linkUrl" error={fieldErrors?.linkUrl}>
-              <Input id="linkUrl" name="linkUrl" placeholder="https://..." />
+            <Field
+              label="Enlace a video o red social (opcional)"
+              htmlFor="linkUrl"
+              error={fieldErrors?.linkUrl}
+              hint="Pega un enlace de X (Twitter) y se mostrará la publicación incrustada."
+            >
+              <Input id="linkUrl" name="linkUrl" placeholder="https://x.com/usuario/status/..." />
             </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

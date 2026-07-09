@@ -2017,6 +2017,8 @@ function rowToPost(r: any): Post {
     pinned: r.pinned ?? false,
     reactions: { apoyo: 0, corazon: 0, hecho: 0, ...(r.reactions ?? {}) },
     createdAt: r.created_at,
+    origin: r.origin ?? "community",
+    moderationStatus: r.moderation_status ?? "approved",
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -2026,7 +2028,9 @@ export async function getPosts(
 ): Promise<Post[]> {
   const sb = getSupabase();
   if (!sb) {
-    let items = mem.posts.slice();
+    // Lo importado por hashtag (Bluesky/Mastodon) nace "pending": nunca se ve
+    // en el muro hasta que un moderador le da el visto bueno en /admin.
+    let items = mem.posts.filter((p) => p.moderationStatus !== "pending");
     if (filter.type && filter.type !== "all") items = items.filter((p) => p.type === filter.type);
     if (filter.estado && filter.estado !== "all")
       items = items.filter((p) => p.estado === filter.estado);
@@ -2043,7 +2047,12 @@ export async function getPosts(
     }
     return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
-  let query = sb.from("posts").select("*").order("created_at", { ascending: false }).limit(100);
+  let query = sb
+    .from("posts")
+    .select("*")
+    .neq("moderation_status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(100);
   if (filter.type && filter.type !== "all") query = query.eq("type", filter.type);
   if (filter.estado && filter.estado !== "all") query = query.eq("estado", filter.estado);
   if (filter.pinnedOnly) query = query.eq("pinned", true);
@@ -2099,7 +2108,7 @@ export async function getPostsPage(
 ): Promise<PostResult> {
   const sb = getSupabase();
   if (!sb) {
-    let items = mem.posts.slice();
+    let items = mem.posts.filter((p) => p.moderationStatus !== "pending");
     if (filter.type && filter.type !== "all") items = items.filter((p) => p.type === filter.type);
     if (filter.estado && filter.estado !== "all") items = items.filter((p) => p.estado === filter.estado);
     if (filter.dateFrom) items = items.filter((p) => p.createdAt >= filter.dateFrom!);
@@ -2122,7 +2131,7 @@ export async function getPostsPage(
     const start = (page - 1) * pageSize;
     return { items: items.slice(start, start + pageSize), total, page, pageSize };
   }
-  let query = sb.from("posts").select("*", { count: "exact" });
+  let query = sb.from("posts").select("*", { count: "exact" }).neq("moderation_status", "pending");
   query =
     sort === "oldest"
       ? query.order("created_at", { ascending: true })
@@ -2167,6 +2176,48 @@ export async function getPostById(id: string): Promise<Post | null> {
   if (error || !data) return null;
   const [post] = await attachAuthorProfiles([rowToPost(data)], [data.user_id ?? null]);
   return post;
+}
+
+// ── Cola de moderación: publicaciones importadas de otras redes por hashtag ──
+// Las llena `scripts/fetch-social-posts.mjs` (Bluesky/Mastodon, vía sus APIs
+// públicas oficiales) con `moderationStatus: "pending"`. Nunca aparecen en
+// /comunidad (ver el filtro en `getPosts`/`getPostsPage`) hasta que un
+// moderador las aprueba o rechaza aquí.
+export async function getPendingExternalPosts(): Promise<Post[]> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    return mem.posts
+      .filter((p) => p.moderationStatus === "pending")
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+  const { data, error } = await sb
+    .from("posts")
+    .select("*")
+    .eq("moderation_status", "pending")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(rowToPost);
+}
+
+export async function approveExternalPost(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    const post = mem.posts.find((p) => p.id === id);
+    if (post) post.moderationStatus = "approved";
+    return;
+  }
+  const { error } = await sb.from("posts").update({ moderation_status: "approved" }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function rejectExternalPost(id: string): Promise<void> {
+  const sb = getSupabaseAdmin() ?? getSupabase();
+  if (!sb) {
+    mem.posts = mem.posts.filter((p) => p.id !== id);
+    return;
+  }
+  const { error } = await sb.from("posts").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export interface CreatePostResult {

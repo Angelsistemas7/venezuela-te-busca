@@ -6,11 +6,13 @@ import { findUserByUsername } from "@/lib/auth";
 import {
   addAppRole,
   addResourceManager,
+  approveExternalPost,
   createNewsItem,
   deleteComplaint,
   deleteHero,
   deleteNewsItem,
   dismissReport,
+  rejectExternalPost,
   removeAppRole,
   removeResourceManager,
   setAidPointVerified,
@@ -157,6 +159,22 @@ export async function togglePostPinnedAction(
   await setPostPinned(id, value);
   revalidatePath("/admin");
   revalidatePath("/comunidad");
+  return { ok: true };
+}
+
+// ── Cola de moderación: publicaciones importadas de otras redes por hashtag ──
+export async function approveExternalPostAction(id: string): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await approveExternalPost(id);
+  revalidatePath("/admin");
+  revalidatePath("/comunidad");
+  return { ok: true };
+}
+
+export async function rejectExternalPostAction(id: string): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  await rejectExternalPost(id);
+  revalidatePath("/admin");
   return { ok: true };
 }
 

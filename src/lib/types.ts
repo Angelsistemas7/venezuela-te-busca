@@ -226,6 +226,27 @@ export const REACTION_EMOJI: Record<ReactionKind, string> = {
   hecho: "✅",
 };
 
+/** De dónde vino la publicación: escrita en la plataforma, o importada
+ *  automáticamente por hashtag desde otra red (ver `scripts/fetch-social-posts.mjs`). */
+export type PostOrigin = "community" | "bluesky" | "mastodon";
+
+export const POST_ORIGIN_LABEL: Record<PostOrigin, string> = {
+  community: "Comunidad",
+  bluesky: "Bluesky",
+  mastodon: "Mastodon",
+};
+
+export const POST_ORIGIN_EMOJI: Record<PostOrigin, string> = {
+  community: "",
+  bluesky: "🦋",
+  mastodon: "🐘",
+};
+
+/** Solo aplica a publicaciones importadas: nacen `pending` y un moderador las
+ *  aprueba o rechaza en /admin antes de que aparezcan en /comunidad. Las
+ *  publicadas por la comunidad nacen `approved` directamente. */
+export type PostModerationStatus = "pending" | "approved" | "rejected";
+
 export interface Post {
   id: string;
   type: PostType;
@@ -244,6 +265,10 @@ export interface Post {
    *  (se enriquece aparte contra `profiles`; ausente = publicación anónima). */
   authorAvatarUrl?: string | null;
   authorUsername?: string | null;
+  /** Ausente = "community" (publicación normal de la plataforma). */
+  origin?: PostOrigin;
+  /** Ausente = "approved" (publicación normal de la plataforma). */
+  moderationStatus?: PostModerationStatus;
 }
 
 // ── Hospitales ──────────────────────────────────────────────────────────────

@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, MapPin, MessageCircle, Pin } from "lucide-react";
 import type { Comment, Post, ReactionKind } from "@/lib/types";
-import { POST_TYPE_EMOJI, POST_TYPE_LABEL, REACTION_EMOJI } from "@/lib/types";
+import { POST_ORIGIN_EMOJI, POST_ORIGIN_LABEL, POST_TYPE_EMOJI, POST_TYPE_LABEL, REACTION_EMOJI } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
+import { isTweetUrl } from "@/lib/socialEmbed";
 import { reactToPostAction } from "@/app/actions";
 import { Avatar } from "./Avatar";
 import { CommentSection } from "./CommentSection";
 import { ExternalLinkGuard } from "./ExternalLinkGuard";
 import { PhotoView } from "./PhotoView";
 import { SaveButton } from "./SaveButton";
+import { TweetEmbed } from "./TweetEmbed";
 
 const TYPE_STYLE: Record<Post["type"], string> = {
   necesito: "bg-rose-50 text-rose-700 border-rose-200",
@@ -90,6 +92,12 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
               <span>{POST_TYPE_EMOJI[post.type]}</span>
               {POST_TYPE_LABEL[post.type]}
             </span>
+            {post.origin && post.origin !== "community" && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700">
+                <span>{POST_ORIGIN_EMOJI[post.origin]}</span>
+                Importado de {POST_ORIGIN_LABEL[post.origin]}
+              </span>
+            )}
             {(post.locationText || post.estado) && (
               <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
                 <MapPin className="h-3.5 w-3.5" />
@@ -112,13 +120,17 @@ export function PostCard({ post, comments }: { post: Post; comments: Comment[] }
       )}
 
       {post.linkUrl && (
-        <ExternalLinkGuard
-          href={post.linkUrl}
-          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sky-700 hover:underline"
-        >
-          <ExternalLink className="h-4 w-4" />
-          Ver enlace / video
-        </ExternalLinkGuard>
+        isTweetUrl(post.linkUrl) ? (
+          <TweetEmbed url={post.linkUrl} />
+        ) : (
+          <ExternalLinkGuard
+            href={post.linkUrl}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sky-700 hover:underline"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Ver enlace / video
+          </ExternalLinkGuard>
+        )
       )}
 
       {totalReactions > 0 && (

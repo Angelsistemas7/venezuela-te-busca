@@ -6,6 +6,7 @@ import {
   getComplaints,
   getHeroes,
   getHospitals,
+  getPendingExternalPosts,
   getPendingReports,
   getPersonsByIds,
   getPosts,
@@ -21,18 +22,29 @@ export default async function AdminPage() {
     return <AdminLogin />;
   }
 
-  const [pending, persons, aidPoints, hospitals, managers, posts, heroes, complaintsPage, roles] =
-    await Promise.all([
-      getPendingReports(),
-      getRecentPersons(30),
-      getAidPoints(),
-      getHospitals(),
-      getAllResourceManagers(),
-      getPosts({}),
-      getHeroes({ includeUnverified: true }),
-      getComplaints({}, 1, 25),
-      getAllAppRoles(),
-    ]);
+  const [
+    pending,
+    persons,
+    aidPoints,
+    hospitals,
+    managers,
+    posts,
+    heroes,
+    complaintsPage,
+    roles,
+    pendingExternalPosts,
+  ] = await Promise.all([
+    getPendingReports(),
+    getRecentPersons(30),
+    getAidPoints(),
+    getHospitals(),
+    getAllResourceManagers(),
+    getPosts({}),
+    getHeroes({ includeUnverified: true }),
+    getComplaints({}, 1, 25),
+    getAllAppRoles(),
+    getPendingExternalPosts(),
+  ]);
 
   // Enriquecemos cada reporte con el nombre de la persona (una sola consulta, no N+1).
   const personsById = await getPersonsByIds(pending.map((r) => r.personId));
@@ -60,6 +72,7 @@ export default async function AdminPage() {
       heroes={heroes}
       complaints={complaintsPage.items}
       roles={roles}
+      pendingExternalPosts={pendingExternalPosts}
       demoOpen={!adminConfigured}
     />
   );

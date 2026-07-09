@@ -145,6 +145,23 @@ Sigue siendo **Supabase** (no cambia). Si aún no lo hiciste, ejecuta una vez
 `supabase/schema.sql` en el SQL Editor de Supabase para tener todas las tablas
 (incluida `saved_items`). El VPS solo corre la app; los datos viven en Supabase.
 
+## 6) Ingesta automática de redes sociales (opcional)
+
+`scripts/fetch-social-posts.mjs` busca hashtags (p. ej. `#TerremotoVE`) en las
+APIs públicas de Bluesky y Mastodon y deja lo que encuentra en la cola de
+moderación de `/admin` (nunca publica directo). Para que corra solo, agrega
+una entrada de cron en el VPS (usa el mismo `.env` que la app, con
+`NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` ya configurados):
+
+```bash
+crontab -e
+# cada 15 minutos:
+*/15 * * * * cd /ruta/a/la/app && npm run fetch:social >> logs/social-fetch.log 2>&1
+```
+
+Ver los comentarios al inicio del script para las variables opcionales
+(`SOCIAL_HASHTAGS`, `MASTODON_INSTANCES`, `BLUESKY_IDENTIFIER`/`BLUESKY_APP_PASSWORD`).
+
 ---
 
 ## Resumen del flujo
