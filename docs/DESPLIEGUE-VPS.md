@@ -149,18 +149,33 @@ Sigue siendo **Supabase** (no cambia). Si aún no lo hiciste, ejecuta una vez
 
 `scripts/fetch-social-posts.mjs` busca hashtags (p. ej. `#TerremotoVE`) en las
 APIs públicas de Bluesky y Mastodon y deja lo que encuentra en la cola de
-moderación de `/admin` (nunca publica directo). Para que corra solo, agrega
-una entrada de cron en el VPS (usa el mismo `.env` que la app, con
-`NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` ya configurados):
+moderación de `/admin` (nunca publica directo). El deploy (`deploy.yml`) ya
+copia `scripts/` al VPS y le instala sus propias dependencias (aparte del
+`node_modules` recortado de Next: `@supabase/supabase-js` no queda incluido
+ahí, así que el script trae su propio `scripts/package.json`).
+
+**No uses `npm run fetch:social` en el VPS** — el `package.json` que Next
+genera para el standalone no tiene ese script; llama a `node` directo.
+Añade la entrada de cron (agrega una línea al crontab existente del usuario,
+**no lo reemplaces**: en este VPS compartido `crontab -l` ya tiene tareas de
+otros proyectos):
 
 ```bash
-crontab -e
-# cada 15 minutos:
-*/15 * * * * cd /ruta/a/la/app && npm run fetch:social >> logs/social-fetch.log 2>&1
+crontab -l > /tmp/crontab_actual.txt   # respaldo antes de tocar nada
+cp /tmp/crontab_actual.txt /tmp/crontab_nuevo.txt
+cat >> /tmp/crontab_nuevo.txt <<'EOF'
+
+# El Mundo Te Busca: ingesta de redes sociales por hashtag
+*/15 * * * * cd /var/www/elmundotebusca/scripts && /usr/bin/node fetch-social-posts.mjs >> /var/www/elmundotebusca/logs/social-fetch.log 2>&1
+EOF
+diff /tmp/crontab_actual.txt /tmp/crontab_nuevo.txt   # confirma que solo se agrega, nada se borra
+crontab /tmp/crontab_nuevo.txt
+mkdir -p /var/www/elmundotebusca/logs
 ```
 
 Ver los comentarios al inicio del script para las variables opcionales
-(`SOCIAL_HASHTAGS`, `MASTODON_INSTANCES`, `BLUESKY_IDENTIFIER`/`BLUESKY_APP_PASSWORD`).
+(`SOCIAL_HASHTAGS`, `MASTODON_INSTANCES`, `BLUESKY_IDENTIFIER`/`BLUESKY_APP_PASSWORD` —
+ya configuradas en el `.env` del VPS).
 
 ---
 
