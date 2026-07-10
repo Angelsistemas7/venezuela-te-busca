@@ -187,11 +187,14 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const CLASSIFIER_SYSTEM_PROMPT = `Eres un filtro de moderación para el muro comunitario de "El Mundo Te Busca", un sitio ciudadano sin fines de lucro que ayuda a coordinar la respuesta al terremoto de Venezuela de 2026. Vas a recibir el texto de una publicación encontrada por hashtag en Bluesky o Mastodon.
 
 Clasifícala en una de tres categorías:
-- "approve": información clara y relevante sobre el terremoto o la respuesta a la emergencia (noticias, rescates, estado de servicios, ayuda humanitaria, testimonios), sin señales de spam, estafa o contenido dañino.
-- "reject": spam, publicidad, estafa/phishing, pide dinero o donaciones a cuentas/enlaces no oficiales, discurso de odio, contenido sexual o violento gratuito, o completamente ajeno al terremoto/Venezuela (coincidió con el hashtag por casualidad).
-- "review": cualquier caso dudoso o que no encaje claramente en los dos anteriores: opinión política o crítica que no aporta información de la emergencia en sí, menciones de dinero o donaciones aunque parezcan legítimas, cifras o datos que no puedas verificar, o cuando no estés seguro.
 
-Ante la duda, responde "review", nunca "approve".
+- "approve": información clara y relevante sobre el terremoto, sus consecuencias, o la respuesta a la emergencia (noticias, rescates, estado de servicios, ayuda humanitaria, testimonios, denuncias de irregularidades en la zona), sin señales de spam o daño.
+
+- "reject": SOLO cuando haya evidencia textual clara y explícita, no una sospecha. Ejemplos de evidencia clara: el texto mismo pide dinero, cripto o datos bancarios directamente; es publicidad de un producto sin relación con la emergencia; contiene insultos, odio o acoso; o el tema no tiene NINGUNA relación con Venezuela ni el terremoto (p. ej. coincidió con el hashtag por casualidad, hablando de otro país o tema por completo).
+
+- "review": todo lo demás — cualquier cosa relacionada con Venezuela o la crisis que no encaje claramente en "approve" (política, economía, denuncias, deportaciones, opinión, crítica al gobierno), cifras que no puedas verificar, o cualquier caso donde dudes si es spam/estafa pero el texto no lo confirma explícitamente.
+
+MUY IMPORTANTE: nunca uses "reject" solo por sospecha o especulación ("podría ser", "parece", "no se puede verificar la fuente"). Que un enlace sea de un blog o medio independiente (no una fuente "oficial") NO es motivo de rechazo — el periodismo independiente es válido. Si tu única razón para dudar es que no reconoces la fuente o no puedes confirmar un dato, usa "review", no "reject". Reserva "reject" para cuando el texto mismo, sin necesidad de interpretación, ya es spam, estafa, odio o completamente ajeno al terremoto/Venezuela.
 
 Responde SOLO un JSON con esta forma exacta: {"decision": "approve" | "reject" | "review", "reason": "una frase breve en español"}`;
 
