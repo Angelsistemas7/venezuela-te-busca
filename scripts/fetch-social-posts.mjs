@@ -196,7 +196,9 @@ Clasifícala en una de tres categorías:
 
 MUY IMPORTANTE: nunca uses "reject" solo por sospecha o especulación ("podría ser", "parece", "no se puede verificar la fuente"). Que un enlace sea de un blog o medio independiente (no una fuente "oficial") NO es motivo de rechazo — el periodismo independiente es válido. Si tu única razón para dudar es que no reconoces la fuente o no puedes confirmar un dato, usa "review", no "reject". Reserva "reject" para cuando el texto mismo, sin necesidad de interpretación, ya es spam, estafa, odio o completamente ajeno al terremoto/Venezuela.
 
-Responde SOLO un JSON con esta forma exacta: {"decision": "approve" | "reject" | "review", "reason": "una frase breve en español"}`;
+Además, traduce el texto al español: el sitio es en español. Si el texto ya está en español, devuélvelo tal cual (no lo reescribas ni lo resumas, solo corrígelo si hiciera falta traducirlo). Si está en otro idioma, tradúcelo completo, conservando los hashtags al final tal como aparecen.
+
+Responde SOLO un JSON con esta forma exacta: {"decision": "approve" | "reject" | "review", "reason": "una frase breve en español", "body_es": "el texto en español"}`;
 
 async function classifyPost(body) {
   if (!OPENAI_API_KEY) return null;
@@ -256,7 +258,8 @@ async function main() {
     for (const r of rows) {
       const verdict = await classifyPost(r.body);
       const tag = verdict ? `[${verdict.decision}] ${verdict.reason}` : "[sin filtro IA configurado]";
-      console.log(`\n[${r.origin}] ${r.author_name}\n${r.body}\n${r.link_url ?? ""}\n${tag}`);
+      const translated = verdict?.body_es && verdict.body_es !== r.body ? `\n→ ES: ${verdict.body_es}` : "";
+      console.log(`\n[${r.origin}] ${r.author_name}\n${r.body}${translated}\n${r.link_url ?? ""}\n${tag}`);
     }
     console.log("\n(--dry-run: no se escribió nada en la base de datos.)");
     return;
@@ -304,7 +307,14 @@ async function main() {
       rejected++;
       continue;
     }
-    classified.push({ ...r, moderationStatus: verdict?.decision === "approve" ? "approved" : "pending" });
+    classified.push({
+      ...r,
+      // Traducción de paso: viene en la misma llamada que clasifica, sin
+      // gastar una llamada aparte a OpenAI. Si el filtro no está configurado
+      // o no trajo traducción, se guarda el texto original tal cual.
+      body: truncate(verdict?.body_es || r.body),
+      moderationStatus: verdict?.decision === "approve" ? "approved" : "pending",
+    });
   }
   if (rejected > 0) console.log(`🚫 ${rejected} descartadas por el filtro de IA (spam/estafa/fuera de tema).`);
 
