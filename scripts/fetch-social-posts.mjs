@@ -29,6 +29,10 @@
 //                         a diferencia del resto de su API); Mastodon no
 //                         necesita nada de esto. Se genera gratis en
 //                         bsky.app → Ajustes → App passwords.
+//   OPENAI_API_KEY        Filtro de IA (gpt-4o-mini) que clasifica cada post
+//                         nuevo en aprobar / rechazar / revisar (ver
+//                         `classifyPost`). SIN esto, todo queda "pending"
+//                         como antes — el filtro es opcional, no rompe nada.
 // ─────────────────────────────────────────────────────────────────────────
 
 import { readFileSync } from "node:fs";
@@ -172,6 +176,58 @@ async function fetchMastodon(instance, hashtag) {
   });
 }
 
+// ── Filtro de IA (opcional) ──────────────────────────────────────────────
+// Clasifica cada post NUEVO antes de guardarlo: "approve" se publica solo,
+// "reject" se descarta (ni se guarda), "review" queda pendiente en /admin
+// por si algún día se quiere revisar. Ante cualquier duda o fallo de la API,
+// se trata como "review" — nunca se publica solo algo que no se pudo
+// clasificar con confianza.
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+const CLASSIFIER_SYSTEM_PROMPT = `Eres un filtro de moderación para el muro comunitario de "El Mundo Te Busca", un sitio ciudadano sin fines de lucro que ayuda a coordinar la respuesta al terremoto de Venezuela de 2026. Vas a recibir el texto de una publicación encontrada por hashtag en Bluesky o Mastodon.
+
+Clasifícala en una de tres categorías:
+- "approve": información clara y relevante sobre el terremoto o la respuesta a la emergencia (noticias, rescates, estado de servicios, ayuda humanitaria, testimonios), sin señales de spam, estafa o contenido dañino.
+- "reject": spam, publicidad, estafa/phishing, pide dinero o donaciones a cuentas/enlaces no oficiales, discurso de odio, contenido sexual o violento gratuito, o completamente ajeno al terremoto/Venezuela (coincidió con el hashtag por casualidad).
+- "review": cualquier caso dudoso o que no encaje claramente en los dos anteriores: opinión política o crítica que no aporta información de la emergencia en sí, menciones de dinero o donaciones aunque parezcan legítimas, cifras o datos que no puedas verificar, o cuando no estés seguro.
+
+Ante la duda, responde "review", nunca "approve".
+
+Responde SOLO un JSON con esta forma exacta: {"decision": "approve" | "reject" | "review", "reason": "una frase breve en español"}`;
+
+async function classifyPost(body) {
+  if (!OPENAI_API_KEY) return null;
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
+          { role: "user", content: body },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      console.error(`⚠️  Filtro IA: OpenAI respondió ${res.status} ${res.statusText}`);
+      return null;
+    }
+    const data = await res.json();
+    const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}");
+    if (!["approve", "reject", "review"].includes(parsed.decision)) return null;
+    return parsed;
+  } catch (e) {
+    console.error("⚠️  Filtro IA: error clasificando:", e.message);
+    return null;
+  }
+}
+
 // ── Ejecución ────────────────────────────────────────────────────────────
 async function main() {
   const found = [];
@@ -195,7 +251,9 @@ async function main() {
 
   if (DRY_RUN) {
     for (const r of rows) {
-      console.log(`\n[${r.origin}] ${r.author_name}\n${r.body}\n${r.link_url ?? ""}`);
+      const verdict = await classifyPost(r.body);
+      const tag = verdict ? `[${verdict.decision}] ${verdict.reason}` : "[sin filtro IA configurado]";
+      console.log(`\n[${r.origin}] ${r.author_name}\n${r.body}\n${r.link_url ?? ""}\n${tag}`);
     }
     console.log("\n(--dry-run: no se escribió nada en la base de datos.)");
     return;
@@ -216,7 +274,40 @@ async function main() {
     realtime: { transport: ws },
   });
 
-  const payload = rows.map((r) => ({
+  // No reclasifica (ni vuelve a gastar llamadas a OpenAI) lo que ya se
+  // procesó en una corrida anterior — el .upsert() de más abajo ya lo
+  // ignoraría por `external_id`, pero clasificar de nuevo cada 15 min sería
+  // tirar dinero en llamadas repetidas a OpenAI.
+  const { data: existing, error: existingError } = await sb
+    .from("posts")
+    .select("external_id")
+    .in(
+      "external_id",
+      rows.map((r) => r.external_id),
+    );
+  if (existingError) {
+    console.error("❌ Error consultando publicaciones existentes:", existingError.message);
+    process.exit(1);
+  }
+  const knownIds = new Set((existing ?? []).map((r) => r.external_id));
+  const newRows = rows.filter((r) => !knownIds.has(r.external_id));
+  console.log(`🆕 ${newRows.length} de ${rows.length} son nuevas (el resto ya estaban).`);
+
+  const classified = [];
+  let rejected = 0;
+  for (const r of newRows) {
+    const verdict = await classifyPost(r.body);
+    if (verdict?.decision === "reject") {
+      rejected++;
+      continue;
+    }
+    classified.push({ ...r, moderationStatus: verdict?.decision === "approve" ? "approved" : "pending" });
+  }
+  if (rejected > 0) console.log(`🚫 ${rejected} descartadas por el filtro de IA (spam/estafa/fuera de tema).`);
+
+  if (classified.length === 0) return;
+
+  const payload = classified.map((r) => ({
     type: "info",
     body: r.body,
     estado: null,
@@ -227,7 +318,7 @@ async function main() {
     contact_phone: null,
     reactions: { apoyo: 0, corazon: 0, hecho: 0 },
     origin: r.origin,
-    moderation_status: "pending",
+    moderation_status: r.moderationStatus,
     external_id: r.external_id,
     created_at: r.created_at,
   }));
@@ -241,7 +332,10 @@ async function main() {
     console.error("❌ Error insertando en Supabase:", error.message);
     process.exit(1);
   }
-  console.log(`✅ ${data?.length ?? 0} publicaciones nuevas agregadas a la cola de moderación (/admin).`);
+  const approved = classified.filter((r) => r.moderationStatus === "approved").length;
+  console.log(
+    `✅ ${data?.length ?? 0} publicaciones nuevas guardadas (${approved} publicadas solas, ${(data?.length ?? 0) - approved} en la cola de /admin).`,
+  );
 }
 
 main().catch((e) => {
