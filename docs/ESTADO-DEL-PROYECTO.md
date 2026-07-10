@@ -3,6 +3,13 @@
 Última actualización: 26 jun. 2026. Para arquitectura y convenciones, ver
 [`../CLAUDE.md`](../CLAUDE.md).
 
+> ⚠️ **Este documento quedó desactualizado** (describe el estado de antes del
+> despliegue en VPS, del sistema de cuentas/roles, de la auditoría de
+> seguridad y de todo lo construido después). Para el estado REAL y actual
+> del proyecto, lee [`PROXIMO-CHAT.md`](PROXIMO-CHAT.md) primero — es el
+> documento que se ha mantenido al día en cada sesión. Este archivo se deja
+> como referencia histórica de la arquitectura original.
+
 El proyecto **compila** (`npm run build` en verde) y corre en modo demostración
 (`npm run dev`) con datos de ejemplo. Cada sección lista abajo está construida y
 probada con prueba de humo (curl).

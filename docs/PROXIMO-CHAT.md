@@ -5,6 +5,59 @@ coordinar ayuda tras el **terremoto de Venezuela 2026**. En producción en
 `elmundotebusca.com` (VPS propio, Next.js + Supabase, deploy automático por
 GitHub Actions + PM2 en cada push a `main`). Español, `npm run build` siempre verde.
 
+## 📌 Cierre de sesión (2026-07-10) — leer esto primero
+
+**La carpeta del proyecto se renombró** de `venezuelatebusca` a
+`Elmundotebusca` (mismo repo, mismo git, nada se perdió — solo cambió la ruta
+local en el escritorio de Windows).
+
+**Se bajaron 13 commits de compañeros** (`git pull`, fast-forward limpio, sin
+conflictos) que NO se habían tocado ni revisado en esta sesión:
+- **Rediseño de Comunidad estilo Facebook, en 3 fases**: avatar y perfil
+  clickeable en posts/comentarios (Fase 1), composer siempre visible +
+  scroll infinito (Fase 2), hilos de respuesta sin límite de profundidad
+  pero aplanados a un nivel visual (Fase 3). Archivos nuevos: `Avatar.tsx`,
+  `InfiniteFeed.tsx`; cambios grandes en `CommentSection.tsx`, `PostCard.tsx`,
+  `CreatePostButton.tsx`, `app/comunidad/page.tsx`.
+- **Modo mantenimiento**: `MAINTENANCE_MODE=true` en el `.env` bloquea todo
+  el sitio salvo `/admin` y quien ya tenga sesión de admin. Nueva
+  `app/mantenimiento/page.tsx`, lógica en `middleware.ts`.
+- **Ingesta automática de redes sociales** (`scripts/fetch-social-posts.mjs`):
+  busca por hashtag en Bluesky/Mastodon, clasifica cada post con IA
+  (aprobar/rechazar/revisar — nunca publica solo algo dudoso) y **traduce
+  automáticamente al español**. Cola de moderación nueva en `/admin`.
+  Corre aparte (tiene su propio `scripts/package.json`), por cron en el VPS
+  (ver `docs/DESPLIEGUE-VPS.md`, sección agregada por el compañero).
+- **Header de escritorio**: ahora 4 secciones fijas + menú "Más", igual que
+  ya tenía el móvil (antes eran 9 ítems sueltos).
+
+**Verificado tras el pull**: `npm install` (sin cambios, el script de
+ingesta tiene su propio `package.json` aparte) + `npm run build` en verde
+con TODO junto (lo de esta sesión + lo de los compañeros).
+
+**Hueco menor encontrado, no corregido**: `scripts/fetch-social-posts.mjs`
+usa `OPENAI_API_KEY` para el filtro de IA (opcional — sin ella, todo queda
+"pending" como antes, no rompe nada), pero esa variable **no está en
+`.env.example`** — el compañero la documentó bien en el propio script pero
+se le olvidó copiarla ahí. Agregar `OPENAI_API_KEY=` a `.env.example` cuando
+se retome.
+
+**Sin revisar todavía por esta auditoría** (la metodología de esta sesión
+era repasar sección por sección buscando bugs reales — estos 13 commits
+NUNCA pasaron por ese repaso): Comunidad (todo el rediseño), modo
+mantenimiento, y el script de ingesta social. Si se retoma el trabajo de
+auditoría, esto es lo primero que falta.
+
+**Pendiente explícito del dueño para esta sesión** (aún no se tocó):
+- El rediseño de Comunidad que el dueño pidió — probablemente **ya lo
+  resolvieron los compañeros** con su rediseño estilo Facebook. Antes de
+  construir nada nuevo ahí, mostrarle al dueño lo que ya está y preguntar
+  si eso cubre lo que quería o si falta algo específico.
+- Guía rápida de bienvenida para quien entra por primera vez — **pedido
+  explícitamente para después**, no construir sin que lo pida.
+
+---
+
 ## 🚨 Pendiente crítico — acción del dueño (NO tocar sin sus claves)
 El `.env` del VPS (`/var/www/elmundotebusca/.env`) tiene **3 secretos que siguen
 siendo el texto de ejemplo `pega-aqui`** de la documentación (nunca se
