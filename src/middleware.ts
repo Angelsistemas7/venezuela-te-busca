@@ -29,6 +29,27 @@ function maintenanceRedirect(request: NextRequest): NextResponse | null {
   // proxy interno — así que no tiene este problema.
   const url = request.nextUrl.clone();
   url.pathname = "/mantenimiento";
+  // A pesar de que nginx reenvía `Host`/`X-Forwarded-Proto` correctamente,
+  // `request.nextUrl` en este montaje autoalojado igual arma el origen con
+  // la dirección interna (probado: dio "https://localhost:3200" en
+  // producción — un redirect a esa URL rompe para cualquier visitante real,
+  // su navegador intenta conectarse a SU PROPIA máquina). Se fuerza el
+  // origen con NEXT_PUBLIC_SITE_URL (ya configurado para las imágenes de
+  // previsualización) en vez de confiar en lo que Next detecta solo.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (siteUrl) {
+    try {
+      const publicOrigin = new URL(siteUrl);
+      url.protocol = publicOrigin.protocol;
+      url.hostname = publicOrigin.hostname;
+      // `.host` a veces no limpia el puerto que traía `url` (quedaba
+      // ":3000" pegado al dominio real en pruebas locales) — se fija aparte,
+      // vacío si `publicOrigin` no especifica uno (el puerto por defecto).
+      url.port = publicOrigin.port;
+    } catch {
+      /* NEXT_PUBLIC_SITE_URL mal formado: se deja el origen detectado */
+    }
+  }
   return NextResponse.redirect(url);
 }
 
