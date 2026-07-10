@@ -17,9 +17,19 @@ function maintenanceRedirect(request: NextRequest): NextResponse | null {
   const cookie = request.cookies.get("vtb_admin")?.value;
   if (adminToken && cookie === adminToken) return null;
 
+  // IMPORTANTE: redirect, no rewrite. Un rewrite hace que Next.js vuelva a
+  // pedirse la ruta A SÍ MISMO puertas adentro usando el origen de
+  // `request.nextUrl` — detrás de nginx (que termina el HTTPS y reenvía por
+  // HTTP plano al puerto interno, ver ecosystem.config.cjs), ese origen trae
+  // el esquema "https:" por el header `X-Forwarded-Proto`, y el proceso
+  // interno solo habla HTTP: revienta con "SSL routines: wrong version
+  // number" y tumba el sitio para todo el mundo (pasó en producción, ver
+  // memoria del proyecto). Un redirect en cambio le dice al NAVEGADOR que
+  // pida `/mantenimiento` de nuevo — una petición externa normal, sin
+  // proxy interno — así que no tiene este problema.
   const url = request.nextUrl.clone();
   url.pathname = "/mantenimiento";
-  return NextResponse.rewrite(url);
+  return NextResponse.redirect(url);
 }
 
 // Refresca la sesión de Supabase en cada navegación (renueva el token y
