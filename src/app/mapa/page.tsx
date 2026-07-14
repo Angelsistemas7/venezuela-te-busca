@@ -282,7 +282,7 @@ export default async function MapaPage() {
             <div className="text-[11px] text-zinc-600 sm:text-xs">🤲 Puedo ayudar</div>
           </Link>
           <Link
-            href="/"
+            href="/se-busca"
             className="tap-card w-28 shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 p-2.5 text-center sm:w-auto sm:p-3"
           >
             <div className="text-lg font-bold text-zinc-700 sm:text-xl">{totalInZones.toLocaleString("es-VE")}</div>

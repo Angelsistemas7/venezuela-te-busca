@@ -23,7 +23,7 @@ export default async function OpengraphImage() {
           display: "flex",
           alignItems: "center",
           gap: "56px",
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%)",
+          background: "linear-gradient(135deg, #16142f 0%, #1d1b40 55%, #332c5e 100%)",
           padding: "70px 80px",
         }}
       >
@@ -59,12 +59,12 @@ export default async function OpengraphImage() {
           </div>
           {/* Acento naranja de marca. */}
           <div
-            style={{ display: "flex", width: "180px", height: "8px", borderRadius: "4px", background: "#f97316", marginTop: "24px" }}
+            style={{ display: "flex", width: "180px", height: "8px", borderRadius: "4px", background: "#d3824a", marginTop: "24px" }}
           />
           <div style={{ display: "flex", marginTop: "28px", fontSize: "34px", color: "#cbd5e1", lineHeight: 1.3 }}>
             Localizar personas desaparecidas y coordinar ayuda tras el terremoto de Venezuela 2026
           </div>
-          <div style={{ display: "flex", marginTop: "26px", fontSize: "26px", fontWeight: 600, color: "#fbbf24" }}>
+          <div style={{ display: "flex", marginTop: "26px", fontSize: "26px", fontWeight: 600, color: "#f2af5e" }}>
             Iniciativa ciudadana, voluntaria y sin fines de lucro
           </div>
         </div>

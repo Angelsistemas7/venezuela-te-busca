@@ -24,7 +24,7 @@ import { AuthMenu } from "./AuthMenu";
 // en una sola fila que había que deslizar para ver completa; el resto ahora
 // va detrás de "Más" (menú desplegable aquí; hoja inferior en móvil).
 const PRIMARY = [
-  { href: "/", label: "Se busca", icon: Search },
+  { href: "/se-busca", label: "Se busca", icon: Search },
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
   { href: "/mapa", label: "Mapa", icon: Map },
   { href: "/emergencias", label: "Emergencias", icon: LifeBuoy },
@@ -42,7 +42,6 @@ const MORE = [
 const COMMUNITY_PATHS = ["/comunidad", "/voluntarios", "/caravanas", "/denuncias"];
 
 function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
   if (href === "/comunidad") {
     return COMMUNITY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }
@@ -79,7 +78,7 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="flex shrink-0 items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="El Mundo Te Busca" className="h-10 w-10 shrink-0 object-contain" />
+          <img src="/logo-icon.svg" alt="El Mundo Te Busca" className="h-10 w-10 shrink-0 object-contain" />
           {/* "El Mundo" encima de "Te Busca": compacto y no se estira en una línea larga.
               whitespace-nowrap evita que, si el header se aprieta, cada palabra caiga en su
               propia línea (pasaba porque el Link podía encogerse por debajo del ancho del texto). */}

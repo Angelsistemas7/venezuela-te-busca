@@ -423,6 +423,7 @@ export async function registerPersonAction(form: FormData): Promise<ActionResult
       (await getCurrentUser())?.id ?? null,
     );
     revalidatePath("/");
+    revalidatePath("/se-busca");
     revalidatePath("/sin-identificar");
     return {
       ok: true,
@@ -459,6 +460,7 @@ export async function reportStatusAction(form: FormData): Promise<ActionResult> 
   try {
     const report = await createStatusReport(parsed.data);
     revalidatePath("/");
+    revalidatePath("/se-busca");
     revalidatePath(`/persona/${parsed.data.personId}`);
     return {
       ok: true,
@@ -1053,6 +1055,7 @@ export async function ownerSetStatusAction(
     await updatePersonStatus(id, status);
     revalidatePath(`/persona/${id}`);
     revalidatePath("/");
+    revalidatePath("/se-busca");
     return { ok: true };
   } catch {
     return { ok: false, error: "No se pudo actualizar." };
@@ -1103,6 +1106,7 @@ export async function ownerDeleteAction(
   try {
     await deletePerson(id);
     revalidatePath("/");
+    revalidatePath("/se-busca");
     revalidatePath("/sin-identificar");
     return { ok: true };
   } catch {

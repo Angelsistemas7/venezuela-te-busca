@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const COMMUNITY_PATHS = ["/comunidad", "/voluntarios", "/caravanas", "/denuncias"];
 
 const PRIMARY = [
-  { href: "/", label: "Se busca", icon: Search },
+  { href: "/se-busca", label: "Se busca", icon: Search },
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
   { href: "/mapa", label: "Mapa", icon: Map },
   { href: "/emergencias", label: "SOS", icon: LifeBuoy },
@@ -38,7 +38,6 @@ const MORE = [
 ];
 
 function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
   if (href === "/comunidad") {
     return COMMUNITY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }

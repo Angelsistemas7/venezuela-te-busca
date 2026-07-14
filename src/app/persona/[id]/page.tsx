@@ -48,7 +48,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      <BackLink label="Volver al listado" fallbackHref="/" />
+      <BackLink label="Volver al listado" fallbackHref="/se-busca" />
 
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         {/* Columna izquierda: foto + acciones */}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Users2 } from "lucide-react";
+import { Megaphone, Search, Users2 } from "lucide-react";
 import { getCommentsForEntities, getPosts, getPostsPage, type PostSort } from "@/lib/data";
 import { ESTADOS, POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
 import { cn, clampPageSize } from "@/lib/utils";
@@ -11,6 +11,11 @@ import { PinnedPostCard } from "@/components/PinnedPostCard";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { SwipeStaticRow } from "@/components/SwipeHint";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
+import { TopicChips } from "@/components/TopicChips";
+import { MapPreviewCard } from "@/components/MapPreviewCard";
+import { FaqAccordion } from "@/components/FaqAccordion";
+import { CommunityIllustration } from "@/components/illustrations/CommunityIllustration";
+import { HandsIllustration } from "@/components/illustrations/HandsIllustration";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +68,13 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   const dateTo = str(sp.dateTo);
   const page = num(sp.page) ?? 1;
   const pageSize = clampPageSize(num(sp.pageSize));
+
+  // Los widgets decorativos (temas, mapa, FAQ) solo aportan en la vista
+  // limpia — igual que en el inicio, para no estorbar cuando alguien ya
+  // está filtrando o buscando algo puntual dentro del muro.
+  const hasActiveQuery = Boolean(
+    q || type !== "all" || sort !== "recent" || estado !== "all" || dateFrom || dateTo || page > 1,
+  );
 
   // Destacados (fijados por el equipo) y rescates: se ven SIEMPRE arriba, en
   // una fila que se desliza de lado — antes se apilaban uno debajo del otro y
@@ -117,22 +129,45 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <CommunityTabs />
-      <div className="mb-5 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
-          <Users2 className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Comunidad</h1>
-          <p className="mt-1 text-zinc-500">
-            El muro de la emergencia: pide y ofrece ayuda, reporta rescates, convoca caravanas y
-            mantén a todos informados. Toda información cuenta.
-          </p>
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
+            <Users2 className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-navy-700 sm:text-3xl">
+              La fuerza está en nuestra <span className="text-brand-500">comunidad</span>
+            </h1>
+            <p className="mt-1 text-zinc-500">
+              Comparte información, pide de ayuda, da soluciones y seamos esperanza para quienes lo
+              necesitan.
+            </p>
+          </div>
         </div>
+        <CommunityIllustration className="hidden h-20 w-28 shrink-0 sm:block" />
       </div>
 
       <div className="mb-5">
         <CreatePostButton variant="bar" />
       </div>
+
+      {!hasActiveQuery && (
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row">
+          <div className="flex-1">
+            <TopicChips />
+          </div>
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-brand-200 bg-brand-50 p-5 text-center sm:w-64 sm:shrink-0">
+            <HandsIllustration className="h-16 w-16" />
+            <h3 className="font-heading mt-1 text-base font-bold text-navy-700">
+              Tu voz puede hacer <span className="text-brand-600">la diferencia</span>
+            </h3>
+            <p className="mt-1.5 text-xs text-zinc-600">
+              Cada mensaje, cada dato y cada experiencia puede convertirse en esperanza para
+              alguien más.
+            </p>
+          </div>
+        </div>
+      )}
 
       <form action="/comunidad" className="mb-3 flex gap-2">
         {type !== "all" && <input type="hidden" name="type" value={type} />}
@@ -225,6 +260,35 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
             excludeIds={Array.from(pinnedIds)}
           />
         </>
+      )}
+
+      {!hasActiveQuery && (
+        <div className="mt-8 flex flex-col gap-4 border-t border-zinc-100 pt-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MapPreviewCard />
+            <FaqAccordion />
+          </div>
+
+          <section className="reveal-up flex flex-col items-center gap-3 rounded-3xl border border-zinc-200 bg-white p-6 text-center">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-500 text-white">
+              <Megaphone className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="font-bold text-zinc-900">¿Tienes información urgente?</h3>
+              <p className="text-sm text-zinc-600">
+                Si ves una emergencia o situación crítica, repórtala para que la comunidad y los
+                equipos de ayuda puedan actuar lo más rápido posible.
+              </p>
+            </div>
+            <Link
+              href="/emergencias"
+              className="press flex shrink-0 items-center gap-2 rounded-full border-2 border-rose-600 bg-white px-5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+            >
+              <Megaphone className="h-4 w-4" />
+              Reportar AHORA
+            </Link>
+          </section>
+        </div>
       )}
     </div>
   );
