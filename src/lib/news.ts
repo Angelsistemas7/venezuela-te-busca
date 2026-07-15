@@ -129,7 +129,11 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
     return gdeltCache.articles.slice(0, limit);
   }
   try {
-    const fetchLimit = Math.max(limit, 14); // guarda una lista más grande para reusar en llamadas con distinto límite
+    // Se pide bastante más de lo que hace falta (GDELT rastrea prensa mundial
+    // en cualquier idioma) porque después se prioriza español y se descarta
+    // el resto si hay suficiente — así no dependemos de que el filtro de
+    // idioma en la query de GDELT funcione bien combinado con paréntesis/OR.
+    const fetchLimit = Math.max(limit * 3, 30);
     const q = encodeURIComponent("Venezuela (terremoto OR sismo OR réplica OR rescate)");
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=${fetchLimit}&format=json&sort=datedesc`;
     const res = await fetch(url, {
@@ -147,15 +151,17 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
         seendate?: string;
         domain?: string;
         socialimage?: string;
+        language?: string;
       }[];
     };
     const seen = new Set<string>();
-    const out: NewsArticle[] = [];
+    const spanish: NewsArticle[] = [];
+    const other: NewsArticle[] = [];
     for (const a of json.articles ?? []) {
       if (!a.url || !a.title || seen.has(a.url)) continue;
       if (/facebook|twitter|x\.com|instagram|tiktok|youtube|reddit/i.test(a.domain ?? "")) continue;
       seen.add(a.url);
-      out.push({
+      const article: NewsArticle = {
         id: a.url,
         title: a.title.trim(),
         source: (a.domain ?? "Prensa").replace(/^www\./, ""),
@@ -164,8 +170,12 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
         // Solo se usa si es una URL http(s) real — nunca se confía a ciegas
         // en un campo de un tercero para algo que termina en un <img src>.
         image: a.socialimage && /^https?:\/\//.test(a.socialimage) ? a.socialimage : null,
-      });
+      };
+      // Prioriza fuentes en español (audiencia del sitio); el resto solo se
+      // usa para completar si no alcanzan las noticias en español.
+      (a.language === "Spanish" ? spanish : other).push(article);
     }
+    const out = spanish.length >= limit ? spanish : [...spanish, ...other];
     if (out.length === 0) return gdeltCache?.articles.slice(0, limit) ?? [];
     gdeltCache = { articles: out, fetchedAt: now };
     return out.slice(0, limit);
