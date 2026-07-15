@@ -17,7 +17,7 @@ const PUBLIC_PATH: Record<string, (id: string) => string> = {
   hospital: (id) => `/hospitales/${id}`,
   complaint: () => "/denuncias",
   pet: (id) => `/mascotas/${id}`,
-  hero: () => "/noticias",
+  hero: () => "/ayuda",
 };
 
 const TYPE_LABEL: Record<string, string> = {

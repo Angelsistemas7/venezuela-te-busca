@@ -99,7 +99,7 @@ export async function toggleHeroVerifiedAction(
   if (!(await isAdmin())) return { ok: false };
   await setHeroVerified(id, value);
   revalidatePath("/admin");
-  revalidatePath("/noticias");
+  revalidatePath("/ayuda");
   return { ok: true };
 }
 
@@ -107,7 +107,7 @@ export async function deleteHeroAction(id: string): Promise<{ ok: boolean }> {
   if (!(await isAdmin())) return { ok: false };
   await deleteHero(id);
   revalidatePath("/admin");
-  revalidatePath("/noticias");
+  revalidatePath("/ayuda");
   return { ok: true };
 }
 
@@ -134,7 +134,7 @@ export async function createNewsItemAction(
   }
   try {
     await createNewsItem(parsed.data, get("photoUrl") || null);
-    revalidatePath("/noticias");
+    revalidatePath(parsed.data.kind === "ayuda" ? "/ayuda" : "/comunidad");
     revalidatePath("/admin");
     return { ok: true };
   } catch {
@@ -146,7 +146,10 @@ export async function deleteNewsItemAction(id: string): Promise<{ ok: boolean }>
   if (!(await isAdmin())) return { ok: false };
   await deleteNewsItem(id);
   revalidatePath("/admin");
-  revalidatePath("/noticias");
+  // No sabemos aquí si era kind=ayuda o kind=noticia (solo el id); se
+  // revalidan ambos destinos posibles, es barato.
+  revalidatePath("/ayuda");
+  revalidatePath("/comunidad");
   return { ok: true };
 }
 

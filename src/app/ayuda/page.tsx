@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { HeartHandshake } from "lucide-react";
-import { getAidPointsPage } from "@/lib/data";
+import { getAidPointsPage, getCommentsForEntities, getHeroes, getNewsItems } from "@/lib/data";
+import { getHumanitarianUpdates } from "@/lib/news";
+import { getRecentQuakes } from "@/lib/usgs";
+import { isAdmin } from "@/lib/admin";
 import { AID_POINT_TYPE_LABEL, ESTADOS, type AidPointType } from "@/lib/types";
 import { cn, clampPageSize } from "@/lib/utils";
 import { AidPointCard } from "@/components/AidPointCard";
@@ -9,6 +12,7 @@ import { SwipeHintRow } from "@/components/SwipeHint";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
+import { AyudaExtras } from "@/components/AyudaExtras";
 
 export const dynamic = "force-dynamic";
 
@@ -61,11 +65,20 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
 
   // Antes: `getAidPoints()` traía la tabla ENTERA sin límite ni paginación en
   // cada visita. Ahora pagina de verdad (10/20/50 a elegir), en vivo.
-  const { items: points, total } = await getAidPointsPage(
-    { type, availOnly, estado, dateFrom, dateTo },
-    page,
-    pageSize,
-  );
+  const [{ items: points, total }, humanitarian, heroes, quakes, curatedAyuda, admin] = await Promise.all([
+    getAidPointsPage({ type, availOnly, estado, dateFrom, dateTo }, page, pageSize),
+    getHumanitarianUpdates(10),
+    getHeroes(),
+    getRecentQuakes(),
+    // Si la tabla aún no existe (esquema sin migrar), no rompemos la página.
+    getNewsItems("ayuda").catch(() => []),
+    isAdmin(),
+  ]);
+  // Independientes entre sí: en paralelo en vez de una detrás de otra.
+  const [heroComments, newsComments] = await Promise.all([
+    getCommentsForEntities("hero", heroes.map((h) => h.id)),
+    getCommentsForEntities("news_item", curatedAyuda.map((n) => n.id)),
+  ]);
 
   const chipHref = (t: AidPointType | "all") => {
     const params = new URLSearchParams();
@@ -172,6 +185,16 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
           </div>
         </>
       )}
+
+      <AyudaExtras
+        humanitarian={humanitarian}
+        curatedAyuda={curatedAyuda}
+        newsComments={newsComments}
+        heroes={heroes}
+        heroComments={heroComments}
+        quakes={quakes}
+        isAdmin={admin}
+      />
     </div>
   );
 }

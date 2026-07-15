@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { getVerifiedNews, getWorldPress } from "@/lib/news";
 import { NewsCarouselTrack, type CarouselItem } from "./NewsCarouselTrack";
@@ -37,9 +36,6 @@ export async function VerifiedNewsCarousel() {
             Información real, de fuentes confiables
           </span>
         </h2>
-        <Link href="/noticias" className="press text-sm font-medium text-brand-700 hover:underline">
-          Ver todas →
-        </Link>
       </div>
       <div className="mt-4">
         <NewsCarouselTrack items={items} />

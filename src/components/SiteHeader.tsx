@@ -10,7 +10,6 @@ import {
   LayoutGrid,
   LifeBuoy,
   Map,
-  Newspaper,
   PawPrint,
   Search,
   Users2,
@@ -31,7 +30,6 @@ const PRIMARY = [
 ];
 
 const MORE = [
-  { href: "/noticias", label: "Noticias", icon: Newspaper },
   { href: "/hospitales", label: "Hospitales", icon: Building2 },
   { href: "/ayuda", label: "Puntos de ayuda", icon: HeartHandshake },
   { href: "/mascotas", label: "Mascotas", icon: PawPrint },
