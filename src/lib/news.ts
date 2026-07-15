@@ -117,6 +117,46 @@ let gdeltCache: { articles: NewsArticle[]; fetchedAt: number } | null = null;
 const GDELT_TTL_MS = 30 * 60 * 1000;
 
 /**
+ * Traduce titulares al español con OpenAI (mismo proveedor/modelo que ya usa
+ * scripts/fetch-social-posts.mjs para los posts importados). Una sola llamada
+ * por lote en vez de una por titular: más barato y rápido. Si falla o no hay
+ * OPENAI_API_KEY, devuelve {} y el llamador se queda con el titular original
+ * — nunca bloquea el carrusel por esto.
+ */
+async function translateTitles(items: { id: string; title: string }[]): Promise<Record<string, string>> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || items.length === 0) return {};
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              'Traduces titulares de prensa al español neutro, manteniendo el sentido y el tono periodístico, sin agregar ni quitar información. Recibes un array JSON de {id, title}. Respondes SOLO con {"traducciones": {"<id>": "<titular traducido>", ...}}, una entrada por cada id recibido.',
+          },
+          { role: "user", content: JSON.stringify(items) },
+        ],
+      }),
+    });
+    if (!res.ok) return {};
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}") as {
+      traducciones?: Record<string, string>;
+    };
+    return parsed.traducciones && typeof parsed.traducciones === "object" ? parsed.traducciones : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Prensa mundial vía GDELT 2.0 Doc API (RSS público, gratis, sin clave). A
  * diferencia de Google Noticias, GDELT trae la URL directa del artículo (no
  * un enlace intermediario) y una foto real (`socialimage`, la misma que usa
@@ -175,7 +215,20 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
       // usa para completar si no alcanzan las noticias en español.
       (a.language === "Spanish" ? spanish : other).push(article);
     }
-    const out = spanish.length >= limit ? spanish : [...spanish, ...other];
+
+    // En la práctica, GDELT casi no indexa prensa en español reciente para
+    // este tema (verificado): casi siempre "other" es toda la lista. En vez
+    // de perder esa cobertura real, se traducen sus titulares en un solo
+    // lote — el enlace de "Ver fuente" sigue yendo al artículo original.
+    if (other.length > 0) {
+      const translations = await translateTitles(other.map((a) => ({ id: a.id, title: a.title })));
+      for (const a of other) {
+        const t = translations[a.id];
+        if (t) a.title = t;
+      }
+    }
+
+    const out = [...spanish, ...other];
     if (out.length === 0) return gdeltCache?.articles.slice(0, limit) ?? [];
     gdeltCache = { articles: out, fetchedAt: now };
     return out.slice(0, limit);
