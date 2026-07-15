@@ -7,7 +7,6 @@ import {
   Building2,
   ChevronDown,
   HeartHandshake,
-  LayoutGrid,
   LifeBuoy,
   Map,
   PawPrint,
@@ -33,7 +32,6 @@ const MORE = [
   { href: "/hospitales", label: "Hospitales", icon: Building2 },
   { href: "/ayuda", label: "Puntos de ayuda", icon: HeartHandshake },
   { href: "/mascotas", label: "Mascotas", icon: PawPrint },
-  { href: "/recursos", label: "Recursos", icon: LayoutGrid },
 ];
 
 // Sub-secciones que viven bajo la pestaña "Comunidad" (se resaltan con ella).
