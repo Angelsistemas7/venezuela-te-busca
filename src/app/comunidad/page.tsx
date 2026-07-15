@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Megaphone, Newspaper, Search, Users2 } from "lucide-react";
-import { getCommentsForEntities, getNewsItems, getPosts, getPostsPage, type PostSort } from "@/lib/data";
-import { isAdmin } from "@/lib/admin";
+import { Megaphone, Search, Users2 } from "lucide-react";
+import { getCommentsForEntities, getPosts, getPostsPage, type PostSort } from "@/lib/data";
 import { ESTADOS, POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
 import { cn, clampPageSize } from "@/lib/utils";
 import { CreatePostButton } from "@/components/CreatePostButton";
@@ -17,9 +16,6 @@ import { MapPreviewCard } from "@/components/MapPreviewCard";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { CommunityIllustration } from "@/components/illustrations/CommunityIllustration";
 import { HandsIllustration } from "@/components/illustrations/HandsIllustration";
-import { FeaturedNews } from "@/components/FeaturedNews";
-import { NewsItemCard } from "@/components/NewsItemCard";
-import { AddNewsItemButton } from "@/components/AddNewsItemButton";
 
 export const dynamic = "force-dynamic";
 
@@ -85,16 +81,13 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   // había que bajar mucho para llegar al muro normal. Un rescate se queda ahí
   // hasta que su autor (o el admin) lo borre — no hay límite de tiempo: un
   // rescate sigue siendo urgente mientras exista, sin importar cuánto lleve.
-  const [featuredPosts, rescuePosts, pageResult, curatedNoticia, admin] = await Promise.all([
+  const [featuredPosts, rescuePosts, pageResult] = await Promise.all([
     type === "all" ? getPosts({ pinnedOnly: true, search: q }) : Promise.resolve([]),
     type === "all" ? getPosts({ type: "rescate", search: q }) : Promise.resolve([]),
     // Antes: hasta 100 publicaciones completas en cada visita, sin límite —
     // pasados los 100 posts no había forma de ver algo más antiguo. Ahora
     // pagina de verdad (10/20/50 a elegir), con orden real en la base de datos.
     getPostsPage({ type, search: q, estado, dateFrom, dateTo }, page, pageSize, sort),
-    // Si la tabla aún no existe (esquema sin migrar), no rompemos la página.
-    !hasActiveQuery ? getNewsItems("noticia").catch(() => []) : Promise.resolve([]),
-    isAdmin(),
   ]);
   const featured = featuredPosts;
   const featuredIds = new Set(featured.map((p) => p.id));
@@ -104,12 +97,8 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
   const restPosts = pageResult.items.filter((p) => !pinnedIds.has(p.id));
 
   const allShown = [...featured, ...pinned, ...restPosts];
-  // Independientes entre sí: en paralelo en vez de una detrás de otra.
-  const [commentsByPost, newsComments] = await Promise.all([
-    // Una sola consulta para los comentarios de todo lo que se ve en esta carga (evita el N+1).
-    getCommentsForEntities("post", allShown.map((p) => p.id)),
-    getCommentsForEntities("news_item", curatedNoticia.map((n) => n.id)),
-  ]);
+  // Una sola consulta para los comentarios de todo lo que se ve en esta carga (evita el N+1).
+  const commentsByPost = await getCommentsForEntities("post", allShown.map((p) => p.id));
   const withComments = (posts: typeof allShown) => posts.map((post) => ({ ...post, comments: commentsByPost[post.id] ?? [] }));
 
   // Enlaces que conservan la búsqueda/orden/tamaño activos al cambiar el otro
@@ -178,26 +167,6 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
             </p>
           </div>
         </div>
-      )}
-
-      {!hasActiveQuery && (
-        <section className="mb-6">
-          <FeaturedNews />
-          {(curatedNoticia.length > 0 || admin) && (
-            <div className="mt-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                  <Newspaper className="h-4 w-4" />
-                  Más noticias
-                </h2>
-                {admin && <AddNewsItemButton kind="noticia" />}
-              </div>
-              {curatedNoticia.map((n) => (
-                <NewsItemCard key={n.id} item={n} comments={newsComments[n.id] ?? []} isAdmin={admin} />
-              ))}
-            </div>
-          )}
-        </section>
       )}
 
       <form action="/comunidad" className="mb-3 flex gap-2">
