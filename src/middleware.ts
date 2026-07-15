@@ -12,6 +12,10 @@ function maintenanceRedirect(request: NextRequest): NextResponse | null {
   if (process.env.MAINTENANCE_MODE !== "true") return null;
   const { pathname } = request.nextUrl;
   if (pathname === "/mantenimiento" || pathname.startsWith("/admin")) return null;
+  // Endpoints internos llamados por cron (sin sesión de navegador, tienen su
+  // propia clave — ver CRON_SECRET): deben poder correr aunque el sitio
+  // público esté en mantenimiento.
+  if (pathname.startsWith("/api/cron")) return null;
 
   const adminToken = process.env.ADMIN_TOKEN;
   const cookie = request.cookies.get("vtb_admin")?.value;

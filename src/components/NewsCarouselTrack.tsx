@@ -46,8 +46,9 @@ export function NewsCarouselTrack({ items }: { items: CarouselItem[] }) {
                   className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-navy-700/5 text-navy-700/40">
-                  <ExternalLink className="h-6 w-6" />
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-50 to-gold-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo-icon.svg" alt="" className="h-10 w-10 opacity-40" />
                 </div>
               )}
               <span className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white">
