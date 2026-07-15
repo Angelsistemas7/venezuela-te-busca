@@ -145,13 +145,18 @@ async function translateTitles(items: { id: string; title: string }[]): Promise<
         ],
       }),
     });
-    if (!res.ok) return {};
+    if (!res.ok) {
+      console.error("[news] traducción OpenAI falló", res.status, await res.text());
+      return {};
+    }
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}") as {
-      traducciones?: Record<string, string>;
-    };
-    return parsed.traducciones && typeof parsed.traducciones === "object" ? parsed.traducciones : {};
-  } catch {
+    const content = data.choices?.[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(content) as { traducciones?: Record<string, string> };
+    const result = parsed.traducciones && typeof parsed.traducciones === "object" ? parsed.traducciones : {};
+    console.log("[news] traducción OpenAI ok:", Object.keys(result).length, "titulares traducidos");
+    return result;
+  } catch (e) {
+    console.error("[news] traducción OpenAI excepción:", e);
     return {};
   }
 }
@@ -166,8 +171,10 @@ async function translateTitles(items: { id: string; title: string }[]): Promise<
 export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
   const now = Date.now();
   if (gdeltCache && now - gdeltCache.fetchedAt < GDELT_TTL_MS) {
+    console.log("[news] getGdeltNews: caché en memoria (edad ms):", now - gdeltCache.fetchedAt);
     return gdeltCache.articles.slice(0, limit);
   }
+  console.log("[news] getGdeltNews: sin caché válida, pidiendo a GDELT...");
   try {
     // Se pide bastante más de lo que hace falta (GDELT rastrea prensa mundial
     // en cualquier idioma) porque después se prioriza español y se descarta
@@ -220,12 +227,18 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
     // este tema (verificado): casi siempre "other" es toda la lista. En vez
     // de perder esa cobertura real, se traducen sus titulares en un solo
     // lote — el enlace de "Ver fuente" sigue yendo al artículo original.
+    console.log("[news] GDELT trajo", spanish.length, "en español y", other.length, "en otro idioma");
     if (other.length > 0) {
       const translations = await translateTitles(other.map((a) => ({ id: a.id, title: a.title })));
+      let applied = 0;
       for (const a of other) {
         const t = translations[a.id];
-        if (t) a.title = t;
+        if (t) {
+          a.title = t;
+          applied++;
+        }
       }
+      console.log("[news] traducciones aplicadas:", applied, "de", other.length);
     }
 
     const out = [...spanish, ...other];
