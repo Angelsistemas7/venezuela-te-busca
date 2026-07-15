@@ -100,6 +100,64 @@ export async function getWorldPress(limit = 14): Promise<NewsArticle[]> {
   }
 }
 
+/** "20260714T234500Z" (formato de GDELT) → ISO 8601 normal. */
+function parseGdeltDate(s: string): string | null {
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/.exec(s);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, se] = m;
+  return `${y}-${mo}-${d}T${h}:${mi}:${se}Z`;
+}
+
+/**
+ * Prensa mundial vía GDELT 2.0 Doc API (RSS público, gratis, sin clave). A
+ * diferencia de Google Noticias, GDELT trae la URL directa del artículo (no
+ * un enlace intermediario) y una foto real (`socialimage`, la misma que usa
+ * el propio medio para compartir en redes) — por eso se usa para el carrusel
+ * con imagen; Google Noticias (arriba) no trae fotos en su feed.
+ */
+export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
+  try {
+    const q = encodeURIComponent("Venezuela (terremoto OR sismo OR réplica OR rescate)");
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=${limit}&format=json&sort=datedesc`;
+    const res = await fetch(url, {
+      next: { revalidate: 1800 }, // refresca cada 30 min
+      signal: AbortSignal.timeout(6000),
+      headers: { "user-agent": "Mozilla/5.0 (compatible; ElMundoTeBusca/1.0)" },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as {
+      articles?: {
+        url: string;
+        title: string;
+        seendate?: string;
+        domain?: string;
+        socialimage?: string;
+      }[];
+    };
+    const seen = new Set<string>();
+    const out: NewsArticle[] = [];
+    for (const a of json.articles ?? []) {
+      if (!a.url || !a.title || seen.has(a.url)) continue;
+      if (/facebook|twitter|x\.com|instagram|tiktok|youtube|reddit/i.test(a.domain ?? "")) continue;
+      seen.add(a.url);
+      out.push({
+        id: a.url,
+        title: a.title.trim(),
+        source: (a.domain ?? "Prensa").replace(/^www\./, ""),
+        url: a.url,
+        publishedAt: a.seendate ? parseGdeltDate(a.seendate) : null,
+        // Solo se usa si es una URL http(s) real — nunca se confía a ciegas
+        // en un campo de un tercero para algo que termina en un <img src>.
+        image: a.socialimage && /^https?:\/\//.test(a.socialimage) ? a.socialimage : null,
+      });
+      if (out.length >= limit) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Reportes de ayuda humanitaria sobre Venezuela (ReliefWeb / ONU-OCHA):
  * ayuda internacional que llegó, va en camino o fue anunciada.

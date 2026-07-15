@@ -1,12 +1,21 @@
 import { ShieldCheck } from "lucide-react";
-import { getWorldPress } from "@/lib/news";
+import { getGdeltNews, getWorldPress } from "@/lib/news";
 import { NewsCarouselTrack, type CarouselItem } from "./NewsCarouselTrack";
 
-// Trae noticias reales y vigentes (Google News, cacheado 30 min en getWorldPress)
-// en vez de una lista fija: así el carrusel no requiere curar contenido a mano
-// ni corre el riesgo de mostrar una fuente o URL inventada.
+// Trae noticias reales y vigentes en vez de una lista fija: así el carrusel
+// no requiere curar contenido a mano ni corre el riesgo de mostrar una fuente
+// o URL inventada. GDELT va primero porque trae foto real de portada
+// (`socialimage`) y enlace directo al artículo; Google Noticias no trae foto
+// en su feed, así que solo se usa para completar si GDELT da pocos resultados
+// (caído, con límite de peticiones, etc.).
 export async function VerifiedNewsCarousel() {
-  const articles = await getWorldPress(10);
+  const gdelt = await getGdeltNews(10);
+  let articles = gdelt;
+  if (articles.length < 4) {
+    const fallback = await getWorldPress(10);
+    const seen = new Set(articles.map((a) => a.url));
+    articles = [...articles, ...fallback.filter((a) => !seen.has(a.url))].slice(0, 10);
+  }
   if (articles.length === 0) return null;
 
   const items: CarouselItem[] = articles.map((a) => ({
