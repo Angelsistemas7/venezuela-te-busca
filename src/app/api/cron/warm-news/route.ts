@@ -16,6 +16,6 @@ export async function GET(request: Request) {
     }
   }
 
-  const [gdelt] = await Promise.all([getGdeltNews(14), getWorldPress(10)]);
+  const [gdelt] = await Promise.all([getGdeltNews(10), getWorldPress(10)]);
   return NextResponse.json({ ok: true, gdeltCount: gdelt.length });
 }

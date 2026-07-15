@@ -130,7 +130,10 @@ async function translateTitles(items: { id: string; title: string }[]): Promise<
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-      signal: AbortSignal.timeout(10000),
+      // Con ~40 titulares en un solo lote (ver fetchLimit en getGdeltNews) tarda
+      // más de 10s; medido en logs reales, se estaba cortando siempre antes de
+      // responder y por eso nunca se aplicaba ninguna traducción.
+      signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
         model: "gpt-4o-mini",
         temperature: 0,
@@ -180,7 +183,7 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
     // en cualquier idioma) porque después se prioriza español y se descarta
     // el resto si hay suficiente — así no dependemos de que el filtro de
     // idioma en la query de GDELT funcione bien combinado con paréntesis/OR.
-    const fetchLimit = Math.max(limit * 3, 30);
+    const fetchLimit = Math.max(limit * 2, 20);
     const q = encodeURIComponent("Venezuela (terremoto OR sismo OR réplica OR rescate)");
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=${fetchLimit}&format=json&sort=datedesc`;
     const res = await fetch(url, {
