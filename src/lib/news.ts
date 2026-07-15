@@ -109,12 +109,56 @@ function parseGdeltDate(s: string): string | null {
 }
 
 // GDELT limita a ~1 petición cada 5 segundos por IP; con tráfico real es fácil
-// toparse con un 429. Cache propia en memoria (no la de Next) para que, si
-// una petición falla, sirvamos la última lista buena en vez de vaciar el
-// carrusel — Next SÍ cachearía una respuesta 429 igual que una 200 durante
-// `revalidate`, dejando el carrusel sin fotos media hora.
-let gdeltCache: { articles: NewsArticle[]; fetchedAt: number } | null = null;
+// toparse con un 429. Cache propia (no la de Next) para que, si una petición
+// falla, sirvamos la última lista buena en vez de vaciar el carrusel — Next
+// SÍ cachearía una respuesta 429 igual que una 200 durante `revalidate`,
+// dejando el carrusel sin fotos media hora.
+//
+// Además de vivir en memoria, se espeja a un archivo en disco: la caché en
+// memoria se BORRA cada vez que el proceso se reinicia (cada deploy), y si
+// justo en ese momento GDELT está limitando peticiones, el sitio se queda
+// sin fotos hasta que se calme — le pasó varias veces seguidas en producción.
+// Con el archivo, un reinicio recupera la última lista buena al instante en
+// vez de arrancar de cero.
+type GdeltCache = { articles: NewsArticle[]; fetchedAt: number };
+let gdeltCache: GdeltCache | null = null;
+let diskCacheLoaded = false;
 const GDELT_TTL_MS = 30 * 60 * 1000;
+// Ruta fija (no `os.tmpdir()`/`path.join()`): esos módulos de Node, igual que
+// `fs`, no existen en el runtime Edge — Next compila instrumentation.ts (que
+// llama a este archivo) también para Edge, y un import ESTÁTICO de cualquiera
+// de los tres rompe ese build aunque nunca se ejecute ahí. Por eso, además,
+// `fs` se importa DINÁMICO dentro de cada función en vez de arriba del
+// archivo: así Next lo deja fuera del paquete de Edge en vez de intentar
+// resolverlo igual.
+const DISK_CACHE_FILE = "/tmp/elmundotebusca-gdelt-cache.json";
+
+async function loadDiskCacheOnce() {
+  if (diskCacheLoaded) return;
+  diskCacheLoaded = true;
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const raw = await readFile(DISK_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(raw) as GdeltCache;
+    if (Array.isArray(parsed.articles) && parsed.articles.length > 0 && !gdeltCache) {
+      gdeltCache = parsed;
+      console.log("[news] caché recuperada de disco, edad ms:", Date.now() - parsed.fetchedAt);
+    }
+  } catch {
+    // No hay archivo todavía (primer arranque) o está corrupto: se ignora,
+    // se sigue igual que si no hubiera caché.
+  }
+}
+
+async function saveDiskCache() {
+  if (!gdeltCache) return;
+  try {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(DISK_CACHE_FILE, JSON.stringify(gdeltCache));
+  } catch (e) {
+    console.error("[news] no se pudo guardar la caché en disco:", e);
+  }
+}
 
 /**
  * Traduce titulares al español con OpenAI (mismo proveedor/modelo que ya usa
@@ -172,6 +216,7 @@ async function translateTitles(items: { id: string; title: string }[]): Promise<
  * con imagen; Google Noticias (arriba) no trae fotos en su feed.
  */
 export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
+  await loadDiskCacheOnce();
   const now = Date.now();
   if (gdeltCache && now - gdeltCache.fetchedAt < GDELT_TTL_MS) {
     console.log("[news] getGdeltNews: caché en memoria (edad ms):", now - gdeltCache.fetchedAt);
@@ -193,7 +238,10 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
       signal: AbortSignal.timeout(15000),
       headers: { "user-agent": "Mozilla/5.0 (compatible; ElMundoTeBusca/1.0)" },
     });
-    if (!res.ok) return gdeltCache?.articles.slice(0, limit) ?? [];
+    if (!res.ok) {
+      console.error("[news] GDELT respondió mal:", res.status, await res.text().catch(() => ""));
+      return gdeltCache?.articles.slice(0, limit) ?? [];
+    }
     const json = (await res.json()) as {
       articles?: {
         url: string;
@@ -247,8 +295,10 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
     const out = [...spanish, ...other];
     if (out.length === 0) return gdeltCache?.articles.slice(0, limit) ?? [];
     gdeltCache = { articles: out, fetchedAt: now };
+    await saveDiskCache();
     return out.slice(0, limit);
-  } catch {
+  } catch (e) {
+    console.error("[news] getGdeltNews excepción:", e);
     return gdeltCache?.articles.slice(0, limit) ?? [];
   }
 }
