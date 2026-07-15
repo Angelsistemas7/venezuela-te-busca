@@ -108,6 +108,14 @@ function parseGdeltDate(s: string): string | null {
   return `${y}-${mo}-${d}T${h}:${mi}:${se}Z`;
 }
 
+// GDELT limita a ~1 petición cada 5 segundos por IP; con tráfico real es fácil
+// toparse con un 429. Cache propia en memoria (no la de Next) para que, si
+// una petición falla, sirvamos la última lista buena en vez de vaciar el
+// carrusel — Next SÍ cachearía una respuesta 429 igual que una 200 durante
+// `revalidate`, dejando el carrusel sin fotos media hora.
+let gdeltCache: { articles: NewsArticle[]; fetchedAt: number } | null = null;
+const GDELT_TTL_MS = 30 * 60 * 1000;
+
 /**
  * Prensa mundial vía GDELT 2.0 Doc API (RSS público, gratis, sin clave). A
  * diferencia de Google Noticias, GDELT trae la URL directa del artículo (no
@@ -116,15 +124,22 @@ function parseGdeltDate(s: string): string | null {
  * con imagen; Google Noticias (arriba) no trae fotos en su feed.
  */
 export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
+  const now = Date.now();
+  if (gdeltCache && now - gdeltCache.fetchedAt < GDELT_TTL_MS) {
+    return gdeltCache.articles.slice(0, limit);
+  }
   try {
+    const fetchLimit = Math.max(limit, 14); // guarda una lista más grande para reusar en llamadas con distinto límite
     const q = encodeURIComponent("Venezuela (terremoto OR sismo OR réplica OR rescate)");
-    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=${limit}&format=json&sort=datedesc`;
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=${fetchLimit}&format=json&sort=datedesc`;
     const res = await fetch(url, {
-      next: { revalidate: 1800 }, // refresca cada 30 min
-      signal: AbortSignal.timeout(6000),
+      cache: "no-store", // el cacheo lo maneja gdeltCache; así una respuesta fallida (429) no queda pegada
+      // GDELT puede tardar bastante más que otras APIs (medido: ~10s en pruebas
+      // reales); 6s la cortaba siempre antes de responder.
+      signal: AbortSignal.timeout(15000),
       headers: { "user-agent": "Mozilla/5.0 (compatible; ElMundoTeBusca/1.0)" },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return gdeltCache?.articles.slice(0, limit) ?? [];
     const json = (await res.json()) as {
       articles?: {
         url: string;
@@ -150,11 +165,12 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
         // en un campo de un tercero para algo que termina en un <img src>.
         image: a.socialimage && /^https?:\/\//.test(a.socialimage) ? a.socialimage : null,
       });
-      if (out.length >= limit) break;
     }
-    return out;
+    if (out.length === 0) return gdeltCache?.articles.slice(0, limit) ?? [];
+    gdeltCache = { articles: out, fetchedAt: now };
+    return out.slice(0, limit);
   } catch {
-    return [];
+    return gdeltCache?.articles.slice(0, limit) ?? [];
   }
 }
 
