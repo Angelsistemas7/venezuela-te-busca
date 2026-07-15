@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { Activity, HandHeart, Star } from "lucide-react";
 import type { Comment, Hero, NewsItem } from "@/lib/types";
-import type { NewsArticle } from "@/lib/news";
 import type { Quake } from "@/lib/usgs";
 import { cn } from "@/lib/utils";
 import { HeroCard } from "./HeroCard";
 import { ProposeHeroButton } from "./ProposeHeroButton";
 import { NewsItemCard } from "./NewsItemCard";
 import { AddNewsItemButton } from "./AddNewsItemButton";
-import { NewsList } from "./NewsList";
 import { RecentQuakes } from "./RecentQuakes";
 
 type TabKey = "humanitaria" | "heroes" | "sismos";
@@ -22,7 +20,6 @@ const TABS: { key: TabKey; label: string; icon: typeof Star }[] = [
 ];
 
 export function AyudaExtras({
-  humanitarian,
   curatedAyuda,
   newsComments,
   heroes,
@@ -30,7 +27,6 @@ export function AyudaExtras({
   quakes,
   isAdmin,
 }: {
-  humanitarian: NewsArticle[];
   curatedAyuda: NewsItem[];
   newsComments: Record<string, Comment[]>;
   heroes: Hero[];
@@ -75,29 +71,17 @@ export function AyudaExtras({
               {isAdmin && <AddNewsItemButton kind="ayuda" />}
             </div>
 
-            {curatedAyuda.length > 0 && (
+            {curatedAyuda.length > 0 ? (
               <div className="space-y-4">
                 {curatedAyuda.map((n) => (
                   <NewsItemCard key={n.id} item={n} comments={newsComments[n.id] ?? []} isAdmin={isAdmin} />
                 ))}
               </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 py-6 text-center text-sm text-zinc-500">
+                Aún no hay reportes de ayuda humanitaria publicados.
+              </p>
             )}
-
-            <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="flex items-center gap-2 font-bold text-zinc-900">
-                  <HandHeart className="h-5 w-5 text-emerald-500" />
-                  En vivo: reportes oficiales
-                </h2>
-                <span className="text-xs text-zinc-400">Fuente: ReliefWeb · ONU/OCHA</span>
-              </div>
-              <div className="mt-3">
-                <NewsList
-                  articles={humanitarian}
-                  emptyText="No hay reportes de ReliefWeb disponibles ahora mismo. Intenta de nuevo más tarde."
-                />
-              </div>
-            </div>
           </section>
         )}
 

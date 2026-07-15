@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { HeartHandshake, MapPinned, ShieldCheck, Users2 } from "lucide-react";
 import { getAidPoints, getDashboardStats, getStats } from "@/lib/data";
-import { formatDateTime } from "@/lib/utils";
+import { getCrisisStats, type CrisisStat } from "@/lib/news";
+import { formatDateTime, timeAgo } from "@/lib/utils";
 import { AnimatedNumber } from "./AnimatedNumber";
+import { ExternalLinkGuard } from "./ExternalLinkGuard";
 
 function StatRow({
   icon: Icon,
@@ -36,12 +38,35 @@ function StatRow({
   );
 }
 
+// Cita chica y sin protagonismo: a diferencia de las cifras de la plataforma
+// (exactas, de nuestra propia base de datos), esta es la lectura de UN
+// titular real de prensa — puede quedar desactualizada o no coincidir con
+// otra fuente. Por eso va más pequeña, sin animación grande, y siempre con su
+// fuente y fecha a la vista en vez de presentarse como un dato oficial.
+function CrisisStatLine({ stat }: { stat: CrisisStat }) {
+  return (
+    <p className="text-xs leading-relaxed text-zinc-500">
+      <span className="font-semibold text-zinc-700">{stat.value.toLocaleString("es-VE")}</span>{" "}
+      {stat.label.toLowerCase()}
+      {" — "}
+      <ExternalLinkGuard href={stat.sourceUrl} className="inline text-zinc-400 hover:text-brand-700 hover:underline">
+        {stat.source}
+        {stat.asOf && `, ${timeAgo(stat.asOf)}`}
+      </ExternalLinkGuard>
+    </p>
+  );
+}
+
 export async function HomeHero() {
-  const [stats, dashboardStats, aidPoints] = await Promise.all([
+  const [stats, dashboardStats, aidPoints, crisisStats] = await Promise.all([
     getStats(),
     getDashboardStats(),
     getAidPoints(),
+    getCrisisStats(),
   ]);
+  const crisisRows = [crisisStats.fallecidos, crisisStats.heridos, crisisStats.desaparecidos, crisisStats.afectados].filter(
+    (s): s is CrisisStat => Boolean(s),
+  );
 
   return (
     <section className="reveal-up relative overflow-hidden rounded-3xl border-2 border-navy-700 bg-white">
@@ -104,6 +129,17 @@ export async function HomeHero() {
           <p className="mt-4 text-right text-xs text-zinc-400">
             Actualizado {formatDateTime(stats.lastUpdated)}
           </p>
+
+          {crisisRows.length > 0 && (
+            <div className="mt-4 space-y-1.5 border-t border-zinc-100 pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                Según prensa reciente
+              </p>
+              {crisisRows.map((stat) => (
+                <CrisisStatLine key={stat.label} stat={stat} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -387,62 +387,218 @@ export async function getVerifiedNews(limit = 10): Promise<NewsArticle[]> {
 }
 
 /**
- * Reportes de ayuda humanitaria sobre Venezuela (ReliefWeb / ONU-OCHA):
- * ayuda internacional que llegó, va en camino o fue anunciada.
+ * Cifras reales del terremoto (fallecidos, heridos, desaparecidos, personas
+ * afectadas), extraídas de titulares reales de prensa (GDELT). Cada cifra
+ * conserva el titular exacto de donde salió como cita: el modelo NUNCA
+ * inventa una fuente, solo puede señalar uno de los titulares que le dimos
+ * (por índice) — si no hay un titular con un número explícito para un dato,
+ * ese campo queda en null. No hay estimaciones ni sumas propias.
  */
-export async function getHumanitarianUpdates(limit = 10): Promise<NewsArticle[]> {
-  try {
-    // ReliefWeb v1: GET con appname obligatorio. Filtramos por país Venezuela
-    // (id 257 en su taxonomía) y orientamos la búsqueda al sismo/ayuda.
-    const params = new URLSearchParams({
-      appname: "elmundotebusca.com",
-      "query[value]": "earthquake OR sismo OR terremoto OR humanitarian aid",
-      "query[operator]": "OR",
-      "filter[field]": "primary_country.iso3",
-      "filter[value]": "ven",
-      limit: String(limit),
-      "fields[include][]": "title",
-      sort: "date.created:desc",
-    });
-    // Varias claves repetidas: añadimos los demás include manualmente.
-    params.append("fields[include][]", "url");
-    params.append("fields[include][]", "url_alias");
-    params.append("fields[include][]", "date.created");
-    params.append("fields[include][]", "source.shortname");
-    params.append("fields[include][]", "source.name");
+export interface CrisisStat {
+  value: number;
+  label: string;
+  source: string;
+  sourceUrl: string;
+  asOf: string | null;
+}
 
-    const res = await fetch(`https://api.reliefweb.int/v1/reports?${params}`, {
-      next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as {
-      data?: {
-        id: string;
-        fields?: {
-          title?: string;
-          url?: string;
-          url_alias?: string;
-          date?: { created?: string };
-          source?: { name?: string; shortname?: string }[];
-        };
-      }[];
-    };
-    return (json.data ?? [])
-      .map((d) => {
-        const f = d.fields ?? {};
-        const src = f.source?.[0];
-        return {
-          id: `rw-${d.id}`,
-          title: f.title ?? "",
-          source: src?.shortname || src?.name || "ReliefWeb (OCHA)",
-          url: f.url_alias || f.url || `https://reliefweb.int/node/${d.id}`,
-          publishedAt: f.date?.created ?? null,
-          image: null,
-        } satisfies NewsArticle;
-      })
-      .filter((a) => a.title);
+export interface CrisisStats {
+  fallecidos: CrisisStat | null;
+  heridos: CrisisStat | null;
+  desaparecidos: CrisisStat | null;
+  afectados: CrisisStat | null;
+}
+
+const EMPTY_CRISIS_STATS: CrisisStats = {
+  fallecidos: null,
+  heridos: null,
+  desaparecidos: null,
+  afectados: null,
+};
+
+type CrisisStatsCache = { stats: CrisisStats; fetchedAt: number };
+let crisisStatsCache: CrisisStatsCache | null = null;
+let crisisStatsDiskLoaded = false;
+// Cifras de víctimas cambian más rápido que la cobertura de prensa en general
+// (ver NEWS_TTL_MS): una tabla de menos horas para no quedarse con un dato
+// viejo durante la fase aguda de la emergencia.
+const CRISIS_STATS_TTL_MS = 3 * 60 * 60 * 1000;
+const CRISIS_STATS_DISK_CACHE_FILE = "/tmp/elmundotebusca-crisis-stats-cache.json";
+
+async function loadCrisisStatsDiskCacheOnce() {
+  if (crisisStatsDiskLoaded) return;
+  crisisStatsDiskLoaded = true;
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const raw = await readFile(CRISIS_STATS_DISK_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(raw) as CrisisStatsCache;
+    if (parsed.stats && !crisisStatsCache) crisisStatsCache = parsed;
   } catch {
+    // Primer arranque sin archivo todavía, o corrupto: se ignora.
+  }
+}
+
+async function saveCrisisStatsDiskCache() {
+  if (!crisisStatsCache) return;
+  try {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(CRISIS_STATS_DISK_CACHE_FILE, JSON.stringify(crisisStatsCache));
+  } catch (e) {
+    console.error("[news] no se pudo guardar la caché de cifras en disco:", e);
+  }
+}
+
+/** Titulares de GDELT enfocados en víctimas/afectados (no en ayuda o política). */
+async function fetchGdeltForCrisisStats(
+  limit: number,
+): Promise<{ title: string; source: string; url: string; publishedAt: string | null }[]> {
+  try {
+    const q = encodeURIComponent(
+      "Venezuela terremoto (muertos OR fallecidos OR heridos OR desaparecidos OR damnificados OR dead OR killed OR injured OR missing)",
+    );
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=${limit}&format=json&sort=datedesc`;
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+      headers: { "user-agent": "Mozilla/5.0 (compatible; ElMundoTeBusca/1.0)" },
+    });
+    if (!res.ok) {
+      console.error("[news] GDELT (cifras) respondió mal:", res.status, await res.text().catch(() => ""));
+      return [];
+    }
+    const json = (await res.json()) as {
+      articles?: { url: string; title: string; seendate?: string; domain?: string }[];
+    };
+    const seen = new Set<string>();
+    const out: { title: string; source: string; url: string; publishedAt: string | null }[] = [];
+    for (const a of json.articles ?? []) {
+      if (!a.url || !a.title || seen.has(a.url)) continue;
+      if (/facebook|twitter|x\.com|instagram|tiktok|youtube|reddit/i.test(a.domain ?? "")) continue;
+      seen.add(a.url);
+      out.push({
+        title: a.title.trim(),
+        source: (a.domain ?? "Prensa").replace(/^www\./, ""),
+        url: a.url,
+        publishedAt: a.seendate ? parseGdeltDate(a.seendate) : null,
+      });
+    }
+    return out;
+  } catch (e) {
+    console.error("[news] fetchGdeltForCrisisStats excepción:", e);
     return [];
   }
+}
+
+/**
+ * Le pide al modelo que señale, de la lista de titulares REALES que le damos
+ * (por índice), cuál trae la cifra más reciente para cada dato — nunca que
+ * redacte un número o una fuente por su cuenta. Devuelve {} si no hay
+ * OPENAI_API_KEY o si la llamada falla; el llamador se queda con null en
+ * todo, nunca con un placeholder inventado.
+ */
+async function extractCrisisFigures(
+  articles: { title: string; source: string; publishedAt: string | null }[],
+): Promise<Record<string, { value: number; articleIndex: number }>> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || articles.length === 0) return {};
+  try {
+    const indexed = articles.map((a, i) => ({ i, title: a.title, source: a.source, publishedAt: a.publishedAt }));
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "Analizas titulares REALES de prensa sobre un terremoto para señalar (nunca redactar) " +
+              "cifras oficiales. Recibes un array JSON de titulares {i, title, source, publishedAt}. " +
+              "Para cada uno de estos datos: fallecidos (muertes confirmadas), heridos, desaparecidos, " +
+              "afectados (damnificados/evacuados/sin hogar) — busca el titular MÁS RECIENTE " +
+              "(publishedAt) que declare ese dato con un número EXPLÍCITO. Si ningún titular lo declara " +
+              "explícitamente, o si el número es ambiguo/estimado con vaguedad (\"cientos\", \"varios\"), " +
+              "omite ese campo. NO sumes, calcules ni estimes cifras de tu propia cuenta. NO inventes " +
+              "un titular: solo puedes citar el índice \"i\" de uno que te dieron. " +
+              'Responde SOLO JSON: {"fallecidos": {"value": number, "i": number} | null, "heridos": ..., ' +
+              '"desaparecidos": ..., "afectados": ...}',
+          },
+          { role: "user", content: JSON.stringify(indexed) },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      console.error("[news] extractCrisisFigures OpenAI falló", res.status, await res.text());
+      return {};
+    }
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(content) as Record<
+      string,
+      { value?: unknown; i?: unknown } | null | undefined
+    >;
+    const out: Record<string, { value: number; articleIndex: number }> = {};
+    for (const key of ["fallecidos", "heridos", "desaparecidos", "afectados"]) {
+      const entry = parsed[key];
+      if (!entry || typeof entry !== "object") continue;
+      const value = Number(entry.value);
+      const idx = Number(entry.i);
+      if (!Number.isFinite(value) || value <= 0) continue;
+      if (!Number.isInteger(idx) || idx < 0 || idx >= articles.length) continue;
+      out[key] = { value, articleIndex: idx };
+    }
+    return out;
+  } catch (e) {
+    console.error("[news] extractCrisisFigures excepción:", e);
+    return {};
+  }
+}
+
+const CRISIS_LABELS: Record<string, string> = {
+  fallecidos: "Fallecidos",
+  heridos: "Heridos",
+  desaparecidos: "Desaparecidos",
+  afectados: "Personas afectadas",
+};
+
+export async function getCrisisStats(): Promise<CrisisStats> {
+  await loadCrisisStatsDiskCacheOnce();
+  const now = Date.now();
+  if (crisisStatsCache && now - crisisStatsCache.fetchedAt < CRISIS_STATS_TTL_MS) {
+    return crisisStatsCache.stats;
+  }
+
+  const articles = await fetchGdeltForCrisisStats(30);
+  if (articles.length === 0) {
+    // Sin titulares no hay de dónde sacar nada real; se sirve la última
+    // caché buena si hay, en vez de mostrar ceros o inventar.
+    return crisisStatsCache?.stats ?? EMPTY_CRISIS_STATS;
+  }
+
+  const figures = await extractCrisisFigures(articles);
+  const stats: CrisisStats = { ...EMPTY_CRISIS_STATS };
+  for (const key of ["fallecidos", "heridos", "desaparecidos", "afectados"] as const) {
+    const found = figures[key];
+    if (!found) continue;
+    const article = articles[found.articleIndex];
+    stats[key] = {
+      value: found.value,
+      label: CRISIS_LABELS[key],
+      source: article.source,
+      sourceUrl: article.url,
+      asOf: article.publishedAt,
+    };
+  }
+
+  // Si no se pudo extraer NADA nuevo, mejor quedarse con la última caché
+  // buena (si hay) que reemplazarla por puros null.
+  const gotSomething = Object.values(stats).some(Boolean);
+  if (!gotSomething && crisisStatsCache) return crisisStatsCache.stats;
+
+  crisisStatsCache = { stats, fetchedAt: now };
+  await saveCrisisStatsDiskCache();
+  return stats;
 }

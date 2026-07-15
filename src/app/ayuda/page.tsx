@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { HeartHandshake } from "lucide-react";
 import { getAidPointsPage, getCommentsForEntities, getHeroes, getNewsItems } from "@/lib/data";
-import { getHumanitarianUpdates } from "@/lib/news";
 import { getRecentQuakes } from "@/lib/usgs";
 import { isAdmin } from "@/lib/admin";
 import { AID_POINT_TYPE_LABEL, ESTADOS, type AidPointType } from "@/lib/types";
@@ -65,9 +64,8 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
 
   // Antes: `getAidPoints()` traía la tabla ENTERA sin límite ni paginación en
   // cada visita. Ahora pagina de verdad (10/20/50 a elegir), en vivo.
-  const [{ items: points, total }, humanitarian, heroes, quakes, curatedAyuda, admin] = await Promise.all([
+  const [{ items: points, total }, heroes, quakes, curatedAyuda, admin] = await Promise.all([
     getAidPointsPage({ type, availOnly, estado, dateFrom, dateTo }, page, pageSize),
-    getHumanitarianUpdates(10),
     getHeroes(),
     getRecentQuakes(),
     // Si la tabla aún no existe (esquema sin migrar), no rompemos la página.
@@ -187,7 +185,6 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
       )}
 
       <AyudaExtras
-        humanitarian={humanitarian}
         curatedAyuda={curatedAyuda}
         newsComments={newsComments}
         heroes={heroes}
