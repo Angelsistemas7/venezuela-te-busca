@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ImagePlus, Loader2, PenLine } from "lucide-react";
+import { CheckCircle2, ImagePlus, Loader2, Megaphone, PenLine } from "lucide-react";
 import { ESTADOS, POST_TYPE_EMOJI, POST_TYPE_LABEL, type PostType } from "@/lib/types";
 import { createPostAction, getMyProfileAction, type ActionResult } from "@/app/actions";
 import { uploadPhoto } from "@/lib/upload";
@@ -15,8 +15,16 @@ import { ManageLinkBox } from "./ManageLinkBox";
 
 const TYPES = Object.keys(POST_TYPE_LABEL) as PostType[];
 
-export function CreatePostButton({ variant = "button" }: { variant?: "button" | "bar" }) {
+export function CreatePostButton({
+  variant = "button",
+  initialType,
+}: {
+  variant?: "button" | "bar" | "urgent";
+  /** Preselecciona el tipo de publicación (p. ej. "rescate" desde "Reportar AHORA"). */
+  initialType?: PostType;
+}) {
   const router = useRouter();
+  const isUrgent = variant === "urgent";
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -84,6 +92,14 @@ export function CreatePostButton({ variant = "button" }: { variant?: "button" | 
           <span className="flex-1 text-sm text-zinc-500">¿Qué necesitas o qué ofreces?</span>
           <PenLine className="h-4 w-4 shrink-0 text-zinc-400" />
         </button>
+      ) : isUrgent ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="press flex shrink-0 items-center gap-2 rounded-full border-2 border-rose-600 bg-white px-5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+        >
+          <Megaphone className="h-4 w-4" />
+          Reportar AHORA
+        </button>
       ) : (
         <button
           onClick={() => setOpen(true)}
@@ -97,8 +113,12 @@ export function CreatePostButton({ variant = "button" }: { variant?: "button" | 
       <Modal
         open={open}
         onClose={close}
-        title="Publicar en la comunidad"
-        subtitle="Pide o ofrece ayuda, reporta una emergencia, convoca una caravana, comparte información."
+        title={isUrgent ? "Reportar una emergencia" : "Publicar en la comunidad"}
+        subtitle={
+          isUrgent
+            ? "Cuenta qué está pasando y dónde. Se publica de inmediato en el muro, marcado como rescate urgente, para que la comunidad y los equipos de ayuda lo vean primero."
+            : "Pide o ofrece ayuda, reporta una emergencia, convoca una caravana, comparte información."
+        }
       >
         {result?.ok ? (
           <div className="flex flex-col items-center py-8 text-center">
@@ -121,7 +141,7 @@ export function CreatePostButton({ variant = "button" }: { variant?: "button" | 
         ) : (
           <form ref={formRef} onSubmit={onSubmit} className="space-y-5">
             <Field label="Tipo de publicación" htmlFor="type" required>
-              <Select id="type" name="type" defaultValue="necesito">
+              <Select id="type" name="type" defaultValue={initialType ?? "necesito"}>
                 {TYPES.map((t) => (
                   <option key={t} value={t}>
                     {POST_TYPE_EMOJI[t]} {POST_TYPE_LABEL[t]}

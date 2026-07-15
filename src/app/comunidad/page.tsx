@@ -280,13 +280,7 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
                 equipos de ayuda puedan actuar lo más rápido posible.
               </p>
             </div>
-            <Link
-              href="/emergencias"
-              className="press flex shrink-0 items-center gap-2 rounded-full border-2 border-rose-600 bg-white px-5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
-            >
-              <Megaphone className="h-4 w-4" />
-              Reportar AHORA
-            </Link>
+            <CreatePostButton variant="urgent" initialType="rescate" />
           </section>
         </div>
       )}
