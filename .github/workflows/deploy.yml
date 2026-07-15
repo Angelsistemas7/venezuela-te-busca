@@ -90,8 +90,12 @@ jobs:
               ;;
           esac
           # --delete deja la carpeta idéntica al build; --exclude=.env conserva
-          # los secretos de runtime que viven en el VPS.
-          rsync -az --delete --exclude='.env' \
+          # los secretos de runtime que viven en el VPS. --exclude=logs/ conserva
+          # los logs de los cron (social-fetch.log, warm-news.log): no son parte
+          # del build, así que sin este exclude --delete los borraba en CADA
+          # deploy — de hecho ni siquiera dejaba existir la carpeta, lo que hacía
+          # fallar en silencio el cron que escribe ahí con `>>`.
+          rsync -az --delete --exclude='.env' --exclude='logs/' \
             -e "ssh -p ${VPS_PORT:-22} -i ~/.ssh/id_deploy" \
             .next/standalone/ "$VPS_USER@$VPS_HOST:$DEPLOY_PATH/"
 
