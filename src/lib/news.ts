@@ -108,30 +108,36 @@ function parseGdeltDate(s: string): string | null {
   return `${y}-${mo}-${d}T${h}:${mi}:${se}Z`;
 }
 
-// GDELT limita a ~1 petición cada 5 segundos por IP; con tráfico real es fácil
-// toparse con un 429. Cache propia (no la de Next) para que, si una petición
-// falla, sirvamos la última lista buena en vez de vaciar el carrusel — Next
-// SÍ cachearía una respuesta 429 igual que una 200 durante `revalidate`,
-// dejando el carrusel sin fotos media hora.
+// Caché COMPARTIDA entre las dos fuentes con foto (GDELT y GNews) — lo que
+// responda primero se guarda igual, sin duplicar la lógica de caché por
+// fuente. Ambas son gratis y sin garantía real de disponibilidad (a GDELT ya
+// le pasó estar horas fallando seguido); con tráfico real es fácil toparse
+// con un mal momento de cualquiera de las dos.
 //
 // Además de vivir en memoria, se espeja a un archivo en disco: la caché en
 // memoria se BORRA cada vez que el proceso se reinicia (cada deploy), y si
-// justo en ese momento GDELT está limitando peticiones, el sitio se queda
-// sin fotos hasta que se calme — le pasó varias veces seguidas en producción.
-// Con el archivo, un reinicio recupera la última lista buena al instante en
-// vez de arrancar de cero.
-type GdeltCache = { articles: NewsArticle[]; fetchedAt: number };
-let gdeltCache: GdeltCache | null = null;
+// justo en ese momento la fuente en turno está fallando, el sitio se queda
+// sin fotos hasta que se recupere — le pasó varias veces seguidas en
+// producción. Con el archivo, un reinicio recupera la última lista buena al
+// instante en vez de arrancar de cero.
+type VerifiedNewsCache = { articles: NewsArticle[]; fetchedAt: number };
+let verifiedNewsCache: VerifiedNewsCache | null = null;
 let diskCacheLoaded = false;
-const GDELT_TTL_MS = 30 * 60 * 1000;
+// 30 min pegaba peticiones cada rato — estas APIs son gratis y sin garantía
+// de disponibilidad, y a más peticiones más riesgo de toparse con un mal
+// momento suyo (confirmado con GDELT: tuvo horas fallando seguido). Con
+// noticias de un terremoto de hace semanas, una lista de varias horas de
+// antigüedad sigue siendo información real y vigente — no hace falta
+// refrescar tan seguido.
+const NEWS_TTL_MS = 6 * 60 * 60 * 1000;
 // Ruta fija (no `os.tmpdir()`/`path.join()`): esos módulos de Node, igual que
-// `fs`, no existen en el runtime Edge — Next compila instrumentation.ts (que
-// llama a este archivo) también para Edge, y un import ESTÁTICO de cualquiera
-// de los tres rompe ese build aunque nunca se ejecute ahí. Por eso, además,
-// `fs` se importa DINÁMICO dentro de cada función en vez de arriba del
-// archivo: así Next lo deja fuera del paquete de Edge en vez de intentar
-// resolverlo igual.
-const DISK_CACHE_FILE = "/tmp/elmundotebusca-gdelt-cache.json";
+// `fs`, no existen en el runtime Edge — Next compilaba instrumentation.ts
+// (que llamaba a este archivo) también para Edge, y un import ESTÁTICO de
+// cualquiera de los tres rompía ese build aunque nunca se ejecutara ahí. Por
+// eso, además, `fs` se importa DINÁMICO dentro de cada función en vez de
+// arriba del archivo: así Next lo deja fuera del paquete de Edge en vez de
+// intentar resolverlo igual.
+const DISK_CACHE_FILE = "/tmp/elmundotebusca-news-cache.json";
 
 async function loadDiskCacheOnce() {
   if (diskCacheLoaded) return;
@@ -139,9 +145,9 @@ async function loadDiskCacheOnce() {
   try {
     const { readFile } = await import("node:fs/promises");
     const raw = await readFile(DISK_CACHE_FILE, "utf-8");
-    const parsed = JSON.parse(raw) as GdeltCache;
-    if (Array.isArray(parsed.articles) && parsed.articles.length > 0 && !gdeltCache) {
-      gdeltCache = parsed;
+    const parsed = JSON.parse(raw) as VerifiedNewsCache;
+    if (Array.isArray(parsed.articles) && parsed.articles.length > 0 && !verifiedNewsCache) {
+      verifiedNewsCache = parsed;
       console.log("[news] caché recuperada de disco, edad ms:", Date.now() - parsed.fetchedAt);
     }
   } catch {
@@ -151,10 +157,10 @@ async function loadDiskCacheOnce() {
 }
 
 async function saveDiskCache() {
-  if (!gdeltCache) return;
+  if (!verifiedNewsCache) return;
   try {
     const { writeFile } = await import("node:fs/promises");
-    await writeFile(DISK_CACHE_FILE, JSON.stringify(gdeltCache));
+    await writeFile(DISK_CACHE_FILE, JSON.stringify(verifiedNewsCache));
   } catch (e) {
     console.error("[news] no se pudo guardar la caché en disco:", e);
   }
@@ -212,27 +218,15 @@ async function translateTitles(items: { id: string; title: string }[]): Promise<
  * Prensa mundial vía GDELT 2.0 Doc API (RSS público, gratis, sin clave). A
  * diferencia de Google Noticias, GDELT trae la URL directa del artículo (no
  * un enlace intermediario) y una foto real (`socialimage`, la misma que usa
- * el propio medio para compartir en redes) — por eso se usa para el carrusel
- * con imagen; Google Noticias (arriba) no trae fotos en su feed.
+ * el propio medio para compartir en redes). Sin caché propia — la maneja
+ * `getVerifiedNews`, que también prueba GNews si esto no alcanza.
  */
-export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
-  await loadDiskCacheOnce();
-  const now = Date.now();
-  if (gdeltCache && now - gdeltCache.fetchedAt < GDELT_TTL_MS) {
-    console.log("[news] getGdeltNews: caché en memoria (edad ms):", now - gdeltCache.fetchedAt);
-    return gdeltCache.articles.slice(0, limit);
-  }
-  console.log("[news] getGdeltNews: sin caché válida, pidiendo a GDELT...");
+async function fetchFromGdelt(fetchLimit: number): Promise<NewsArticle[]> {
   try {
-    // Se pide bastante más de lo que hace falta (GDELT rastrea prensa mundial
-    // en cualquier idioma) porque después se prioriza español y se descarta
-    // el resto si hay suficiente — así no dependemos de que el filtro de
-    // idioma en la query de GDELT funcione bien combinado con paréntesis/OR.
-    const fetchLimit = Math.max(limit * 2, 20);
     const q = encodeURIComponent("Venezuela (terremoto OR sismo OR réplica OR rescate)");
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=${fetchLimit}&format=json&sort=datedesc`;
     const res = await fetch(url, {
-      cache: "no-store", // el cacheo lo maneja gdeltCache; así una respuesta fallida (429) no queda pegada
+      cache: "no-store", // el cacheo lo maneja getVerifiedNews; así una respuesta fallida (429) no queda pegada
       // GDELT puede tardar bastante más que otras APIs (medido: ~10s en pruebas
       // reales); 6s la cortaba siempre antes de responder.
       signal: AbortSignal.timeout(15000),
@@ -240,7 +234,7 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
     });
     if (!res.ok) {
       console.error("[news] GDELT respondió mal:", res.status, await res.text().catch(() => ""));
-      return gdeltCache?.articles.slice(0, limit) ?? [];
+      return [];
     }
     const json = (await res.json()) as {
       articles?: {
@@ -292,15 +286,104 @@ export async function getGdeltNews(limit = 10): Promise<NewsArticle[]> {
       console.log("[news] traducciones aplicadas:", applied, "de", other.length);
     }
 
-    const out = [...spanish, ...other];
-    if (out.length === 0) return gdeltCache?.articles.slice(0, limit) ?? [];
-    gdeltCache = { articles: out, fetchedAt: now };
-    await saveDiskCache();
-    return out.slice(0, limit);
+    return [...spanish, ...other];
   } catch (e) {
-    console.error("[news] getGdeltNews excepción:", e);
-    return gdeltCache?.articles.slice(0, limit) ?? [];
+    console.error("[news] fetchFromGdelt excepción:", e);
+    return [];
   }
+}
+
+/**
+ * Prensa vía GNews.io (necesita GNEWS_API_KEY — capa gratis: 100
+ * peticiones/día, hasta 10 artículos por petición). Respaldo de GDELT: más
+ * confiable (no es un proyecto de investigación gratis sin garantía) y ya
+ * entrega en español (`lang=es`), sin necesitar traducción aparte. Si no hay
+ * clave configurada, devuelve [] — el resto de la cadena de respaldo sigue
+ * funcionando igual sin ella.
+ */
+async function fetchFromGNews(fetchLimit: number): Promise<NewsArticle[]> {
+  const apiKey = process.env.GNEWS_API_KEY;
+  if (!apiKey) return [];
+  try {
+    const q = encodeURIComponent("Venezuela terremoto");
+    const max = Math.min(Math.max(fetchLimit, 1), 25);
+    const url = `https://gnews.io/api/v4/search?q=${q}&lang=es&max=${max}&sortby=publishedAt&apikey=${apiKey}`;
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      console.error("[news] GNews respondió mal:", res.status, await res.text().catch(() => ""));
+      return [];
+    }
+    const json = (await res.json()) as {
+      articles?: {
+        title: string;
+        url: string;
+        image?: string | null;
+        publishedAt?: string;
+        source?: { name?: string };
+      }[];
+    };
+    const seen = new Set<string>();
+    const out: NewsArticle[] = [];
+    for (const a of json.articles ?? []) {
+      if (!a.url || !a.title || seen.has(a.url)) continue;
+      seen.add(a.url);
+      out.push({
+        id: a.url,
+        title: a.title.trim(),
+        source: a.source?.name ?? "Prensa",
+        url: a.url,
+        publishedAt: a.publishedAt ?? null,
+        image: a.image && /^https?:\/\//.test(a.image) ? a.image : null,
+      });
+    }
+    console.log("[news] GNews trajo", out.length, "artículos");
+    return out;
+  } catch (e) {
+    console.error("[news] fetchFromGNews excepción:", e);
+    return [];
+  }
+}
+
+/**
+ * Noticias verificadas CON foto real, para el carrusel del home. Prueba GDELT
+ * primero (gratis, sin clave, buena cobertura, pero sin garantía de
+ * disponibilidad); si falla o no trae nada, prueba GNews (necesita
+ * GNEWS_API_KEY, más confiable, ya en español). Si ambas fallan, sirve la
+ * última lista buena guardada (memoria o disco) — solo si NUNCA hubo una
+ * lista buena devuelve [] (y el carrusel cae a Google Noticias sin foto).
+ */
+export async function getVerifiedNews(limit = 10): Promise<NewsArticle[]> {
+  await loadDiskCacheOnce();
+  const now = Date.now();
+  if (verifiedNewsCache && now - verifiedNewsCache.fetchedAt < NEWS_TTL_MS) {
+    console.log("[news] getVerifiedNews: caché válida (edad ms):", now - verifiedNewsCache.fetchedAt);
+    return verifiedNewsCache.articles.slice(0, limit);
+  }
+
+  // Se pide bastante más de lo que hace falta (ambas fuentes rastrean prensa
+  // mundial en cualquier idioma) porque GDELT después prioriza español y
+  // descarta el resto si hay suficiente.
+  const fetchLimit = Math.max(limit * 2, 20);
+
+  let fresh = await fetchFromGdelt(fetchLimit);
+  let sourceUsed = "GDELT";
+  if (fresh.length === 0) {
+    fresh = await fetchFromGNews(fetchLimit);
+    sourceUsed = "GNews";
+  }
+
+  if (fresh.length === 0) {
+    console.error("[news] getVerifiedNews: GDELT y GNews fallaron, usando última caché si hay");
+    return verifiedNewsCache?.articles.slice(0, limit) ?? [];
+  }
+
+  console.log("[news] getVerifiedNews: usando", sourceUsed, "-", fresh.length, "artículos");
+  verifiedNewsCache = { articles: fresh, fetchedAt: now };
+  await saveDiskCache();
+  return fresh.slice(0, limit);
 }
 
 /**
