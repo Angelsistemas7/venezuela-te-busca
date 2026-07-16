@@ -6,6 +6,7 @@ import { getDigitalVolunteerStats, getMyPublications, getSavedItems } from "@/li
 import { timeAgo } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { DigitalVolunteerCard } from "@/components/DigitalVolunteerCard";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -43,14 +44,12 @@ export default async function PerfilPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
-          <UserRound className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Mi perfil</h1>
-          <p className="mt-1 text-zinc-500">Tu foto, tus publicaciones y lo que guardaste.</p>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          icon={UserRound}
+          title="Mi perfil"
+          description="Tu foto, tus publicaciones y lo que guardaste."
+        />
       </div>
 
       <section className="flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-5">

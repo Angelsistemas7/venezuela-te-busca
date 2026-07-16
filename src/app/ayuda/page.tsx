@@ -13,6 +13,7 @@ import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
 import { AyudaExtras } from "@/components/AyudaExtras";
 import { AyudaTabs } from "@/components/AyudaTabs";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -114,21 +115,15 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
     <div className="mx-auto max-w-6xl px-4 py-6">
       <AyudaTabs />
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
-            <HeartHandshake className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-              Puntos de ayuda
-            </h1>
-            <p className="mt-1 max-w-2xl text-zinc-500">
-              Donatones de comida, agua, refugios y medicinas. Registra un punto físico real con foto
-              y datos de contacto para que la comunidad lo verifique y la ayuda llegue a donde se
-              necesita.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={HeartHandshake}
+          title={
+            <>
+              Puntos de <span className="text-brand-500">ayuda</span>
+            </>
+          }
+          description="Donatones de comida, agua, refugios y medicinas. Registra un punto físico real con foto y datos de contacto para que la comunidad lo verifique y la ayuda llegue a donde se necesita."
+        />
         <RegisterAidPointButton />
       </div>
 

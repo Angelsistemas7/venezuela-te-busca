@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import {
   getDashboardStats,
   getPersonGroups,
@@ -22,6 +23,7 @@ import { FieldVolunteerBar } from "@/components/FieldVolunteerBar";
 import { FeaturedSections } from "@/components/FeaturedSections";
 import { EstadoChips } from "@/components/EstadoChips";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
+import { PageHeader } from "@/components/PageHeader";
 import { clampPageSize } from "@/lib/utils";
 // El aviso de "modo demostración" (DevModeNotice) ya se muestra en el home
 // (/) — no se repite en cada página.
@@ -122,24 +124,33 @@ export default async function SeBuscaPage({ searchParams }: { searchParams: Sear
     <div className="mx-auto max-w-6xl px-4 py-6">
       <FieldVolunteerBar alreadyVolunteered={alreadyVolunteered} />
 
-      <div className="mb-5 flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-          {isReconoces ? "¿La reconoces?" : "Se busca: personas desaparecidas"}
-        </h1>
-        <p className="text-zinc-500">
-          {isReconoces ? (
-            <>
-              Personas que <strong>alguien vio o encontró</strong> —en un hospital, refugio o la
-              calle— y de las que <strong>no se sabe quiénes son</strong>. Si reconoces a alguien,
-              entra y avisa. Búscalas por <strong>foto, rasgos, ropa y lugar</strong>.
-            </>
-          ) : (
-            <>
-              Personas de las que <strong>se tiene información</strong> (nombre, cédula o datos) y se
-              busca saber <strong>dónde están</strong>. ¿Las viste? Entra en su ficha y avisa.
-            </>
-          )}
-        </p>
+      <div className="mb-5">
+        <PageHeader
+          icon={Search}
+          title={
+            isReconoces ? (
+              "¿La reconoces?"
+            ) : (
+              <>
+                Se busca: personas <span className="text-brand-500">desaparecidas</span>
+              </>
+            )
+          }
+          description={
+            isReconoces ? (
+              <>
+                Personas que <strong>alguien vio o encontró</strong> —en un hospital, refugio o la
+                calle— y de las que <strong>no se sabe quiénes son</strong>. Si reconoces a alguien,
+                entra y avisa. Búscalas por <strong>foto, rasgos, ropa y lugar</strong>.
+              </>
+            ) : (
+              <>
+                Personas de las que <strong>se tiene información</strong> (nombre, cédula o datos) y se
+                busca saber <strong>dónde están</strong>. ¿Las viste? Entra en su ficha y avisa.
+              </>
+            )
+          }
+        />
       </div>
 
       <div className="mb-6">

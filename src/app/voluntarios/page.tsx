@@ -10,6 +10,7 @@ import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { SwipeStaticRow } from "@/components/SwipeHint";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -98,18 +99,12 @@ export default async function VoluntariosPage({ searchParams }: { searchParams: 
     <div className="mx-auto max-w-3xl px-4 py-6">
       <CommunityTabs />
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
-            <HandHeart className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Voluntarios</h1>
-            <p className="mt-1 text-zinc-500">
-              Personas que ofrecen su tiempo y conocimiento: médicos, rescatistas, conductores,
-              traductores y más. Ofrécete o encuentra a quien pueda ayudar.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={HandHeart}
+          tone="emerald"
+          title="Voluntarios"
+          description="Personas que ofrecen su tiempo y conocimiento: médicos, rescatistas, conductores, traductores y más. Ofrécete o encuentra a quien pueda ayudar."
+        />
         <div className="shrink-0">
           <RegisterVolunteerButton />
         </div>

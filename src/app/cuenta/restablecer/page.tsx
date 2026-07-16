@@ -2,6 +2,7 @@ import Link from "next/link";
 import { KeyRound, ShieldX } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { ResetPasswordForm } from "@/components/ResetPasswordForm";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -34,16 +35,16 @@ export default async function RestablecerPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-12">
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
-          <KeyRound className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Nueva contraseña</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Elige una contraseña nueva para tu cuenta <strong>{user.username}</strong>.
-          </p>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          icon={KeyRound}
+          title="Nueva contraseña"
+          description={
+            <>
+              Elige una contraseña nueva para tu cuenta <strong>{user.username}</strong>.
+            </>
+          }
+        />
       </div>
       <ResetPasswordForm />
     </div>

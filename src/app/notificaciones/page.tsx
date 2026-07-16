@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bell, Bookmark, FileWarning, MessageCircle } from "lucide-react";
 import { TYPE_LABEL, useNotifications } from "@/lib/useNotifications";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function NotificacionesPage() {
   const { entries, newsOf, totalNew, markRead, linkFor } = useNotifications();
@@ -10,19 +11,11 @@ export default function NotificacionesPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <div className="mb-6 flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
-            <Bell className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-              Notificaciones
-            </h1>
-            <p className="mt-1 text-zinc-500">
-              Lo que publicaste (en este dispositivo o tu cuenta) y lo que guardaste.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Bell}
+          title="Notificaciones"
+          description="Lo que publicaste (en este dispositivo o tu cuenta) y lo que guardaste."
+        />
         {totalNew > 0 && (
           <button
             onClick={markRead}

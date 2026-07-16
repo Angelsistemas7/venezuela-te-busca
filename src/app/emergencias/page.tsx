@@ -2,6 +2,7 @@ import { ChevronDown, ExternalLink, Info, LayoutGrid, LifeBuoy, Phone, ShieldChe
 import { COMMUNITY_GUIDE, NATIONAL_LINE, PHONE_GROUPS } from "@/lib/emergency";
 import { RECURSOS } from "@/lib/recursos";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
+import { PageHeader } from "@/components/PageHeader";
 
 // A diferencia de casi todo el resto del sitio, esta página NO consulta la
 // base de datos — todo es texto fijo (`lib/emergency.ts`). Forzarla a
@@ -17,18 +18,17 @@ export const metadata = {
 export default function EmergenciasPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white">
-          <LifeBuoy className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-            Emergencia y seguridad
-          </h1>
-          <p className="mt-1 text-zinc-500">
-            Teléfonos útiles, qué hacer en las primeras horas y cómo ayudar a difundir.
-          </p>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          icon={LifeBuoy}
+          tone="rose"
+          title={
+            <>
+              Emergencia y <span className="text-brand-500">seguridad</span>
+            </>
+          }
+          description="Teléfonos útiles, qué hacer en las primeras horas y cómo ayudar a difundir."
+        />
       </div>
 
       {/* Línea única nacional */}

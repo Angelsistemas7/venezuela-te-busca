@@ -16,6 +16,7 @@ import { MapPreviewCard } from "@/components/MapPreviewCard";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { CommunityIllustration } from "@/components/illustrations/CommunityIllustration";
 import { HandsIllustration } from "@/components/illustrations/HandsIllustration";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -130,20 +131,15 @@ export default async function ComunidadPage({ searchParams }: { searchParams: Se
     <div className="mx-auto max-w-2xl px-4 py-6">
       <CommunityTabs />
       <div className="mb-5 flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
-            <Users2 className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="font-heading text-2xl font-bold tracking-tight text-navy-700 sm:text-3xl">
+        <PageHeader
+          icon={Users2}
+          title={
+            <>
               La fuerza está en nuestra <span className="text-brand-500">comunidad</span>
-            </h1>
-            <p className="mt-1 text-zinc-500">
-              Comparte información, pide de ayuda, da soluciones y seamos esperanza para quienes lo
-              necesitan.
-            </p>
-          </div>
-        </div>
+            </>
+          }
+          description="Comparte información, pide de ayuda, da soluciones y seamos esperanza para quienes lo necesitan."
+        />
         <CommunityIllustration className="hidden h-20 w-28 shrink-0 sm:block" />
       </div>
 

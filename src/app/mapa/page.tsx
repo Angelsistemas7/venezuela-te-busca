@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Map as MapIcon } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import {
   getAidPoints,
   getEstadoBreakdown,
@@ -245,20 +246,22 @@ export default async function MapaPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
-          <MapIcon className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-            Mapa de la emergencia
-          </h1>
-          <p className="mt-1 max-w-2xl text-zinc-500">
-            Quién <strong>necesita ayuda</strong> y quién <strong>puede ayudar</strong>, zonas
-            afectadas, puntos de ayuda, hospitales y caravanas en un solo lugar. Activa o desactiva
-            cada capa con el panel de arriba a la derecha del mapa.
-          </p>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          icon={MapIcon}
+          title={
+            <>
+              Mapa de la <span className="text-brand-500">emergencia</span>
+            </>
+          }
+          description={
+            <>
+              Quién <strong>necesita ayuda</strong> y quién <strong>puede ayudar</strong>, zonas
+              afectadas, puntos de ayuda, hospitales y caravanas en un solo lugar. Activa o
+              desactiva cada capa con el panel de arriba a la derecha del mapa.
+            </>
+          }
+        />
       </div>
 
       {/* Fila horizontal (igual que las cifras de "Se busca"): cada una lleva a
