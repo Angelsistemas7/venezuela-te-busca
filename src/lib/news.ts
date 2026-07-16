@@ -491,10 +491,13 @@ async function fetchGdeltForCrisisStats(
 
 /**
  * Le pide al modelo que señale, de la lista de titulares REALES que le damos
- * (por índice), cuál trae la cifra más reciente para cada dato — nunca que
- * redacte un número o una fuente por su cuenta. Devuelve {} si no hay
- * OPENAI_API_KEY o si la llamada falla; el llamador se queda con null en
- * todo, nunca con un placeholder inventado.
+ * (por índice), cuál trae la cifra correcta para cada dato — nunca que
+ * redacte un número o una fuente por su cuenta. Prioriza la cifra que
+ * CORROBORAN varios titulares de fuentes distintas por encima de un titular
+ * suelto más reciente (un solo medio con una cifra desactualizada no debe
+ * ganarle a tres medios que ya coinciden en la cifra nueva). Devuelve {} si
+ * no hay OPENAI_API_KEY o si la llamada falla; el llamador se queda con null
+ * en todo, nunca con un placeholder inventado.
  */
 async function extractCrisisFigures(
   articles: { title: string; source: string; publishedAt: string | null }[],
@@ -518,11 +521,16 @@ async function extractCrisisFigures(
               "Analizas titulares REALES de prensa sobre un terremoto para señalar (nunca redactar) " +
               "cifras oficiales. Recibes un array JSON de titulares {i, title, source, publishedAt}. " +
               "Para cada uno de estos datos: fallecidos (muertes confirmadas), heridos, desaparecidos, " +
-              "afectados (damnificados/evacuados/sin hogar) — busca el titular MÁS RECIENTE " +
-              "(publishedAt) que declare ese dato con un número EXPLÍCITO. Si ningún titular lo declara " +
-              "explícitamente, o si el número es ambiguo/estimado con vaguedad (\"cientos\", \"varios\"), " +
-              "omite ese campo. NO sumes, calcules ni estimes cifras de tu propia cuenta. NO inventes " +
-              "un titular: solo puedes citar el índice \"i\" de uno que te dieron. " +
+              "afectados (damnificados/evacuados/sin hogar), sigue este orden de prioridad: " +
+              "1) Cuenta, para cada cifra distinta que encuentres de ese dato, en cuántos titulares de " +
+              "FUENTES DISTINTAS aparece exactamente esa cifra (dos titulares del mismo medio cuentan " +
+              "como una sola fuente). 2) Elige la cifra con MÁS fuentes distintas coincidiendo — así sea " +
+              "de un titular más viejo que uno suelto de un solo medio con una cifra diferente y más " +
+              "reciente. 3) Si hay empate en número de fuentes, ahí sí usa la del titular más reciente " +
+              "(publishedAt). Si ningún titular declara el dato con un número EXPLÍCITO, o es ambiguo " +
+              "(\"cientos\", \"varios\"), omite ese campo. NO sumes, calcules ni estimes cifras propias. " +
+              "NO inventes un titular: solo puedes citar el índice \"i\" de uno que te dieron — de entre " +
+              "los que coincidan en la cifra elegida, usa el de publishedAt más reciente como cita. " +
               'Responde SOLO JSON: {"fallecidos": {"value": number, "i": number} | null, "heridos": ..., ' +
               '"desaparecidos": ..., "afectados": ...}',
           },
@@ -571,7 +579,26 @@ export async function getCrisisStats(): Promise<CrisisStats> {
     return crisisStatsCache.stats;
   }
 
-  const articles = await fetchGdeltForCrisisStats(30);
+  // Se combinan dos fuentes de titulares: la búsqueda dedicada a víctimas
+  // (más cobertura de esos términos específicos) y el mismo pool "verificado"
+  // que ya se muestra en el carrusel del home. Así la cifra del banner nunca
+  // contradice lo que la persona ve un scroll más abajo, y una cifra que
+  // aparece en varios titulares de ambas fuentes gana más corroboración.
+  const [casualtyArticles, verifiedArticles] = await Promise.all([
+    fetchGdeltForCrisisStats(30),
+    getVerifiedNews(10),
+  ]);
+  const seenUrls = new Set<string>();
+  const articles: { title: string; source: string; url: string; publishedAt: string | null }[] = [];
+  for (const a of [
+    ...casualtyArticles,
+    ...verifiedArticles.map((v) => ({ title: v.title, source: v.source, url: v.url, publishedAt: v.publishedAt })),
+  ]) {
+    if (seenUrls.has(a.url)) continue;
+    seenUrls.add(a.url);
+    articles.push(a);
+  }
+
   if (articles.length === 0) {
     // Sin titulares no hay de dónde sacar nada real; se sirve la última
     // caché buena si hay, en vez de mostrar ceros o inventar.
