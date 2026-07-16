@@ -4,13 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Building2,
   HeartHandshake,
-  LayoutGrid,
+  Home,
   LifeBuoy,
   Map,
   Menu,
-  Newspaper,
   PawPrint,
   Search,
   Users2,
@@ -18,29 +16,31 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Barra inferior (solo móvil): 4 secciones clave de la emergencia con el pulgar
+// Barra inferior (solo móvil): 5 secciones clave de la emergencia con el pulgar
 // + un botón "Más" que abre una hoja con el resto. Más legible que apretar 8.
 const COMMUNITY_PATHS = ["/comunidad", "/voluntarios", "/caravanas", "/denuncias"];
+const AYUDA_PATHS = ["/ayuda", "/hospitales"];
 
 const PRIMARY = [
-  { href: "/", label: "Se busca", icon: Search },
+  { href: "/", label: "Inicio", icon: Home },
+  { href: "/se-busca", label: "Se busca", icon: Search },
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
   { href: "/mapa", label: "Mapa", icon: Map },
   { href: "/emergencias", label: "SOS", icon: LifeBuoy },
 ];
 
 const MORE = [
-  { href: "/noticias", label: "Noticias", icon: Newspaper },
-  { href: "/hospitales", label: "Hospitales", icon: Building2 },
-  { href: "/ayuda", label: "Puntos de ayuda", icon: HeartHandshake },
+  { href: "/ayuda", label: "Ayuda y hospitales", icon: HeartHandshake },
   { href: "/mascotas", label: "Mascotas", icon: PawPrint },
-  { href: "/recursos", label: "Recursos", icon: LayoutGrid },
 ];
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href === "/comunidad") {
     return COMMUNITY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  }
+  if (href === "/ayuda") {
+    return AYUDA_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }
   return pathname.startsWith(href);
 }

@@ -10,6 +10,7 @@ import { SwipeHintRow } from "@/components/SwipeHint";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -94,18 +95,11 @@ export default async function MascotasPage({ searchParams }: { searchParams: Sea
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
-            <PawPrint className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Mascotas</h1>
-            <p className="mt-1 text-zinc-500">
-              ¿Perdiste o encontraste una mascota tras el terremoto? Repórtala con foto y ubicación
-              para reunirla con su familia.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={PawPrint}
+          title="Mascotas"
+          description="¿Perdiste o encontraste una mascota tras el terremoto? Repórtala con foto y ubicación para reunirla con su familia."
+        />
         <div className="shrink-0">
           <RegisterPetButton />
         </div>

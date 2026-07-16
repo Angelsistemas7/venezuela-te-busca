@@ -18,7 +18,7 @@ export async function EstadoChips() {
         {entries.map(([estado, count]) => (
           <Link
             key={estado}
-            href={`/?estado=${encodeURIComponent(estado)}`}
+            href={`/se-busca?estado=${encodeURIComponent(estado)}`}
             className="press group flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:border-brand-400 hover:bg-brand-50"
           >
             {estado}

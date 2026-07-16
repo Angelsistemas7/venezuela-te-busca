@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Figtree, Signika } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -7,6 +8,17 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { MobileNav } from "@/components/MobileNav";
 import { AccountBanner } from "@/components/AccountBanner";
 import { SafetyBanner } from "@/components/SafetyBanner";
+
+const figtree = Figtree({
+  subsets: ["latin"],
+  variable: "--font-figtree",
+  display: "swap",
+});
+const signika = Signika({
+  subsets: ["latin"],
+  variable: "--font-signika",
+  display: "swap",
+});
 
 // En producción, define NEXT_PUBLIC_SITE_URL (p. ej. https://elmundotebusca.com)
 // para que la imagen Open Graph y los enlaces sociales sean absolutos. En Vercel
@@ -40,12 +52,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fbbf24",
+  themeColor: "#d3824a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${figtree.variable} ${signika.variable}`}>
       <body className="flex min-h-screen flex-col">
         <a
           href="#contenido"

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -69,20 +70,15 @@ export default async function CaravanasPage({ searchParams }: { searchParams: Se
     <div className="mx-auto max-w-6xl px-4 py-6">
       <CommunityTabs />
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
-            <MapPinned className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-              Caravanas benéficas
-            </h1>
-            <p className="mt-1 max-w-2xl text-zinc-500">
-              Coordina idas en grupo a la zona afectada: brigadas, caravanas de ayuda y traslados
-              solidarios. Publica el punto de salida y la hora para que la gente vaya junta y segura.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={MapPinned}
+          title={
+            <>
+              Caravanas <span className="text-brand-500">benéficas</span>
+            </>
+          }
+          description="Coordina idas en grupo a la zona afectada: brigadas, caravanas de ayuda y traslados solidarios. Publica el punto de salida y la hora para que la gente vaya junta y segura."
+        />
         <RegisterMarchButton />
       </div>
 

@@ -423,6 +423,7 @@ export async function registerPersonAction(form: FormData): Promise<ActionResult
       (await getCurrentUser())?.id ?? null,
     );
     revalidatePath("/");
+    revalidatePath("/se-busca");
     revalidatePath("/sin-identificar");
     return {
       ok: true,
@@ -459,6 +460,7 @@ export async function reportStatusAction(form: FormData): Promise<ActionResult> 
   try {
     const report = await createStatusReport(parsed.data);
     revalidatePath("/");
+    revalidatePath("/se-busca");
     revalidatePath(`/persona/${parsed.data.personId}`);
     return {
       ok: true,
@@ -888,7 +890,7 @@ export async function registerHeroAction(form: FormData): Promise<ActionResult> 
 
   try {
     const hero = await createHero(parsed.data, photoUrl, authorName);
-    revalidatePath("/noticias");
+    revalidatePath("/ayuda");
     return {
       ok: true,
       id: hero.id,
@@ -903,7 +905,7 @@ export async function registerHeroAction(form: FormData): Promise<ActionResult> 
 export async function likeHeroAction(id: string): Promise<{ ok: boolean }> {
   try {
     await likeHero(id);
-    revalidatePath("/noticias");
+    revalidatePath("/ayuda");
     return { ok: true };
   } catch {
     return { ok: false };
@@ -913,7 +915,10 @@ export async function likeHeroAction(id: string): Promise<{ ok: boolean }> {
 export async function likeNewsItemAction(id: string): Promise<{ ok: boolean }> {
   try {
     await likeNewsItem(id);
-    revalidatePath("/noticias");
+    // No sabemos aquí si es kind=ayuda o kind=noticia (solo el id); se
+    // revalidan ambos destinos posibles, es barato.
+    revalidatePath("/ayuda");
+    revalidatePath("/comunidad");
     return { ok: true };
   } catch {
     return { ok: false };
@@ -1053,6 +1058,7 @@ export async function ownerSetStatusAction(
     await updatePersonStatus(id, status);
     revalidatePath(`/persona/${id}`);
     revalidatePath("/");
+    revalidatePath("/se-busca");
     return { ok: true };
   } catch {
     return { ok: false, error: "No se pudo actualizar." };
@@ -1103,6 +1109,7 @@ export async function ownerDeleteAction(
   try {
     await deletePerson(id);
     revalidatePath("/");
+    revalidatePath("/se-busca");
     revalidatePath("/sin-identificar");
     return { ok: true };
   } catch {

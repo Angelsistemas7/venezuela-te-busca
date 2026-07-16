@@ -11,7 +11,7 @@ export function PersonViewToggle({ view }: { view: "busca" | "reconoces" }) {
   return (
     <div className="flex gap-1 rounded-2xl border border-zinc-200 bg-zinc-100 p-1">
       <Link
-        href="/?view=busca"
+        href="/se-busca?view=busca"
         aria-current={view === "busca" ? "page" : undefined}
         className={cn(base, view === "busca" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800")}
       >
@@ -19,7 +19,7 @@ export function PersonViewToggle({ view }: { view: "busca" | "reconoces" }) {
         🔍 Se busca
       </Link>
       <Link
-        href="/?view=reconoces"
+        href="/se-busca?view=reconoces"
         aria-current={view === "reconoces" ? "page" : undefined}
         className={cn(base, view === "reconoces" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800")}
       >

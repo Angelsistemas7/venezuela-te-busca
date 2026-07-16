@@ -8,7 +8,7 @@ export function SiteFooter() {
         <div>
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="El Mundo Te Busca" className="h-14 w-14 shrink-0 object-contain" />
+            <img src="/logo-icon.svg" alt="El Mundo Te Busca" className="h-14 w-14 shrink-0 object-contain" />
             <span className="text-lg font-bold text-zinc-900">El Mundo Te Busca</span>
           </div>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-600">

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, KeyRound, ShieldX } from "lucide-react";
 import { getMarchById, verifyResourceOwner } from "@/lib/data";
 import { MarchManagePanel } from "@/components/MarchManagePanel";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -50,16 +51,12 @@ export default async function CaravanaGestionPage({
         Ver la caravana
       </Link>
 
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
-          <KeyRound className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Gestionar caravana</h1>
-          <p className="mt-1 text-zinc-500">
-            {march.title} · Estás identificado como autor mediante tu enlace privado.
-          </p>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          icon={KeyRound}
+          title="Gestionar caravana"
+          description={`${march.title} · Estás identificado como autor mediante tu enlace privado.`}
+        />
       </div>
 
       <MarchManagePanel march={march} token={token} />

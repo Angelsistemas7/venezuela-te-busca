@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { HeartHandshake } from "lucide-react";
-import { getAidPointsPage } from "@/lib/data";
+import { getAidPointsPage, getCommentsForEntities, getHeroes, getNewsItems } from "@/lib/data";
+import { getRecentQuakes } from "@/lib/usgs";
+import { isAdmin } from "@/lib/admin";
 import { AID_POINT_TYPE_LABEL, ESTADOS, type AidPointType } from "@/lib/types";
 import { cn, clampPageSize } from "@/lib/utils";
 import { AidPointCard } from "@/components/AidPointCard";
@@ -9,6 +11,9 @@ import { SwipeHintRow } from "@/components/SwipeHint";
 import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
+import { AyudaExtras } from "@/components/AyudaExtras";
+import { AyudaTabs } from "@/components/AyudaTabs";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -61,11 +66,19 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
 
   // Antes: `getAidPoints()` traía la tabla ENTERA sin límite ni paginación en
   // cada visita. Ahora pagina de verdad (10/20/50 a elegir), en vivo.
-  const { items: points, total } = await getAidPointsPage(
-    { type, availOnly, estado, dateFrom, dateTo },
-    page,
-    pageSize,
-  );
+  const [{ items: points, total }, heroes, quakes, curatedAyuda, admin] = await Promise.all([
+    getAidPointsPage({ type, availOnly, estado, dateFrom, dateTo }, page, pageSize),
+    getHeroes(),
+    getRecentQuakes(),
+    // Si la tabla aún no existe (esquema sin migrar), no rompemos la página.
+    getNewsItems("ayuda").catch(() => []),
+    isAdmin(),
+  ]);
+  // Independientes entre sí: en paralelo en vez de una detrás de otra.
+  const [heroComments, newsComments] = await Promise.all([
+    getCommentsForEntities("hero", heroes.map((h) => h.id)),
+    getCommentsForEntities("news_item", curatedAyuda.map((n) => n.id)),
+  ]);
 
   const chipHref = (t: AidPointType | "all") => {
     const params = new URLSearchParams();
@@ -100,22 +113,17 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      <AyudaTabs />
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
-            <HeartHandshake className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-              Puntos de ayuda
-            </h1>
-            <p className="mt-1 max-w-2xl text-zinc-500">
-              Donatones de comida, agua, refugios y medicinas. Registra un punto físico real con foto
-              y datos de contacto para que la comunidad lo verifique y la ayuda llegue a donde se
-              necesita.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={HeartHandshake}
+          title={
+            <>
+              Puntos de <span className="text-brand-500">ayuda</span>
+            </>
+          }
+          description="Donatones de comida, agua, refugios y medicinas. Registra un punto físico real con foto y datos de contacto para que la comunidad lo verifique y la ayuda llegue a donde se necesita."
+        />
         <RegisterAidPointButton />
       </div>
 
@@ -172,6 +180,15 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
           </div>
         </>
       )}
+
+      <AyudaExtras
+        curatedAyuda={curatedAyuda}
+        newsComments={newsComments}
+        heroes={heroes}
+        heroComments={heroComments}
+        quakes={quakes}
+        isAdmin={admin}
+      />
     </div>
   );
 }

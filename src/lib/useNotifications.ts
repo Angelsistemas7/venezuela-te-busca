@@ -46,8 +46,8 @@ const PUBLIC_PATH: Record<CommentEntity, (id: string) => string> = {
   post: () => "/comunidad",
   complaint: () => "/denuncias",
   pet: (id) => `/mascotas/${id}`,
-  hero: () => "/noticias",
-  news_item: () => "/noticias",
+  hero: () => "/ayuda",
+  news_item: () => "/comunidad",
 };
 
 export function useNotifications() {

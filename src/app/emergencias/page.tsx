@@ -1,7 +1,8 @@
-import Link from "next/link";
-import { ChevronRight, LayoutGrid, LifeBuoy, Phone, ShieldCheck } from "lucide-react";
+import { ChevronDown, ExternalLink, Info, LayoutGrid, LifeBuoy, Phone, ShieldCheck } from "lucide-react";
 import { COMMUNITY_GUIDE, NATIONAL_LINE, PHONE_GROUPS } from "@/lib/emergency";
+import { RECURSOS } from "@/lib/recursos";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
+import { PageHeader } from "@/components/PageHeader";
 
 // A diferencia de casi todo el resto del sitio, esta página NO consulta la
 // base de datos — todo es texto fijo (`lib/emergency.ts`). Forzarla a
@@ -17,18 +18,17 @@ export const metadata = {
 export default function EmergenciasPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white">
-          <LifeBuoy className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-            Emergencia y seguridad
-          </h1>
-          <p className="mt-1 text-zinc-500">
-            Teléfonos útiles, qué hacer en las primeras horas y cómo ayudar a difundir.
-          </p>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          icon={LifeBuoy}
+          tone="rose"
+          title={
+            <>
+              Emergencia y <span className="text-brand-500">seguridad</span>
+            </>
+          }
+          description="Teléfonos útiles, qué hacer en las primeras horas y cómo ayudar a difundir."
+        />
       </div>
 
       {/* Línea única nacional */}
@@ -55,22 +55,85 @@ export default function EmergenciasPage() {
         </div>
       </div>
 
-      {/* Directorio de plataformas externas */}
-      <Link
-        href="/recursos"
-        className="tap-card mt-5 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 py-4"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
-          <LayoutGrid className="h-5 w-5" />
-        </span>
-        <span className="flex-1">
-          <span className="block font-semibold text-zinc-900">Otras plataformas y recursos</span>
-          <span className="block text-sm text-zinc-500">
-            Iniciativas de terceros: búsqueda de personas, donaciones, apoyo psicosocial y más.
+      {/* Directorio de plataformas externas: antes vivía en /recursos, ahora es
+          una tarjeta expandible aquí mismo — un destino menos que mantener. */}
+      <details className="group mt-5 rounded-2xl border border-zinc-200 bg-white open:pb-4">
+        <summary className="tap-card flex cursor-pointer list-none items-center gap-3 px-5 py-4 marker:content-none">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
+            <LayoutGrid className="h-5 w-5" />
           </span>
-        </span>
-        <ChevronRight className="h-5 w-5 shrink-0 text-zinc-400" />
-      </Link>
+          <span className="flex-1">
+            <span className="block font-semibold text-zinc-900">Otras plataformas y recursos</span>
+            <span className="block text-sm text-zinc-500">
+              Iniciativas de terceros: búsqueda de personas, donaciones, apoyo psicosocial y más.
+            </span>
+          </span>
+          <ChevronDown className="h-5 w-5 shrink-0 text-zinc-400 transition-transform group-open:rotate-180" />
+        </summary>
+
+        <div className="border-t border-zinc-100 px-5 pt-4">
+          <div className="mb-5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Estos enlaces llevan a sitios de terceros. <strong>Verifica siempre</strong> la
+              información antes de donar o actuar; no respondemos por plataformas ajenas.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {RECURSOS.map((grupo) => (
+              <section key={grupo.categoria}>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-zinc-900">
+                  <span>{grupo.emoji}</span>
+                  {grupo.categoria}
+                </h3>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  {grupo.items.map((r) => {
+                    const inner = (
+                      <>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-semibold text-zinc-900">{r.name}</span>
+                          {r.url && (
+                            <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-300 group-hover:text-brand-600" />
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-zinc-600">{r.description}</p>
+                        {r.note && <p className="mt-1 text-xs text-zinc-400">{r.note}</p>}
+                      </>
+                    );
+                    return r.url ? (
+                      <a
+                        key={r.name}
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tap-card group rounded-xl border border-zinc-200 bg-zinc-50/60 p-3"
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <div key={r.name} className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
+                        {inner}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <p className="mt-5 text-center text-xs text-zinc-400">
+            ¿Conoces una iniciativa verificable que falte aquí?{" "}
+            <a
+              href="mailto:atencionsentralabs@gmail.com?subject=Sugerencia%20de%20recurso"
+              className="press font-medium text-brand-700 transition hover:underline"
+            >
+              Escríbenos
+            </a>{" "}
+            y la evaluamos.
+          </p>
+        </div>
+      </details>
 
       {/* Directorios de teléfonos */}
       {PHONE_GROUPS.map((group) => (

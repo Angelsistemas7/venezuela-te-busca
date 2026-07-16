@@ -15,8 +15,7 @@ const MESSAGE =
   "📦 Puntos de ayuda — agua, comida y medicinas\n" +
   "🐾 Mascotas — perdidas y encontradas\n" +
   "☎️ Emergencias — teléfonos y guía de seguridad\n" +
-  "🗺️ Mapa — zonas, ayuda, hospitales y rescates\n" +
-  "📰 Noticias — prensa verificada, con su fuente\n\n" +
+  "🗺️ Mapa — zonas, ayuda, hospitales y rescates\n\n" +
   "Entre más personas la vean, más vidas se pueden salvar. Compártela:";
 
 export function ShareWhatsApp({ variant = "primary" }: { variant?: "primary" | "subtle" }) {
