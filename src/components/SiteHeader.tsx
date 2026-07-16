@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Building2,
   ChevronDown,
   HeartHandshake,
+  Home,
   LifeBuoy,
   Map,
   PawPrint,
@@ -17,11 +17,12 @@ import { cn } from "@/lib/utils";
 import { NotificationBell } from "./NotificationBell";
 import { AuthMenu } from "./AuthMenu";
 
-// Mismas 4 secciones que la barra inferior de móvil (MobileNav.tsx): la
+// Mismas 5 secciones que la barra inferior de móvil (MobileNav.tsx): la
 // navegación no debe cambiar de forma entre dispositivos. Antes las 9 vivían
 // en una sola fila que había que deslizar para ver completa; el resto ahora
 // va detrás de "Más" (menú desplegable aquí; hoja inferior en móvil).
 const PRIMARY = [
+  { href: "/", label: "Inicio", icon: Home },
   { href: "/se-busca", label: "Se busca", icon: Search },
   { href: "/comunidad", label: "Comunidad", icon: Users2 },
   { href: "/mapa", label: "Mapa", icon: Map },
@@ -29,17 +30,21 @@ const PRIMARY = [
 ];
 
 const MORE = [
-  { href: "/hospitales", label: "Hospitales", icon: Building2 },
-  { href: "/ayuda", label: "Puntos de ayuda", icon: HeartHandshake },
+  { href: "/ayuda", label: "Ayuda y hospitales", icon: HeartHandshake },
   { href: "/mascotas", label: "Mascotas", icon: PawPrint },
 ];
 
-// Sub-secciones que viven bajo la pestaña "Comunidad" (se resaltan con ella).
+// Sub-secciones que viven bajo cada pestaña "paraguas" (se resaltan con ella).
 const COMMUNITY_PATHS = ["/comunidad", "/voluntarios", "/caravanas", "/denuncias"];
+const AYUDA_PATHS = ["/ayuda", "/hospitales"];
 
 function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
   if (href === "/comunidad") {
     return COMMUNITY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  }
+  if (href === "/ayuda") {
+    return AYUDA_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }
   return pathname.startsWith(href);
 }

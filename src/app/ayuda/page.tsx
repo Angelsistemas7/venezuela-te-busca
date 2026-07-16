@@ -12,6 +12,7 @@ import { Pagination } from "@/components/Pagination";
 import { PageSizeSelect } from "@/components/PageSizeSelect";
 import { FilterModal, type FilterField } from "@/components/FilterModal";
 import { AyudaExtras } from "@/components/AyudaExtras";
+import { AyudaTabs } from "@/components/AyudaTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,7 @@ export default async function AyudaPage({ searchParams }: { searchParams: Search
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      <AyudaTabs />
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-zinc-900">
