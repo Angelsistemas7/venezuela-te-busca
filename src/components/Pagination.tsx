@@ -53,7 +53,7 @@ export function Pagination({
           className={cn(
             "press h-9 min-w-9 rounded-lg border px-3 text-sm font-medium transition",
             p === page
-              ? "border-zinc-900 bg-zinc-900 text-white"
+              ? "border-navy-700 bg-navy-700 text-white"
               : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50",
           )}
         >

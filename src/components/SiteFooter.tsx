@@ -9,7 +9,7 @@ export function SiteFooter() {
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-icon.svg" alt="El Mundo Te Busca" className="h-14 w-14 shrink-0 object-contain" />
-            <span className="text-lg font-bold text-zinc-900">El Mundo Te Busca</span>
+            <span className="text-lg font-bold text-navy-700">El Mundo Te Busca</span>
           </div>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-600">
             Iniciativa ciudadana, voluntaria y sin fines de lucro para ayudar a localizar personas
@@ -33,7 +33,7 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900">Emergencias</h3>
+          <h3 className="text-sm font-semibold text-navy-700">Emergencias</h3>
           <a
             href="tel:911"
             className="press mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 transition hover:bg-rose-100"

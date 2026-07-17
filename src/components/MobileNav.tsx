@@ -62,7 +62,7 @@ export function MobileNav() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between px-2">
-              <span className="text-sm font-bold text-zinc-900">Más secciones</span>
+              <span className="text-sm font-bold text-navy-700">Más secciones</span>
               <button onClick={() => setMoreOpen(false)} aria-label="Cerrar" className="press rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100">
                 <X className="h-5 w-5" />
               </button>
@@ -77,7 +77,7 @@ export function MobileNav() {
                     onClick={() => setMoreOpen(false)}
                     className={cn(
                       "tap-card flex items-center gap-2.5 rounded-xl border px-3 py-3 text-sm font-medium",
-                      active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white text-zinc-700",
+                      active ? "border-navy-700 bg-navy-700 text-white" : "border-zinc-200 bg-white text-zinc-700",
                     )}
                   >
                     <Icon className="h-5 w-5 shrink-0" />

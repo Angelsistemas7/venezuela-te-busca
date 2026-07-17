@@ -83,7 +83,7 @@ export function SiteHeader() {
           {/* "El Mundo" encima de "Te Busca": compacto y no se estira en una línea larga.
               whitespace-nowrap evita que, si el header se aprieta, cada palabra caiga en su
               propia línea (pasaba porque el Link podía encogerse por debajo del ancho del texto). */}
-          <span className="flex flex-col font-bold leading-[1.05] tracking-tight text-zinc-900">
+          <span className="flex flex-col font-bold leading-[1.05] tracking-tight text-navy-700">
             <span className="whitespace-nowrap text-sm sm:text-base">El Mundo</span>
             <span className="whitespace-nowrap text-sm sm:text-base">Te Busca</span>
           </span>
@@ -101,8 +101,8 @@ export function SiteHeader() {
                   className={cn(
                     "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition",
                     active
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+                      ? "bg-navy-700 text-white"
+                      : "text-zinc-600 hover:bg-navy-50 hover:text-navy-700",
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -118,8 +118,8 @@ export function SiteHeader() {
                 className={cn(
                   "flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition",
                   moreOpen || moreActive
-                    ? "bg-zinc-900 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+                    ? "bg-navy-700 text-white"
+                    : "text-zinc-600 hover:bg-navy-50 hover:text-navy-700",
                 )}
               >
                 Más
@@ -137,7 +137,7 @@ export function SiteHeader() {
                         aria-current={active ? "page" : undefined}
                         className={cn(
                           "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition",
-                          active ? "bg-zinc-100 text-zinc-900" : "text-zinc-700 hover:bg-zinc-50",
+                          active ? "bg-navy-50 text-navy-700" : "text-zinc-700 hover:bg-zinc-50",
                         )}
                       >
                         <Icon className="h-4 w-4 text-zinc-400" />
