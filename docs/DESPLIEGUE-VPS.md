@@ -177,6 +177,35 @@ Ver los comentarios al inicio del script para las variables opcionales
 (`SOCIAL_HASHTAGS`, `MASTODON_INSTANCES`, `BLUESKY_IDENTIFIER`/`BLUESKY_APP_PASSWORD` —
 ya configuradas en el `.env` del VPS).
 
+## 7) Calentar la caché de noticias (opcional)
+
+`src/app/api/cron/warm-news/route.ts` precarga la caché de `src/lib/news.ts`
+(GDELT/GNews + traducción) para que la primera visita real del día no espere a
+que respondan esas APIs externas. Sin esta entrada de cron, el endpoint sigue
+ahí pero nadie lo llama — la caché solo se calienta con el primer visitante
+real después de que vence (ver `NEWS_TTL_MS`/`CRISIS_STATS_TTL_MS`). Añádela
+al mismo crontab del paso anterior (mismo cuidado: agregar, no reemplazar):
+
+```bash
+crontab -l > /tmp/crontab_actual.txt   # respaldo antes de tocar nada
+cp /tmp/crontab_actual.txt /tmp/crontab_nuevo.txt
+cat >> /tmp/crontab_nuevo.txt <<'EOF'
+
+# El Mundo Te Busca: calienta la cache de noticias cada hora
+0 * * * * curl -fsS "http://127.0.0.1:3200/api/cron/warm-news?secret=TU_CRON_SECRET" >> /var/www/elmundotebusca/logs/warm-news.log 2>&1
+EOF
+diff /tmp/crontab_actual.txt /tmp/crontab_nuevo.txt   # confirma que solo se agrega, nada se borra
+crontab /tmp/crontab_nuevo.txt
+```
+
+Cambia `TU_CRON_SECRET` por el valor real de `CRON_SECRET` en el `.env` del
+VPS (o quita `?secret=...` si lo dejaste vacío a propósito — el endpoint
+queda abierto sin clave, ver `.env.example`). Usa el puerto interno
+(`127.0.0.1:3200`, el mismo que `proxy_pass` en el bloque de nginx del paso 3),
+no el dominio público: así el cron no depende de DNS/SSL ni pasa por
+mantenimiento (`/api/cron` ya está exceptuado en `middleware.ts`, pero pasar
+por nginx sería un salto innecesario para una llamada interna).
+
 ---
 
 ## Resumen del flujo

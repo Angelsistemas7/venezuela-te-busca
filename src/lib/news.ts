@@ -355,6 +355,36 @@ async function fetchFromGNews(fetchLimit: number): Promise<NewsArticle[]> {
  * última lista buena guardada (memoria o disco) — solo si NUNCA hubo una
  * lista buena devuelve [] (y el carrusel cae a Google Noticias sin foto).
  */
+// Pedido en curso para refrescar la caché, compartido entre llamadas
+// concurrentes: sin esto, dos visitas que llegan justo cuando la caché venció
+// disparan cada una su propia ronda de GDELT/GNews/OpenAI en paralelo — gasto
+// duplicado, y GNews solo da 100 peticiones/día gratis. Con esto, la segunda
+// llamada espera el mismo resultado que ya disparó la primera en vez de
+// repetirlo. Se limpia apenas termina (éxito o error) para no quedar pegado.
+let verifiedNewsInflight: Promise<NewsArticle[]> | null = null;
+
+// Hace el refresco real UNA sola vez (guarda en caché de memoria/disco
+// adentro) sin importar cuántas llamadas concurrentes esperen esta misma
+// promesa — así no se repite el `saveDiskCache()` por cada una.
+async function refreshVerifiedNews(fetchLimit: number, fetchedAt: number): Promise<NewsArticle[]> {
+  let fresh = await fetchFromGdelt(fetchLimit);
+  let sourceUsed = "GDELT";
+  if (fresh.length === 0) {
+    fresh = await fetchFromGNews(fetchLimit);
+    sourceUsed = "GNews";
+  }
+
+  if (fresh.length === 0) {
+    console.error("[news] getVerifiedNews: GDELT y GNews fallaron, usando última caché si hay");
+    return verifiedNewsCache?.articles ?? [];
+  }
+
+  console.log("[news] getVerifiedNews: usando", sourceUsed, "-", fresh.length, "artículos");
+  verifiedNewsCache = { articles: fresh, fetchedAt };
+  await saveDiskCache();
+  return fresh;
+}
+
 export async function getVerifiedNews(limit = 10): Promise<NewsArticle[]> {
   await loadDiskCacheOnce();
   const now = Date.now();
@@ -368,22 +398,13 @@ export async function getVerifiedNews(limit = 10): Promise<NewsArticle[]> {
   // descarta el resto si hay suficiente.
   const fetchLimit = Math.max(limit * 2, 20);
 
-  let fresh = await fetchFromGdelt(fetchLimit);
-  let sourceUsed = "GDELT";
-  if (fresh.length === 0) {
-    fresh = await fetchFromGNews(fetchLimit);
-    sourceUsed = "GNews";
+  if (!verifiedNewsInflight) {
+    verifiedNewsInflight = refreshVerifiedNews(fetchLimit, now).finally(() => {
+      verifiedNewsInflight = null;
+    });
   }
-
-  if (fresh.length === 0) {
-    console.error("[news] getVerifiedNews: GDELT y GNews fallaron, usando última caché si hay");
-    return verifiedNewsCache?.articles.slice(0, limit) ?? [];
-  }
-
-  console.log("[news] getVerifiedNews: usando", sourceUsed, "-", fresh.length, "artículos");
-  verifiedNewsCache = { articles: fresh, fetchedAt: now };
-  await saveDiskCache();
-  return fresh.slice(0, limit);
+  const articles = await verifiedNewsInflight;
+  return articles.slice(0, limit);
 }
 
 /**
@@ -572,13 +593,12 @@ const CRISIS_LABELS: Record<string, string> = {
   afectados: "Personas afectadas",
 };
 
-export async function getCrisisStats(): Promise<CrisisStats> {
-  await loadCrisisStatsDiskCacheOnce();
-  const now = Date.now();
-  if (crisisStatsCache && now - crisisStatsCache.fetchedAt < CRISIS_STATS_TTL_MS) {
-    return crisisStatsCache.stats;
-  }
+// Mismo candado que verifiedNewsInflight (ver ahí el porqué): sin esto, dos
+// visitas llegando justo cuando la caché de cifras vence disparan cada una su
+// propia llamada a OpenAI (la más cara de las dos cachés de este archivo).
+let crisisStatsInflight: Promise<CrisisStats> | null = null;
 
+async function refreshCrisisStats(fetchedAt: number): Promise<CrisisStats> {
   // Se combinan dos fuentes de titulares: la búsqueda dedicada a víctimas
   // (más cobertura de esos términos específicos) y el mismo pool "verificado"
   // que ya se muestra en el carrusel del home. Así la cifra del banner nunca
@@ -625,7 +645,22 @@ export async function getCrisisStats(): Promise<CrisisStats> {
   const gotSomething = Object.values(stats).some(Boolean);
   if (!gotSomething && crisisStatsCache) return crisisStatsCache.stats;
 
-  crisisStatsCache = { stats, fetchedAt: now };
+  crisisStatsCache = { stats, fetchedAt };
   await saveCrisisStatsDiskCache();
   return stats;
+}
+
+export async function getCrisisStats(): Promise<CrisisStats> {
+  await loadCrisisStatsDiskCacheOnce();
+  const now = Date.now();
+  if (crisisStatsCache && now - crisisStatsCache.fetchedAt < CRISIS_STATS_TTL_MS) {
+    return crisisStatsCache.stats;
+  }
+
+  if (!crisisStatsInflight) {
+    crisisStatsInflight = refreshCrisisStats(now).finally(() => {
+      crisisStatsInflight = null;
+    });
+  }
+  return crisisStatsInflight;
 }
